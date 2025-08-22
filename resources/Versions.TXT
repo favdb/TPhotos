@@ -1,0 +1,13 @@
+TPhotos versions:
+
+2.03 : 06/10/2024
+- ajout de l'option "avec titre" pour l'export MP4
+2.02 : 04/10/2024
+- changement de JMOP en TPhotos
+2.00 : 13/09/2024
+- correction de quelques bugs
+- ajout de l'export
+1.00 : 06/09/2024
+- changement de JMPS en JMOP,
+- ajout des fonctions Album et Diaporama
+0.01 : version initale
