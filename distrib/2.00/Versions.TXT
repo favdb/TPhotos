@@ -1,0 +1,8 @@
+JMOP versions:
+
+0.01 : version initale
+1.00 : 06/09/2024
+- changement de JMPS en JMOP,
+- ajout des fonctions Album et Diaporama
+2.00 : 13/09/2024
+- ajout de l'export

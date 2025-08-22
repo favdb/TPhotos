@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<project name="JMOP" default="build-deb" basedir=".">
+
+    <!-- Définir les propriétés -->
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="deb.template.dir" value="deb_template"/>
+    <property name="deb.dir" value="deb_package"/>
+    <property name="jar.file" value="${dist.dir}/jmop.jar"/>
+
+    <!-- Nettoyer les répertoires de construction -->
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+        <delete dir="${deb.dir}"/>
+    </target>
+
+    <!-- Compiler les sources Java -->
+    <target name="compile">
+        <mkdir dir="${build.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false">
+            <classpath>
+                <!-- Dépendances -->
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- Créer le fichier JAR -->
+    <target name="jar" depends="compile">
+        <mkdir dir="${dist.dir}"/>
+        <jar destfile="${jar.file}" basedir="${build.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="com.example.MainClass"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <!-- Copier la structure préformatée et y ajouter le fichier JAR -->
+    <target name="prepare-deb-structure" depends="jar">
+        <!-- Copier la structure deb_template dans deb_package -->
+        <copy todir="${deb.dir}">
+            <fileset dir="${deb.template.dir}"/>
+        </copy>
+
+        <!-- Copier le fichier JAR dans le bon emplacement -->
+        <copy file="${jar.file}" todir="${deb.dir}/usr/share/jmop/"/>
+
+        <!-- Mettre à jour les informations dynamiques dans le fichier control si nécessaire -->
+        <replaceregexp file="${deb.dir}/DEBIAN/control"
+                       match="Version: .+"
+                       replace="Version: 1.0.0"
+                       byline="true"/>
+    </target>
+
+    <!-- Construire le paquet Debian avec dpkg-deb -->
+    <target name="build-deb" depends="prepare-deb-structure">
+        <exec executable="dpkg-deb">
+            <arg value="--build"/>
+            <arg value="${deb.dir}"/>
+            <arg value="${dist.dir}/jmop-1.0.0.deb"/>
+        </exec>
+        <echo message="Le paquet .deb a été généré dans ${dist.dir}/jmop-1.0.0.deb"/>
+    </target>
+
+</project>

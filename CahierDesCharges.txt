@@ -1,0 +1,18 @@
+Diaporama - Hypothése pour générer un slideshow:
+
+a) exporter le diaporama comme collection de fichiers JPEG
+b) via un export HTML+JavaSript
+contraintes: l'appareil de visuaisation doit disposer d'un Navigateur Web
+c) export au format vidéo (AVI, MPEG, MP4)
+
+Export en collection JPEG
+1- choisir un dossier d'export (si solution B le dossier sera temporaire)
+2- créer un JPanel, ou JFrame, virtuel de dimension fixe (genre 1280x720 ou 1920x1080)
+3- y poser la même chose que ce qui est fait dans Diaporama (image, commentaire)
+4- enregistrer le JPanel sous format JPEG, comme si c'était une capture d'écran
+
+Base
+5- si solution B, générer la structure HTML nécessaire
+6- si solution C, générer le fichier vidéo
+
+

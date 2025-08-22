@@ -1,0 +1,3 @@
+JMOP versions:
+0.01 : version initale
+1.00 : changement de JMPS en JMOP, ajout des fonctions Album et Diaporama
