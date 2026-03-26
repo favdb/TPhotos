@@ -19,8 +19,11 @@ package tools;
 
 import i18n.I18N;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ActionListener;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.AffineTransform;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -213,6 +216,12 @@ public class Ui {
 			m.addActionListener(action);
 		}
 		return m;
+	}
+
+	public static int getTextWidth(String str, Font font) {
+		AffineTransform at = new AffineTransform();
+		FontRenderContext frc = new FontRenderContext(at, true, true);
+		return (int) font.getStringBounds(str, frc).getWidth();
 	}
 
 }

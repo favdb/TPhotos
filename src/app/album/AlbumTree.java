@@ -23,12 +23,16 @@ import i18n.I18N;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -37,8 +41,10 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
+import tools.file.FileUtil;
 
 /**
+ * JTree for the files
  *
  * @author favdb
  */
@@ -65,8 +71,19 @@ public class AlbumTree extends JTree {
 		this.expandRow(0);
 		setCellRenderer(new CellRenderer());
 		addKeyListener(new KeyActions(this));
+		MouseActions mouseActions = new MouseActions(this);
+		addMouseListener(mouseActions);
+		addMouseMotionListener(mouseActions);
+		javax.swing.ToolTipManager.sharedInstance().registerComponent(this);
 	}
 
+	/**
+	 * get the sub folder name
+	 *
+	 * @param date
+	 * @param mode 0 year only, 1=with year and month, 2=with year, month and day
+	 * @return
+	 */
 	public static String getSubdir(String date, int mode) {
 		StringBuilder subdir = new StringBuilder();
 		if (mode < 3) {
@@ -82,6 +99,11 @@ public class AlbumTree extends JTree {
 		return subdir.toString();
 	}
 
+	/**
+	 * select the given file
+	 *
+	 * @param s
+	 */
 	public void select(File s) {
 		@SuppressWarnings("unchecked")
 		Enumeration<DefaultMutableTreeNode> e = rootNode.depthFirstEnumeration();
@@ -95,6 +117,60 @@ public class AlbumTree extends JTree {
 		}
 	}
 
+	/**
+	 * delete selected nodes
+	 */
+	public void deleteSelection() {
+		TreePath[] paths = getSelectionPaths();
+		if (paths == null || paths.length == 0) {
+			return;
+		}
+
+		List<File> filesToDelete = new ArrayList<>();
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < paths.length; i++) {
+			if (i > 0) {
+				sb.append("\n");
+			}
+			File file = (File) ((DefaultMutableTreeNode) paths[i].getLastPathComponent()).getUserObject();
+			sb.append(file.getAbsolutePath());
+			filesToDelete.add(file);
+		}
+
+		// Confirmation si l'option est activée dans les préférences
+		if (App.preferences.getBoolean(Pref.KEY.ASK_DELETE)) {
+			Object[] options = {I18N.getMsg("ask.yes"), I18N.getMsg("ask.no")};
+			int choice = JOptionPane.showOptionDialog(this,
+					I18N.getMsg("ask.delete", sb.toString()), I18N.getMsg("ask.confirm"),
+					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+					null, options, options[1]);
+
+			if (choice != JOptionPane.YES_OPTION) {
+				return;
+			}
+		}
+
+		// Suppression physique et mise à jour visuelle
+		int deleted = 0;
+		DefaultTreeModel model = (DefaultTreeModel) getModel();
+		for (int i = 0; i < paths.length; i++) {
+			File f = filesToDelete.get(i);
+			if (f.isDirectory()) {
+				if (FileUtil.dirDelete(f)) {
+					deleted++;
+				}
+			} else if (f.delete()) {
+				deleted++;
+			}
+		}
+		if (deleted > 0) {
+			albumPanel.refreshAll();
+		}
+	}
+
+	/**
+	 * reload the tree
+	 */
 	public void reload() {
 		rootNode.removeAllChildren();
 		DefaultTreeModel model = (DefaultTreeModel) getModel();
@@ -105,6 +181,12 @@ public class AlbumTree extends JTree {
 		expandPath(new TreePath(model.getRoot()));
 	}
 
+	/**
+	 * get the path of the given node
+	 *
+	 * @param node
+	 * @return
+	 */
 	public String getPath(DefaultMutableTreeNode node) {
 		TreeNode[] nodes = node.getPath();
 		if (nodes.length < 4) {
@@ -123,6 +205,12 @@ public class AlbumTree extends JTree {
 		return rootDir + File.separator + rc.toString();
 	}
 
+	/**
+	 * create a children node
+	 *
+	 * @param fileRoot
+	 * @param node
+	 */
 	public void createChildren(File fileRoot, DefaultMutableTreeNode node) {
 		//LOG.trace(TT + "createChildren(root=" + fileRoot.getName() + ", node=" + node.getPath() + ")");
 		File[] files = fileRoot.listFiles();
@@ -132,7 +220,7 @@ public class AlbumTree extends JTree {
 		Arrays.sort(files);
 		for (File file : files) {
 			DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(file);
-			if (App.jpegIs(file) || file.isDirectory()) {
+			if (/*App.jpegIs(file) || */file.isDirectory()) {
 				node.add(childNode);
 			}
 			if (file.isDirectory()) {
@@ -141,6 +229,9 @@ public class AlbumTree extends JTree {
 		}
 	}
 
+	/**
+	 * cell renderer
+	 */
 	private static class CellRenderer extends DefaultTreeCellRenderer {
 
 		public CellRenderer() {
@@ -167,11 +258,14 @@ public class AlbumTree extends JTree {
 
 	}
 
+	/**
+	 * keyboard listener
+	 */
 	private static class KeyActions implements KeyListener {
 
-		private final JTree tree;
+		private final AlbumTree tree;
 
-		public KeyActions(JTree tree) {
+		public KeyActions(AlbumTree tree) {
 			this.tree = tree;
 		}
 
@@ -181,39 +275,7 @@ public class AlbumTree extends JTree {
 			int key = e.getKeyCode();
 			char keychar = e.getKeyChar();
 			if (keychar == 0x007F) {
-				TreePath[] paths = tree.getSelectionPaths();
-				if (paths.length == 0) {
-					return;
-				}
-				List<File> ls = new ArrayList<>();
-				StringBuilder b = new StringBuilder();
-				for (int i = 0; i < paths.length; i++) {
-					if (i > 0) {
-						b.append("\n");
-					}
-					File file = new File(paths[i].getLastPathComponent().toString());
-					b.append(file.getAbsolutePath());
-					ls.add(file);
-				}
-				if (App.preferences.getBoolean(Pref.KEY.ASK_DELETE)) {
-					Object[] options = {I18N.getMsg("ask.yes"), I18N.getMsg("ask.no")};
-					if (JOptionPane.showOptionDialog(tree,
-							I18N.getMsg("ask.delete", b.toString()), I18N.getMsg("ask.confirm"),
-							JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
-							null, options, options[1]) != JOptionPane.YES_OPTION) {
-						return;
-					}
-				}
-				for (File f : ls) {
-					f.delete();
-				}
-				DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
-				for (TreePath path : paths) {
-					DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
-					if (node.getParent() != null) {
-						model.removeNodeFromParent(node);
-					}
-				}
+				tree.deleteSelection();
 			}
 		}
 
@@ -228,4 +290,65 @@ public class AlbumTree extends JTree {
 		}
 	}
 
+	private class MouseActions extends MouseAdapter {
+
+		private final AlbumTree tree;
+
+		public MouseActions(AlbumTree tree) {
+			this.tree = tree;
+		}
+
+		@Override
+		public void mouseMoved(MouseEvent e) {
+			// --- SURVOL : Informations sur l'élément ---
+			TreePath path = tree.getPathForLocation(e.getX(), e.getY());
+			if (path != null) {
+				DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+				File file = (File) node.getUserObject();
+				// On affiche le chemin absolu en ToolTip
+				if (file.isDirectory()) {
+					int nb = FileUtil.getNbElement(file);
+					tree.setToolTipText(file.getAbsolutePath() + " (" + nb + ")");
+				} else {
+					tree.setToolTipText(file.getAbsolutePath());
+				}
+			} else {
+				tree.setToolTipText(null);
+			}
+		}
+
+		@Override
+		public void mousePressed(MouseEvent e) {
+			if (e.isPopupTrigger()) {
+				showMenu(e);
+			}
+		}
+
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			if (e.isPopupTrigger()) {
+				showMenu(e);
+			}
+		}
+
+		private void showMenu(MouseEvent e) {
+			TreePath path = tree.getPathForLocation(e.getX(), e.getY());
+			if (path != null) {
+				tree.setSelectionPath(path);
+				JPopupMenu popup = new JPopupMenu();
+				JMenuItem itemAdd = new JMenuItem(I18N.getMsg("album.add"));//add to album
+				itemAdd.addActionListener(al -> {
+					albumPanel.btAddAction();
+				});
+				popup.add(itemAdd);
+				popup.addSeparator();
+				JMenuItem itemDelete = new JMenuItem(I18N.getMsg("action.delete"));
+				itemDelete.setIcon(IconUtil.getIconSmall(ICONS.K.CANCEL)); // Si tu as une icône delete
+				itemDelete.addActionListener(al -> tree.deleteSelection());
+				popup.add(itemDelete);
+
+				popup.show(tree, e.getX(), e.getY());
+			}
+		}
+	}
 }

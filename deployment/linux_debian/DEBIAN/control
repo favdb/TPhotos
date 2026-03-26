@@ -6,7 +6,7 @@ Description: manage photos,
  gestion simplifiée de photos
  création d'album
  visualisation et exportation.
-Version: 2.03
+Version: 3.01
 Depends: default-jre | default-jdk
 Maintainer: TPhotos Team <pas66430@free.fr>
 Homepage: http://pas66430.free.fr/TPhotos

@@ -37,7 +37,7 @@ import javax.swing.JRadioButton;
 import resources.icons.ICONS;
 import resources.icons.IconButton;
 import tools.LAF;
-import tools.MIG;
+import api.mig.MIG;
 import tools.Ui;
 
 /**

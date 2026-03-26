@@ -34,22 +34,20 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
-import tools.MIG;
+import api.mig.MIG;
 
 /**
+ * class for diaporama
  *
  * @author favdb
  */
 public class Diaporama extends JFrame {
 
-	private JLabel lbImage;
-	private static Dimension SCREEN = Toolkit.getDefaultToolkit().getScreenSize();
-	private int SZIMAGE;
-
-	private JLabel lbText;
+	private static final Dimension SCREEN = Toolkit.getDefaultToolkit().getScreenSize();
 	private final MainFrame mainFrame;
-	private int nbImage;
 	private AlbumTable table;
+	private JLabel lbImage, lbText;
+	private int nbImage, curImage = 0;
 
 	public Diaporama(MainFrame mainFrame) {
 		super();
@@ -58,6 +56,9 @@ public class Diaporama extends JFrame {
 
 	}
 
+	/**
+	 * initialize the class
+	 */
 	private void initialize() {
 		table = mainFrame.getAlbumPanel().getTable();
 		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -74,6 +75,12 @@ public class Diaporama extends JFrame {
 		});
 	}
 
+	/**
+	 * initialize the image JPanel
+	 *
+	 * @param p
+	 * @return
+	 */
 	public JPanel initImage(JPanel p) {
 		p.setBackground(Color.BLACK);
 		p.setForeground(Color.BLUE);
@@ -94,6 +101,12 @@ public class Diaporama extends JFrame {
 		return p;
 	}
 
+	/**
+	 * set the image
+	 *
+	 * @param file
+	 * @param text
+	 */
 	public void setImage(File file, String text) {
 		int sz = SCREEN.height - (int) (lbText.getFont().getSize() * 2);
 		updateSize(lbImage, sz);
@@ -101,16 +114,24 @@ public class Diaporama extends JFrame {
 		lbText.setText(text.trim());
 	}
 
+	/**
+	 * update size of the given component
+	 *
+	 * @param comp
+	 * @param sz
+	 */
 	private void updateSize(JComponent comp, int sz) {
-		//int sz = SCREEN.height - (lbText.getFont().getSize() * 2);
 		Dimension dim = new Dimension(SCREEN.width, sz);
 		comp.setMaximumSize(dim);
 		comp.setMinimumSize(dim);
 		comp.setPreferredSize(SCREEN);
 	}
 
-	int curImage = 0;
-
+	/**
+	 * image navigation
+	 *
+	 * @param n
+	 */
 	public void navImage(int n) {
 		if (n == Integer.MAX_VALUE) {
 			curImage = table.getRowCount() - 1;
@@ -126,10 +147,16 @@ public class Diaporama extends JFrame {
 		setImage((File) table.getValueAt(curImage, 1), (String) table.getValueAt(curImage, 2));
 	}
 
+	/**
+	 * close this
+	 */
 	public void close() {
 		dispose();
 	}
 
+	/**
+	 * key listener
+	 */
 	private class KeyListener implements java.awt.event.KeyListener {
 
 		public KeyListener() {

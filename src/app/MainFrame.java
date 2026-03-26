@@ -17,6 +17,7 @@
  */
 package app;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.album.Album;
 import app.album.AlbumParam;
@@ -34,7 +35,6 @@ import javax.swing.JPanel;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
 import tools.LOG;
-import tools.MIG;
 
 /**
  *
@@ -67,7 +67,7 @@ public class MainFrame extends JFrame {
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setMaximumSize(sz);
 		appMenu = new MainMenu();
-		add(appMenu.getToolBar(), MIG.get(MIG.GROWX));
+		add(appMenu.getToolBar(), MIG.get(MIG.GROWX, MIG.TOP));
 		panel = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.GAP0, MIG.INS0)));
 		panel.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
 		add(panel, MIG.get(MIG.GROW));
@@ -94,6 +94,10 @@ public class MainFrame extends JFrame {
 		}
 		dispose();
 		App.exit();
+	}
+
+	public void doNavigation() {
+
 	}
 
 	public void doAlbum() {
@@ -124,7 +128,7 @@ public class MainFrame extends JFrame {
 
 	public void updateTitle() {
 		StringBuilder b = new StringBuilder();
-		String modif = album.getTable().isModified() ? "*" : " ";
+		String modif = " ";//album.getTable().isModified() ? "*" : " ";
 		b.append(modif);
 		b.append(Const.getFullName()).append(" ");
 		if (appMenu.btSorter != null) {

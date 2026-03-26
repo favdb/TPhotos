@@ -36,7 +36,6 @@ import tools.LAF;
 import tools.LOG;
 import tools.file.EnvUtil;
 import tools.file.FileUtil;
-import tools.xml.XML;
 import tools.xml.Xml;
 
 /**
@@ -110,7 +109,7 @@ public class App {
 		}
 		prefInit();
 		fontInit();
-		LAF.set();
+		LAF.init();
 		if (lang.isEmpty()) {
 			I18N.initMessages(Locale.getDefault());
 		} else {
@@ -148,7 +147,7 @@ public class App {
 	}
 
 	/**
-	 * set the current Font
+	 * init the current Font
 	 *
 	 * @param font
 	 */
@@ -246,7 +245,7 @@ public class App {
 	}
 
 	/**
-	 * set the album File
+	 * init the album File
 	 *
 	 * @param file
 	 */
@@ -291,7 +290,7 @@ public class App {
 		if (!file.exists()) {
 			//create an empty Album file
 			FileUtil.fileWriteString(file,
-					XML.getHeader()
+					Xml.getHeader()
 					+ String.format("<album title=\"%s\">", FileUtil.removeExtension(file.getName()))
 					+ "<pref mode=\"0\" tempo=\"0\" comment=\"{JJ/MM/AA}\" />"
 					+ "<list/>"

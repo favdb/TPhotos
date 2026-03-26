@@ -23,20 +23,20 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import resources.icons.ICONS;
-import tools.MIG;
+import api.mig.MIG;
 import tools.Ui;
 
 /**
  *
  * @author favdb
  */
-public class TempoDlg extends JDialog {
+public class ExportTempoDlg extends JDialog {
 
 	private final MainFrame mainFrame;
 	private int tempo = 5;
 	private JTextField tfTempo;
 
-	public TempoDlg(MainFrame mainFrame) {
+	public ExportTempoDlg(MainFrame mainFrame) {
 		super(mainFrame, true);
 		this.mainFrame = mainFrame;
 		initialize();

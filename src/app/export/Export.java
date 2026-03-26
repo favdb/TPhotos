@@ -53,12 +53,12 @@ import resources.icons.IconUtil;
 import tools.FFmpeg;
 import tools.Html;
 import tools.LOG;
-import tools.MIG;
+import api.mig.MIG;
 import tools.Ui;
 import tools.file.CopyFileDlg;
 import tools.file.EnvUtil;
 import tools.file.FileUtil;
-import tools.xml.XML;
+import tools.xml.Xml;
 
 /**
  * JDialog to copy multiple images to a destination folder
@@ -482,7 +482,7 @@ public class Export extends AbstractFrame {
 		addInfos("<br>" + I18N.getMsg("export.format.simple_make"));
 		String fx = FileUtil.removeExtension(mainFrame.getAlbumPanel().albumNameGet());
 		File outfile = new File(dirDest, fx + ".xml");
-		StringBuilder b = new StringBuilder(XML.getHeader())
+		StringBuilder b = new StringBuilder(Xml.getHeader())
 				.append("<album>\n")
 				.append("   <list>\n");
 		for (AlbumItem item : items) {

@@ -1,5 +1,8 @@
 TPhotos versions:
 
+3.01 : 01/04/2026 (changement interface)
+2.05 : 25/02/2026 (petites corrections L&F)
+2.04 : 01/09/2025 (petites corrections)
 2.03 : 06/10/2024
 - ajout de l'option "avec titre" pour l'export MP4
 2.02 : 04/10/2024

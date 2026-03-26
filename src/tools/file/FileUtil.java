@@ -355,6 +355,12 @@ public class FileUtil {
 		fileDelete(infile);
 	}
 
+	/**
+	 * return a list of Files for the given directory
+	 *
+	 * @param dir
+	 * @return
+	 */
 	public static List<File> computeList(File dir) {
 		List<File> ls = new ArrayList<>();
 		if (dir.exists()) {
@@ -370,6 +376,17 @@ public class FileUtil {
 			}
 		}
 		return ls;
+	}
+
+	/**
+	 * get number of element into the given directory
+	 *
+	 * @param file
+	 * @return
+	 */
+	public static int getNbElement(File file) {
+		List<File> ls = computeList(file);
+		return ls.size();
 	}
 
 	public boolean fileMove(String sourcePath, String targetPath) {
@@ -594,11 +611,11 @@ public class FileUtil {
 	/**
 	 * cleanup a file name
 	 *
-	 * @param strin
+	 * @param name
 	 * @return
 	 */
-	public static String cleanupFilename(String strin) {
-		String str = strin.replaceAll("[\\/:*?\"<>|]", "");
+	public static String cleanupFilename(String name) {
+		String str = name.replaceAll("[\\/:*?\"<>|]", "");
 		str = str.replace("\\\\", "");
 		return str;
 	}

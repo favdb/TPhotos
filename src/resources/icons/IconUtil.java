@@ -446,7 +446,12 @@ public class IconUtil {
 		return resizeIcon(img, zoom);
 	}
 
-	public static Icon getJpegIconFromFile(File file, Dimension sz) {
+	public static Icon getJpegIconFromFile(File file, int sz) {
+		ImageIcon img = getJpegIconFromFile(file, new Dimension(0, 0));
+		return resizeIcon(img, sz);
+	}
+
+	public static ImageIcon getJpegIconFromFile(File file, Dimension sz) {
 		ImageIcon icon = getImageIcon(ICONS.K.UNKNOWN, sz.width);
 		try {
 			BufferedImage img = ImageIO.read(file);

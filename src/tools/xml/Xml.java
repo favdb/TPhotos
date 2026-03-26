@@ -59,6 +59,10 @@ public class Xml {
 			+ " encoding=\"UTF-8\""
 			+ "?>\n";
 
+	public static String getHeader() {
+		return "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
+	}
+
 	public static String xmlToText(String xmlText) {
 		return xmlText;
 	}

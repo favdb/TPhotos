@@ -17,6 +17,7 @@
  */
 package tools.file;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.AbstractFrame;
 import app.App;
@@ -32,7 +33,6 @@ import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import tools.Html;
 import tools.LOG;
-import tools.MIG;
 import tools.jpeg.Jpeg;
 
 /**
@@ -103,7 +103,7 @@ public class CopyFileDlg extends JDialog {
 	}
 
 	private void initialize() {
-		setTitle("copying files");
+		setTitle(I18N.getMsg("organise.inprogress"));
 		setLayout(new MigLayout(MIG.WRAP1));
 		addReport(I18N.getMsg("photo.copy", new Object[]{
 			items.size(), I18N.getMsg(items.size() > 1 ? "files" : "file")
@@ -158,7 +158,7 @@ public class CopyFileDlg extends JDialog {
 		//LOG.trace(TT + "nextFile() i=" + i);
 		AlbumItem item = items.get(i);
 		File infile = item.file;
-		lbFile.setText(infile.getAbsolutePath());
+		lbFile.setText(infile.getName());
 		pbar.setValue(i + 1);
 		pbar.setString(i + 1 + "/" + items.size());
 		pack();

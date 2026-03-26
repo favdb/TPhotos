@@ -1,4 +1,4 @@
-package app.album;
+package tools;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -31,7 +31,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 			isColumnDataIncluded,
 			isOnlyAdjustLarger,
 			isDynamicAdjustment;
-	private Map<TableColumn, Integer> columnSizes = new HashMap<>();
+	private final Map<TableColumn, Integer> columnSizes = new HashMap<>();
 
 	/**
 	 * Specify the table and use default spacing
@@ -179,37 +179,37 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 	/**
 	 * Indicates whether to include the header in the width calculation
 	 *
-	 * @param isColumnHeaderIncluded
+	 * @param value
 	 */
-	public void setColumnHeaderIncluded(boolean isColumnHeaderIncluded) {
-		this.isColumnHeaderIncluded = isColumnHeaderIncluded;
+	public void setColumnHeaderIncluded(boolean value) {
+		this.isColumnHeaderIncluded = value;
 	}
 
 	/**
 	 * Indicates whether to include the model data in the width calculation
 	 *
-	 * @param isColumnDataIncluded
+	 * @param value
 	 */
-	public void setColumnDataIncluded(boolean isColumnDataIncluded) {
-		this.isColumnDataIncluded = isColumnDataIncluded;
+	public void setColumnDataIncluded(boolean value) {
+		this.isColumnDataIncluded = value;
 	}
 
 	/*
 	 *	Indicates whether columns can only be increased in size
 	 */
-	public void setOnlyAdjustLarger(boolean isOnlyAdjustLarger) {
-		this.isOnlyAdjustLarger = isOnlyAdjustLarger;
+	public void setOnlyAdjustLarger(boolean value) {
+		this.isOnlyAdjustLarger = value;
 	}
 
 	/**
 	 * Indicate whether changes to the model should cause the width to be dynamically recalculated.
 	 *
-	 * @param isDynamicAdjustment
+	 * @param value
 	 */
-	public void setDynamicAdjustment(boolean isDynamicAdjustment) {
+	public void setDynamicAdjustment(boolean value) {
 		//  May need to add or remove the TableModelListener when changed
-		if (this.isDynamicAdjustment != isDynamicAdjustment) {
-			if (isDynamicAdjustment) {
+		if (this.isDynamicAdjustment != value) {
+			if (value) {
 				table.addPropertyChangeListener(this);
 				table.getModel().addTableModelListener(this);
 			} else {
@@ -217,7 +217,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 				table.getModel().removeTableModelListener(this);
 			}
 		}
-		this.isDynamicAdjustment = isDynamicAdjustment;
+		this.isDynamicAdjustment = value;
 	}
 
 	/**
@@ -367,4 +367,5 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
 			}
 		}
 	}
+
 }

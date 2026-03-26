@@ -39,7 +39,7 @@ import javax.swing.SwingUtilities;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
 import tools.DateUtil;
-import tools.MIG;
+import api.mig.MIG;
 import tools.Ui;
 import tools.file.FileUtil;
 import tools.jpeg.Jpeg;

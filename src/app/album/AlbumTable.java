@@ -18,12 +18,18 @@
 package app.album;
 
 import app.App;
+import i18n.I18N;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import static java.awt.event.KeyEvent.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.File;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.table.DefaultTableModel;
@@ -32,8 +38,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
+import tools.TableColumnAdjuster;
 import tools.file.FileUtil;
-import tools.xml.XML;
 import tools.xml.Xml;
 
 /**
@@ -44,17 +50,21 @@ public class AlbumTable extends JTable {
 
 	private static final String TT = "AlbumTable.";
 	public Xml xml;
-	private final Album albumPanel;
+	private final Album album;
 	private boolean modified = false;
 
-	public AlbumTable(Album albumPanel) {
+	public AlbumTable(Album album) {
 		super();
-		this.albumPanel = albumPanel;
+		this.album = album;
 		initialize();
 	}
 
 	public boolean isModified() {
 		return modified;
+	}
+
+	public Album getAlbumPanel() {
+		return album;
 	}
 
 	private void initialize() {
@@ -96,8 +106,14 @@ public class AlbumTable extends JTable {
 		TableColumnAdjuster tca = new TableColumnAdjuster(this);
 		tca.adjustColumns();
 		this.addKeyListener(new KeyListener(this));
+		this.addMouseListener(new TableMouse(this));
 	}
 
+	/**
+	 * load the table for the given XML file
+	 *
+	 * @param xml
+	 */
 	public void load(Xml xml) {
 		//LOG.trace(TT + "load(xml)");
 		this.xml = xml;
@@ -108,7 +124,7 @@ public class AlbumTable extends JTable {
 			for (int i = 0; i < nodes.getLength(); i++) {
 				Element child = (Element) nodes.item(i);
 				Object[] objs = {
-					i + 1,//Integer.valueOf(child.getAttribute("id")),
+					i + 1,
 					new File(App.preferences.photosDirGet() + File.separator + child.getAttribute("file")),
 					child.getAttribute("comment")
 				};
@@ -119,6 +135,9 @@ public class AlbumTable extends JTable {
 		App.updateTitle();
 	}
 
+	/**
+	 * remove the selected rows
+	 */
 	void removeSelectedRows() {
 		if (isEditing()) {
 			getCellEditor().stopCellEditing();
@@ -130,8 +149,14 @@ public class AlbumTable extends JTable {
 		}
 		renumber();
 		this.clearSelection();
+		album.refreshAll();
 	}
 
+	/**
+	 * add given rows in the table
+	 *
+	 * @param objs
+	 */
 	void addRow(Object[] objs) {
 		//LOG.trace(TT + "addRow(objs=" + objs.toString() + ")");
 		DefaultTableModel model = (DefaultTableModel) this.getModel();
@@ -139,6 +164,11 @@ public class AlbumTable extends JTable {
 		renumber();
 	}
 
+	/**
+	 * add the given AlbumItem into the table
+	 *
+	 * @param item
+	 */
 	void addRow(AlbumItem item) {
 		Object[] objs = {item.id, item.file, item.text};
 		DefaultTableModel model = (DefaultTableModel) this.getModel();
@@ -146,6 +176,9 @@ public class AlbumTable extends JTable {
 		renumber();
 	}
 
+	/**
+	 * move the current selected row up by one
+	 */
 	private void mouveUp() {
 		//LOG.trace(TT + "moveUp()");
 		int row = getSelectedRow();
@@ -158,6 +191,9 @@ public class AlbumTable extends JTable {
 		setRowSelectionInterval(row - 1, row - 1);
 	}
 
+	/**
+	 * move the current selected row down by one
+	 */
 	private void moveDown() {
 		//LOG.trace(TT + "moveDown()");
 		int row = getSelectedRow();
@@ -170,6 +206,20 @@ public class AlbumTable extends JTable {
 		setRowSelectionInterval(row + 1, row + 1);
 	}
 
+	/**
+	 * update the comment
+	 *
+	 * @param row
+	 * @param comment
+	 */
+	public void updateComment(int row, String comment) {
+		DefaultTableModel model = (DefaultTableModel) getModel();
+		model.setValueAt(comment, row, 2);
+	}
+
+	/**
+	 * renumber the row
+	 */
 	private void renumber() {
 		for (int i = 1; i < getRowCount(); i++) {
 			this.setValueAt(i + 1, i, 0);
@@ -178,16 +228,26 @@ public class AlbumTable extends JTable {
 		App.updateTitle();
 	}
 
+	/**
+	 * get the XML file
+	 *
+	 * @return
+	 */
 	public Xml getXml() {
 		return xml;
 	}
 
+	/**
+	 * save the table into an album XML file
+	 *
+	 * @param title
+	 */
 	public void save(String title) {
 		//LOG.trace(TT + "save()");
 		if (modified && xml != null) {
-			StringBuilder b = new StringBuilder(XML.getHeader())
+			StringBuilder b = new StringBuilder(Xml.getHeader())
 					.append("<album title=\"").append(title).append("\">\n")
-					.append(albumPanel.getAlbumParam().toXml())
+					.append(album.getAlbumParam().toXml())
 					.append("   <list>\n");
 			for (int i = 0; i < this.getRowCount(); i++) {
 				b.append(rowToXml(i));
@@ -199,6 +259,12 @@ public class AlbumTable extends JTable {
 		}
 	}
 
+	/**
+	 * set the row into String
+	 *
+	 * @param i
+	 * @return
+	 */
 	private String rowToXml(int i) {
 		Integer id = (Integer) getValueAt(i, 0);
 		String file = ((File) getValueAt(i, 1)).getAbsolutePath()
@@ -211,11 +277,17 @@ public class AlbumTable extends JTable {
 				+ " />\n";
 	}
 
+	/**
+	 * set the modified tag
+	 */
 	public void setModified() {
 		modified = true;
 		App.updateTitle();
 	}
 
+	/**
+	 * KeyListener for the album table
+	 */
 	private static class KeyListener implements java.awt.event.KeyListener {
 
 		private final AlbumTable table;
@@ -253,6 +325,56 @@ public class AlbumTable extends JTable {
 		}
 	}
 
+	/**
+	 * Mouse listener for the album table
+	 */
+	private static class TableMouse implements MouseListener {
+
+		private final AlbumTable table;
+
+		public TableMouse(AlbumTable albumTable) {
+			this.table = albumTable;
+		}
+
+		@Override
+		public void mouseClicked(MouseEvent e) {
+			if (SwingUtilities.isRightMouseButton(e)) {
+				if (table.getSelectedRows().length > 1) {
+					JPopupMenu popupMenu = new JPopupMenu();
+					JMenuItem item1 = new JMenuItem(I18N.getMsg("album.modify.comments"));
+					item1.addActionListener(act -> table.getAlbumPanel().changeComments());
+					popupMenu.add(item1);
+					popupMenu.show(e.getComponent(), e.getX(), e.getY());
+				}
+			}
+
+		}
+
+		@Override
+		public void mousePressed(MouseEvent e) {
+			//empty
+		}
+
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			//empty
+		}
+
+		@Override
+		public void mouseEntered(MouseEvent e) {
+			//empty
+		}
+
+		@Override
+		public void mouseExited(MouseEvent e) {
+			//empty
+		}
+
+	}
+
+	/**
+	 * renderer for the table
+	 */
 	public class FileRenderer extends JLabel implements TableCellRenderer {
 
 		@Override

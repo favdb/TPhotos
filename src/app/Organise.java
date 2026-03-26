@@ -17,6 +17,7 @@
  */
 package app;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.album.AlbumItem;
 import i18n.I18N;
@@ -39,14 +40,14 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
 import tools.Html;
-import tools.MIG;
+import tools.LOG;
 import tools.Ui;
 import tools.file.CopyFileDlg;
 import tools.file.EnvUtil;
-import tools.file.FileUtil;
 
 /**
  * class to organize the photos folder
@@ -161,14 +162,71 @@ public class Organise extends AbstractFrame {
 		btOrganiser.setEnabled(nb > 0);
 	}
 
+	/**
+	 * begining task for copying files
+	 */
 	@Override
 	public void doCopyBegin() {
-		//LOG.trace(TT + "doCopyBegin()");
 		if (tfFolder == null || tfFolder.getText().isEmpty()) {
 			return;
 		}
 		File dir = new File(tfFolder.getText());
-		List<File> files = FileUtil.computeList(dir);
+
+		btOrganiser.setEnabled(false);
+		setCursor(new Cursor(Cursor.WAIT_CURSOR));
+
+		new SwingWorker<List<File>, String>() {
+
+			@Override
+			protected List<File> doInBackground() throws Exception {
+				List<File> allFiles = new ArrayList<>();
+				scanRecursive(dir, allFiles);
+				return allFiles;
+			}
+
+			private void scanRecursive(File currentDir, List<File> allFiles) {
+				if (currentDir.exists() && currentDir.isDirectory()) {
+					publish(currentDir.getAbsolutePath());
+
+					File[] fls = currentDir.listFiles();
+					if (fls == null) {
+						return;
+					}
+
+					for (File f : fls) {
+						if (f.isDirectory()) {
+							scanRecursive(f, allFiles);
+						} else if (f.isFile() && App.jpegIs(f)) {
+							allFiles.add(f);
+						}
+					}
+				}
+			}
+
+			@Override
+			protected void process(List<String> chunks) {
+				String lastDir = chunks.get(chunks.size() - 1);
+				taInfosAdd(Html.intoP("<i>" + I18N.getMsg("organise.scan") + " : " + lastDir + "</i>"));
+			}
+
+			@Override
+			protected void done() {
+				try {
+					List<File> files = get();
+					continueCopyProcess(files, dir);
+				} catch (Exception e) {
+					LOG.err(I18N.getMsg("organise.scan_error"), e);
+					setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+					btOrganiser.setEnabled(true);
+				}
+			}
+		}.execute();
+	}
+
+	/**
+	 * Suite logique du traitement après le scan des fichiers
+	 */
+	private void continueCopyProcess(List<File> files, File dir) {
 		if (files.isEmpty()) {
 			taInfosAdd(Html.intoP(Html.intoRed(I18N.getMsg("photo.empty", dir.getAbsolutePath()))));
 			return;
@@ -180,13 +238,15 @@ public class Organise extends AbstractFrame {
 		for (File f : files) {
 			ls.add(new AlbumItem(id++, "", f));
 		}
+		//second step: copy the files to destination
 		File destDir = new File(App.preferences.photosDirGet());
 		taInfosAdd(Html.intoP(I18N.getMsg("organise.inprogress")));
 		setCursor(new Cursor(Cursor.WAIT_CURSOR));
 		Collections.sort(ls, (AlbumItem f1, AlbumItem f2)
 				-> f1.file.getAbsolutePath().compareTo(f2.file.getAbsolutePath()));
 		SwingUtilities.invokeLater(() -> {
-			CopyFileDlg cpf = new CopyFileDlg(this, ls, false, destDir, cbSorter.getSelectedIndex(), ckRemove.isSelected(), null);
+			CopyFileDlg cpf = new CopyFileDlg(this, ls, false, destDir,
+					cbSorter.getSelectedIndex(), ckRemove.isSelected(), null);
 			cpf.start();
 		});
 		btOrganiser.setEnabled(false);

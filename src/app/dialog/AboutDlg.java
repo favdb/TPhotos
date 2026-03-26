@@ -37,7 +37,7 @@ import resources.MainResources;
 import resources.icons.ICONS;
 import tools.Html;
 import tools.LOG;
-import tools.MIG;
+import api.mig.MIG;
 import tools.Ui;
 import tools.file.FileUtil;
 

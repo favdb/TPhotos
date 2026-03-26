@@ -34,6 +34,12 @@ import javax.swing.plaf.FontUIResource;
  */
 public class LAF {
 
+	private static final String TT = "Laf.";
+
+	public static int getScreenWidth() {
+		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+	}
+
 	public enum THEME {
 		activeCaptionBorder(new Color(163, 184, 204)),
 		activeCaption(new Color(184, 207, 229)),
@@ -345,12 +351,10 @@ public class LAF {
 		UIManager.put(tk.name().replace("_", "."), tk.get(App.preferences.darkGet()));
 	}
 
-	private static final String TT = "Laf.";
-
 	/**
 	 * load the Nimbus LAF and initialize
 	 */
-	public static void set() {
+	public static void init() {
 		setFont();
 		if (App.preferences.darkGet()) {
 			setColors();
@@ -358,7 +362,7 @@ public class LAF {
 	}
 
 	/**
-	 * set colors for the LAF
+	 * init colors for the LAF
 	 */
 	public static void setColors() {
 		// empty
@@ -369,7 +373,7 @@ public class LAF {
 	}
 
 	/**
-	 * set default Font
+	 * init default Font
 	 */
 	public static void setFont() {
 		UIDefaults defaults = UIManager.getDefaults();

@@ -29,14 +29,15 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import resources.icons.ICONS;
-import tools.MIG;
+import api.mig.MIG;
 import tools.Ui;
 
 /**
+ * dialog for Diaporama options
  *
  * @author favdb
  */
-public class DiapoParamDlg extends JDialog {
+public class DiaporamaDlg extends JDialog {
 
 	private static final String TT = "DiapoParamDlg.";
 	private final MainFrame mainFrame;
@@ -49,7 +50,7 @@ public class DiapoParamDlg extends JDialog {
 	};
 	private JTextField tfTempo;
 
-	public DiapoParamDlg(MainFrame mainFrame) {
+	public DiaporamaDlg(MainFrame mainFrame) {
 		super(mainFrame, true);
 		this.mainFrame = mainFrame;
 		param = mainFrame.albumParamGet();

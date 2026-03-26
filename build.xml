@@ -5,8 +5,8 @@
     <!-- ===Propriétés communes============================================ -->
     <property name="java.version" value="1.8"/>
     <property name="name.app" value="TPhotos"/>
-    <property name="name.package" value="TPhotos"/>
-    <property name="version" value="2.03"/>
+    <property name="name.package" value="tphotos"/>
+    <property name="version" value="3.01"/>
     <property name="src.dir" value="src"/>
     <property name="build.dir" value="build"/>
     <property name="dist.dir" value="dist"/>
@@ -41,7 +41,7 @@
     </target>
 
     <!-- ===Préparation de la structure .deb=============================== -->
-    <target name="bd-prepare-deb" depends="jar, bd-prepare">
+    <target name="bd-deb-prepare" depends="jar, bd-prepare">
         <echo level="info" message="Mise à jour de la version dans le fichier control"/>
         <exec executable="sed">
             <arg value="-i"/>
@@ -89,7 +89,7 @@
     </target>
     
     <!-- ===Création du paquet .deb======================================== -->
-    <target name="bd-deb" depends="bd-prepare, bd-prepare-deb">
+    <target name="bd-deb" depends="bd-prepare, bd-deb-prepare">
         <chmod perm="755" file="${deb.doc}"/>
         <chmod perm="644" file="${deb.doc}/changelog.gz"/>
         <chmod perm="644" file="${deb.doc}/copyright"/>
@@ -117,7 +117,7 @@
             <arg value="--to-rpm"/>
             <arg value="${basedir}/${deb.file}"/>
         </exec>
-        <move file="${basedir}/${name.package}-${version}-2.noarch.rpm" tofile="${rpm.file}"/>
+        <move file="${basedir}/TPhotos-${version}-2.noarch.rpm" tofile="${rpm.file}"/>
         <echo level="info" message="Le paquet .rpm a été généré dans ${rpm.file}"/>
     </target>
 
@@ -153,10 +153,11 @@
     </target>
 
     <!-- ===Build pour Windows avec NSIS=================================== -->
-    <target name="bd-windows" depends="jar">
+    <target name="bd-windows" depends="bd-prepare, jar">
         <echo level="info" message="bd-windows utilisable seulement si NSIS a été installé (voir la documentation)"/>
         <exec executable="wine">
             <arg value="${basedir}/../../../nsis/makensis.exe" />
+            <arg value="/V1" />
             <arg value="${build.dir}/../deployment/windows/${name.app}.nsi" />
         </exec>
         <move file="${dist.dir}/${name.app}-installer.exe" tofile="${win.file}" />
@@ -165,10 +166,20 @@
 
     <!-- ===Cible globale pour tout construire============================= -->
     <target name="bd-all" 
-            depends="bd-prepare, bd-prepare-deb, bd-deb, bd-rpm, bd-mac, bd-windows, bd-zip, bd-zipsrc">
+            depends="clean, build-pre-compile, bd-prepare, bd-deb-prepare, bd-deb, bd-rpm, bd-mac, bd-windows, bd-zip, bd-zipsrc">
         <echo level="info" message="--- move files from ${dist.dir} to ${distrib}"/>
         <copy todir="${distrib}" overwrite="true">
             <fileset dir="${dist.dir}"/>
         </copy>
+    </target>
+    <target name="build-pre-compile">
+        <echo level="info" message="--- start of -pre-compile"/>
+        <tstamp>
+            <format property="time.stamp" pattern="yyyy-MM-dd HH:mm:ss"/>
+        </tstamp>
+        <propertyfile file="src/buildinfo.properties">
+            <entry key="build.date" value="${time.stamp}"/>
+        </propertyfile>
+        <echo level="info" message="--- end of -pre-compile"/>
     </target>
 </project>

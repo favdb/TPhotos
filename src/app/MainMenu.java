@@ -17,6 +17,7 @@
  */
 package app;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -31,26 +32,34 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import resources.icons.ICONS;
 import resources.icons.ICONS.K;
-import tools.MIG;
 import tools.Ui;
 
 /**
+ * main menu class
  *
  * @author favdb
  */
 public class MainMenu {
 
 	private JMenuBar menuBar;
-	public JToggleButton btSorter, btAlbum, btExport;
+	public JToggleButton btSorter, btAlbum, btExport, btShow;
 	public JButton btDiapo, btPhotos, btAbout;
 
 	public MainMenu() {
 		initialize();
 	}
 
+	/**
+	 * initialize
+	 */
 	private void initialize() {
 	}
 
+	/**
+	 * get the toolbar
+	 *
+	 * @return
+	 */
 	public JPanel getToolBar() {
 		JPanel p = new JPanel(new MigLayout(MIG.get("inset 0 0 0 10", MIG.FILL), "[grow][]"));
 		p.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -62,6 +71,11 @@ public class MainMenu {
 		return p;
 	}
 
+	/**
+	 * initialize JPanel and actions
+	 *
+	 * @return
+	 */
 	private JPanel initActions() {
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.FILLX)));
 		p.setOpaque(false);
@@ -82,37 +96,34 @@ public class MainMenu {
 		return p;
 	}
 
+	/**
+	 * popup to choose the action
+	 *
+	 * @return
+	 */
 	private static JPopupMenu filePopup() {
 		JPopupMenu filePopup = new JPopupMenu();
+		//---------------------Photos directory
 		JMenuItem openPhotoDir = Ui.initMenuItem(K.FOLDER, "menu.file_photo", evt -> App.photosDirSelect());
 		filePopup.add(openPhotoDir);
-		//---------------------
+		//---------------------Album file
 		JMenu menuAlbum = Ui.initMenu("menu.file_album");
 		JMenuItem newAlbum = Ui.initMenuItem(K.F_NEW, "menu.file_album_new", evt -> App.albumFileNew());
 		menuAlbum.add(newAlbum);
-
 		JMenuItem openAlbum = Ui.initMenuItem(K.F_OPEN, "menu.file_album_open", evt -> App.albumFileOpen());
 		menuAlbum.add(openAlbum);
 		filePopup.add(menuAlbum);
-		//---------------------
-		/*JMenu pref = new JMenu(I18N.getMsg("pref"));
-		filePopup.add(pref);
-		JMenu theme = new JMenu(I18N.getMsg("pref.theme"));
-		pref.add(theme);
-		JCheckBoxMenuItem theme_normal = Ui.initCkMenuItem(null, "pref.theme.normal", evt -> App.preferences.setDark(false));
-		theme_normal.setSelected(!App.preferences.getDarkLaf());
-		theme.add(theme_normal);
-		JCheckBoxMenuItem theme_dark = Ui.initCkMenuItem(null, "pref.theme.dark", evt -> App.preferences.setDark(true));
-		theme_dark.setSelected(App.preferences.getDarkLaf());
-		theme.add(theme_dark);
-		JMenuItem zoom = Ui.initMenuItem(K.COGS, "pref.zoom", evt -> App.zoom());
-		pref.add(zoom);
-		 */
+		//---------------------Zoom option
 		JMenuItem zoom = Ui.initMenuItem(K.COGS, "pref.zoom", evt -> App.zoom());
 		filePopup.add(zoom);
 		return filePopup;
 	}
 
+	/**
+	 * get the JMenuBar
+	 *
+	 * @return
+	 */
 	public JMenuBar getMenuBar() {
 		return menuBar;
 	}

@@ -17,6 +17,7 @@
  */
 package app.album;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import i18n.I18N;
 import javax.swing.JButton;
@@ -26,7 +27,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import resources.icons.ICONS;
-import tools.MIG;
 import tools.Ui;
 
 /**
@@ -37,8 +37,8 @@ public class AlbumParamDlg extends JDialog {
 
 	private static final String TT = "AlbumParamDlg.";
 
-	static boolean showing(Album panel) {
-		AlbumParamDlg dlg = new AlbumParamDlg(panel);
+	public static boolean showing(Album panel, boolean b) {
+		AlbumParamDlg dlg = new AlbumParamDlg(panel, b);
 		dlg.setVisible(true);
 		return !dlg.isCanceled();
 	}
@@ -47,10 +47,11 @@ public class AlbumParamDlg extends JDialog {
 	private AlbumParam param;
 	private JComboBox cbDate;
 	private JButton btAdd;
-	private boolean canceled = true;
+	private boolean canceled = true, saveComment = true;
 
-	public AlbumParamDlg(Album mainFrame) {
+	public AlbumParamDlg(Album mainFrame, boolean b) {
 		super();
+		this.saveComment = b;
 		this.setModal(true);
 		this.albumPanel = mainFrame;
 		param = mainFrame.getAlbumParam();
@@ -102,14 +103,20 @@ public class AlbumParamDlg extends JDialog {
 
 	private void doOK() {
 		// set param mode and tempo
-		param.setComment(tfComment.getText());
-		albumPanel.getTable().setModified();
+		if (saveComment) {
+			param.setComment(tfComment.getText());
+			albumPanel.getTable().setModified();
+		}
 		canceled = false;
 		dispose();
 	}
 
 	public boolean isCanceled() {
 		return canceled;
+	}
+
+	public String getComment() {
+		return tfComment.getText();
 	}
 
 }
