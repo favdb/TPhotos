@@ -17,11 +17,14 @@
  */
 package app.export;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
-import app.AbstractFrame;
-import app.MainFrame;
 import app.album.AlbumItem;
 import app.album.AlbumTable;
+import app.print.Print;
+import app.ui.AbstractFrame;
+import app.ui.MainFrame;
+import app.xml.Xml;
 import i18n.I18N;
 import java.awt.Color;
 import java.awt.Container;
@@ -53,12 +56,10 @@ import resources.icons.IconUtil;
 import tools.FFmpeg;
 import tools.Html;
 import tools.LOG;
-import api.mig.MIG;
 import tools.Ui;
 import tools.file.CopyFileDlg;
 import tools.file.EnvUtil;
 import tools.file.FileUtil;
-import tools.xml.Xml;
 
 /**
  * JDialog to copy multiple images to a destination folder
@@ -78,12 +79,13 @@ public class Export extends AbstractFrame {
 	private Container pane;
 	private CopyFileDlg copyDlg;
 	private List<AlbumItem> items;
-	public static final int FORMAT_SIMPLE = 0, FORMAT_HTML = 1, FORMAT_EPUB = 2, FORMAT_MP4 = 3;
+	public static final String FORMAT_SIMPLE = I18N.getMsg("export.format.simple"),
+			FORMAT_HTML = I18N.getMsg("export.format.html"),
+			FORMAT_EPUB = I18N.getMsg("export.format.epub"),
+			FORMAT_MPEG = I18N.getMsg("export.format.mpeg"),
+			FORMAT_CONTACT = I18N.getMsg("export.format.contact");
 	private static final String FORMAT[] = {
-		I18N.getMsg("export.format.simple"),
-		I18N.getMsg("export.format.html"),
-		I18N.getMsg("export.format.epub"),
-		I18N.getMsg("export.format.mpeg")
+		FORMAT_SIMPLE, FORMAT_HTML, FORMAT_EPUB, FORMAT_MPEG, FORMAT_CONTACT
 	};
 	public static final int COMPRESS_NONE = 0, COMPRESS_MINI = 1, COMPRESS_MAXI = 0;
 	private static final String COMPRESS[] = {
@@ -93,8 +95,9 @@ public class Export extends AbstractFrame {
 	};
 	private int tempo = 5;
 	private JTextField tfTempo;
-	private JPanel pTempo;
 	private JCheckBox ckGeneric;
+	private JPanel pTempo, pFolder, pCompress;
+	private Print print;
 
 	/**
 	 * call the function
@@ -105,7 +108,7 @@ public class Export extends AbstractFrame {
 	public Export(MainFrame mainFrame) {
 		super();
 		this.mainFrame = mainFrame;
-		this.table = mainFrame.getAlbumPanel().getTable();
+		this.table = mainFrame.albumGet().getTable();
 		initialize();
 	}
 
@@ -118,17 +121,34 @@ public class Export extends AbstractFrame {
 	 */
 	@Override
 	public void initialize() {
+		//LOG.trace(TT + "initialize()");
 		this.setLayout(new MigLayout(MIG.FILL));
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setMaximumSize(sz);
 		pane = this.getContentPane();
-		pane.add(initUpper(), MIG.get(MIG.SPAN, MIG.GROWX));
+		pane.add(initTop(), MIG.get(MIG.SPAN, MIG.GROWX));
 		taInfos = new JTextPane();
 		taInfos.setContentType("text/html");
 		initInfos(I18N.getMsg("export.home"));
 		JScrollPane scroll = new JScrollPane(taInfos);
 		scroll.setPreferredSize(new Dimension(1024, 768));
 		pane.add(scroll, MIG.get(MIG.SPAN, MIG.GROW, MIG.CENTER));
+		cbFormat.addItemListener((ItemEvent e) -> {
+			pTempo.setVisible(true);
+			pFolder.setVisible(true);
+			pCompress.setVisible(true);
+			String n = (String) cbFormat.getSelectedItem();
+			pTempo.setVisible(n.equals(FORMAT_MPEG));
+			if (n.equals(FORMAT_CONTACT)) {
+				pTempo.setVisible(false);
+				pFolder.setVisible(false);
+				pCompress.setVisible(false);
+				btExec.setEnabled(true);
+			} else {
+				btExec.setEnabled(!tfFolder.getText().isEmpty());
+			}
+		});
+
 	}
 
 	/**
@@ -136,16 +156,17 @@ public class Export extends AbstractFrame {
 	 *
 	 * @return
 	 */
-	private JPanel initUpper() {
+	private JPanel initTop() {
+		//LOG.trace(TT + "initTop()");
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.HIDEMODE3, MIG.FILL)));
 		p.add(initFormat(), MIG.get(MIG.SPAN, MIG.SPLIT2));
-		p.add(initCompress(), MIG.get(MIG.SPAN));
-		p.add(initTempo(), MIG.SPAN);
-		p.add(initTfFolder());
+		p.add(pCompress = initCompress(), MIG.get(MIG.SPAN));
+		p.add(pTempo = initTempo(), MIG.SPAN);
+		p.add(pFolder = initFolder());
 		btExec = new JButton(I18N.getMsg("export"));
 		btExec.setIcon(IconUtil.getIconSmall(ICONS.K.COGS));
 		btExec.setEnabled(!tfFolder.getText().isEmpty());
-		btExec.addActionListener(e -> doCopyBegin());
+		btExec.addActionListener(e -> copyBegin());
 		p.add(btExec, MIG.get(MIG.SPAN, MIG.RIGHT));
 		return p;
 	}
@@ -155,8 +176,8 @@ public class Export extends AbstractFrame {
 	 *
 	 * @return
 	 */
-	private JPanel initTfFolder() {
-		//LOG.trace(TT + "initTfFolder()");
+	private JPanel initFolder() {
+		//LOG.trace(TT + "initFolder()");
 		JPanel p2 = new JPanel(new MigLayout());
 		p2.add(new JLabel(I18N.getColonMsg("export.dest")), MIG.get(MIG.SPAN, MIG.SPLIT + " 3"));
 		tfFolder = new JTextField();
@@ -193,35 +214,34 @@ public class Export extends AbstractFrame {
 	 */
 	@SuppressWarnings("unchecked")
 	private JPanel initFormat() {
+		//LOG.trace(TT + "initFormat()");
 		JPanel p0 = new JPanel(new MigLayout(MIG.HIDEMODE3));
 		p0.add(new JLabel(I18N.getColonMsg("export.format")));
 		p0.add(cbFormat = new JComboBox(FORMAT));
 		if (!FFmpeg.isInstalled()) {
 			cbFormat.removeItemAt(3);
 		}
-		cbFormat.addItemListener((ItemEvent e) -> {
-			pTempo.setVisible(cbFormat.getSelectedIndex() == 3);
-		});
 		return p0;
 	}
 
 	private JPanel initTempo() {
-		pTempo = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0)));
-		pTempo.add(new JLabel(I18N.getColonMsg("export.format.mpeg_tempo")));
+		//LOG.trace(TT + "initTempo()");
+		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0)));
+		p.add(new JLabel(I18N.getColonMsg("export.format.mpeg_tempo")));
 		JButton btminus;
-		pTempo.add(btminus = Ui.initButton("minus", ICONS.K.NONE, e -> addTempo(-1)));
+		p.add(btminus = Ui.initButton("minus", ICONS.K.NONE, e -> addTempo(-1)));
 		btminus.setText("▼");
-		pTempo.add(tfTempo = new JTextField());
+		p.add(tfTempo = new JTextField());
 		tfTempo.setColumns(2);
 		tfTempo.setHorizontalAlignment(JTextField.CENTER);
 		JButton btplus;
-		pTempo.add(btplus = Ui.initButton("plus", ICONS.K.NONE, e -> addTempo(1)));
+		p.add(btplus = Ui.initButton("plus", ICONS.K.NONE, e -> addTempo(1)));
 		btplus.setText("▲");
 		ckGeneric = new JCheckBox(I18N.getMsg("export.format.mpeg_generic"));
-		pTempo.add(ckGeneric);
+		p.add(ckGeneric);
 		addTempo(0);
-		pTempo.setVisible(false);
-		return pTempo;
+		p.setVisible(false);
+		return p;
 	}
 
 	/**
@@ -230,6 +250,7 @@ public class Export extends AbstractFrame {
 	 * @param value
 	 */
 	private void addTempo(int value) {
+		//LOG.trace(TT + "addTempo()");
 		tempo += value;
 		if (tempo < 1) {
 			tempo = 1;
@@ -244,8 +265,8 @@ public class Export extends AbstractFrame {
 	 */
 	@SuppressWarnings("unchecked")
 	private JPanel initCompress() {
+		//LOG.trace(TT + "initCompress()");
 		JPanel p = new JPanel(new MigLayout());
-		//p.setBorder(BorderFactory.createEtchedBorder());
 		p.add(new JLabel(I18N.getColonMsg("export.compress")));
 		p.add(cbCompress = new JComboBox(COMPRESS));
 		return p;
@@ -257,7 +278,7 @@ public class Export extends AbstractFrame {
 	 * @param txt
 	 */
 	public void initInfos(String txt) {
-		//LOG.trace(TT + "setInfos(txt=" + txt + ")");
+		//LOG.trace(TT + "initInfos(txt)");
 		taInfos.setText(Html.intoHtml(txt));
 		taInfos.setCaretPosition(taInfos.getDocument().getLength());
 	}
@@ -294,17 +315,17 @@ public class Export extends AbstractFrame {
 	 * begin the copy process
 	 */
 	@Override
-	public void doCopyBegin() {
+	public void copyBegin() {
 		//LOG.trace(TT + "doExec()");
+		String format = (String) cbFormat.getSelectedItem();
 		dirDest = new File(tfFolder.getText());
-		if (cbFormat.getSelectedIndex() == FORMAT_EPUB) {
+		if (format.equals(FORMAT_EPUB)) {
 			dirDest = new File(dirDest, File.separator + "EPUB" + File.separator + "OEBPS");
-		}
-		if (cbFormat.getSelectedIndex() == FORMAT_MP4) {
+		} else if (format.equals(FORMAT_MPEG)) {
 			dirDest = new File(dirDest, File.separator + "images");
 		}
 		dirDest.mkdirs();
-		if (cbFormat.getSelectedIndex() == FORMAT_MP4 && ckGeneric.isSelected()) {
+		if (format.equals(FORMAT_MPEG) && ckGeneric.isSelected()) {
 			makeFFmpegBegin();
 		}
 		items = new ArrayList<>();
@@ -314,11 +335,11 @@ public class Export extends AbstractFrame {
 			items.add(new AlbumItem(i + 1, text, src));
 		}
 		Dimension dim = null;
-		boolean istext = (cbFormat.getSelectedIndex() == FORMAT_MP4), isremove = false;
+		boolean istext = (cbFormat.getSelectedItem().equals(FORMAT_MPEG)), isremove = false;
 		btExec.setEnabled(false);
 		copyDlg = new CopyFileDlg(this, items, istext, dirDest, -1, isremove, null);
 		copyDlg.setCompress(cbCompress.getSelectedIndex());
-		if (cbFormat.getSelectedIndex() == FORMAT_MP4) {
+		if (cbFormat.getSelectedItem().equals(FORMAT_MPEG)) {
 			copyDlg.setSorter(4);
 		}
 		copyDlg.start();
@@ -329,32 +350,29 @@ public class Export extends AbstractFrame {
 	 * end te copy process
 	 */
 	@Override
-	public void doCopyEnd() {
+	public void copyEnd() {
 		//LOG.trace(TT + "doExecSuite() format=" + cbFormat.getSelectedIndex());
 		if (!copyDlg.isOK()) {
 			return;
 		}
 		initInfos(getInfos() + copyDlg.getReport());
-		Integer format = cbFormat.getSelectedIndex();
-		switch (format) {
-			case FORMAT_SIMPLE:// simply add an album XML file
-				makeSimple();
-				break;
-			case FORMAT_HTML:// HTML format
-				makeHTML();
-				break;
-			case FORMAT_EPUB:// EPUB format
-				makeEPUB();
-				break;
-			case FORMAT_MP4:// MP4 format with FFmpeg
-				try {
-					String fx = FileUtil.removeExtension(mainFrame.getAlbumPanel().albumNameGet());
-					File mp4 = new File(dirDest.getParentFile(), fx + ".mp4");
-					makeFFmpeg(dirDest.getParentFile(), mp4.getAbsolutePath());
-				} catch (IOException ex) {
-					LOG.err(TT + "getName() makeFFmpeg error", ex);
-				}
-				break;
+		String format = (String) cbFormat.getSelectedItem();
+		if (FORMAT_SIMPLE.equals(format)) {
+			makeSimple();
+		} else if (FORMAT_HTML.equals(format)) {
+			makeHTML();
+		} else if (FORMAT_EPUB.equals(format)) {
+			makeEPUB();
+		} else if (FORMAT_MPEG.equals(format)) {
+			try {
+				String fx = FileUtil.removeExtension(mainFrame.albumGet().diapoNameGet());
+				File mp4 = new File(dirDest.getParentFile(), fx + ".mp4");
+				makeFFmpeg(dirDest.getParentFile(), mp4.getAbsolutePath());
+			} catch (IOException ex) {
+				LOG.err(TT + "getName() makeFFmpeg error", ex);
+			}
+		} else if (FORMAT_CONTACT.equals(format)) {
+			//nothing
 		}
 	}
 
@@ -365,7 +383,7 @@ public class Export extends AbstractFrame {
 		//LOG.trace(TT + "makeEPUB()");
 		addInfos("<br>" + I18N.getMsg("export.format.epub_make"));
 		dirDest = new File(tfFolder.getText());
-		String fx = FileUtil.removeExtension(mainFrame.getAlbumPanel().albumNameGet());
+		String fx = FileUtil.removeExtension(mainFrame.albumGet().diapoNameGet());
 		ExportEPUB.create(this, dirDest);
 		addInfos(" " + I18N.getMsg("task.ok") + "</p>");
 		setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -414,13 +432,13 @@ public class Export extends AbstractFrame {
 	}
 
 	/**
-	 * write an 800x600 image with text
+	 * write an 800x600 MPEG4 with FFMpeg
 	 *
 	 */
 	public void makeFFmpegBegin() {
 		try {
 			int width = 800, height = 600;
-			String text = mainFrame.albumTitleGet();
+			String text = mainFrame.diapoTitleGet();
 			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g2d = bufferedImage.createGraphics();
 			g2d.setColor(Color.BLACK);
@@ -439,7 +457,7 @@ public class Export extends AbstractFrame {
 	}
 
 	/**
-	 * write an 800x600 image with text
+	 * end writing a FFMpeg
 	 *
 	 * @param output
 	 * @param text
@@ -480,15 +498,32 @@ public class Export extends AbstractFrame {
 	private void makeSimple() {
 		//LOG.trace(TT + "makeSimple()");
 		addInfos("<br>" + I18N.getMsg("export.format.simple_make"));
-		String fx = FileUtil.removeExtension(mainFrame.getAlbumPanel().albumNameGet());
+		String fx = FileUtil.removeExtension(mainFrame.albumGet().diapoNameGet());
 		File outfile = new File(dirDest, fx + ".xml");
+		String existingPrint = "";
+		if (outfile != null && outfile.exists()) {
+			try {
+				String content = FileUtil.fileReadAsString(outfile);
+				int start = content.indexOf("<print>");
+				int end = content.indexOf("</print>");
+				if (start != -1 && end != -1) {
+					existingPrint = content.substring(start, end + 9) + "\n";
+				}
+			} catch (Exception e) {
+				LOG.err(TT + "save() Erreur lecture sauvegarde <prints>", e);
+			}
+		}
 		StringBuilder b = new StringBuilder(Xml.getHeader())
 				.append("<album>\n")
-				.append("   <list>\n");
+				.append(Xml.indent(1, "<list>\n"));
 		for (AlbumItem item : items) {
 			b.append(itemToXml(item));
 		}
-		b.append("   </list>\n").append("</album>");
+		b.append(Xml.indent(1, "</list>\n"));
+		if (!existingPrint.isEmpty()) {
+			b.append(Xml.indent(1, existingPrint));
+		}
+		b.append("</album>");
 		FileUtil.fileWriteString(outfile, b.toString());
 		addInfos(" " + I18N.getMsg("task.ok") + "</p>");
 		setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -503,11 +538,11 @@ public class Export extends AbstractFrame {
 	 */
 	private String itemToXml(AlbumItem item) {
 		String file = item.file.getName();
-		return "      <item "
+		return Xml.indent(3, "<item "
 				+ "id=\"" + String.format("%03d", item.id + 1) + "\" "
 				+ "file=\"" + file + "\" "
 				+ "comment=\"" + item.text + "\" "
-				+ " />\n";
+				+ " />\n");
 	}
 
 }

@@ -615,4 +615,92 @@ public class StringUtil {
 	public static String mergeUnit(long size, String unit) {
 		return new DecimalFormat("#,##0.#").format(size) + " " + unit;
 	}
+
+	public static String ELLIPSIS = "\u2026";
+
+	/**
+	 * truncate the String to 200 characters and add an ellipsis character
+	 *
+	 * @param text
+	 * @return
+	 */
+	public static String ellipsize(String text) {
+		return ellipsize(text, 200);
+	}
+
+	/**
+	 * truncate the String to max length and add an ellipsis character
+	 *
+	 * @param str
+	 * @param max
+	 * @return
+	 */
+	public static String ellipsize(String str, int max) {
+		if (str == null || str.isEmpty()) {
+			return "";
+		}
+		if (max < 1) {
+			if (str.contains(" ")) {
+				return str.substring(0, str.indexOf(" ")) + ELLIPSIS;
+			}
+		} else if (str.length() > max) {
+			return str.substring(0, max) + ELLIPSIS;
+		}
+		return str;
+	}
+
+	/**
+	 * count the number of words in a text
+	 *
+	 * @param text
+	 * @return
+	 */
+	public static int countWords(String text) {
+		if (text == null) {
+			return 0;
+		}
+		String txt = Html.htmlToText(text, true).replaceAll("[^ a-z A-Z 0-9 ]+", " ");
+		while (txt.contains("  ")) {
+			txt = txt.replace("  ", " ");
+		}
+		if (text.trim().isEmpty()) {
+			return 0;
+		}
+		String[] words = txt.trim().split("\\s+");
+		int count = words.length;
+		for (String word : words) {
+			String w = word.trim();
+			if (w.length() == 0) {
+				count--;
+			}
+		}
+		/*String punc = "#`’~!#$%^，";
+		for (String word : words) {
+			String w = word.trim();
+			if (w.length() == 0 || punc.contains(w)) {
+				count--;
+			}
+		}
+		if (count > 0) {
+			count--;
+		}*/
+		return count;
+	}
+
+	/**
+	 * count the number of characters in text
+	 *
+	 * @param text
+	 * @return
+	 */
+	public static int countChars(String text) {
+		if (text == null || text.isEmpty()) {
+			return (0);
+		}
+		if (text.contains("<") && text.contains(">")) {
+			return Html.htmlToText(text, true).trim().length();
+		}
+		return text.trim().length();
+	}
+
 }

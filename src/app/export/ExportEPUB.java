@@ -46,7 +46,7 @@ public class ExportEPUB {
 	public ExportEPUB(Export export, File dir) {
 		this.export = export;
 		this.dir = new File(dir, "EPUB");
-		this.title = export.getMainFrame().albumTitleGet();
+		this.title = export.getMainFrame().diapoTitleGet();
 	}
 
 	public void start(List<AlbumItem> items) {

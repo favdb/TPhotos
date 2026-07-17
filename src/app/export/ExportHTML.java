@@ -38,7 +38,7 @@ public class ExportHTML {
 	public ExportHTML(Export export, File dir) {
 		this.export = export;
 		this.dir = dir;
-		this.title = export.getMainFrame().albumTitleGet();
+		this.title = export.getMainFrame().diapoTitleGet();
 	}
 
 	public void begin(List<AlbumItem> items) {

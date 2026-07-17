@@ -32,7 +32,7 @@ import javax.swing.plaf.FontUIResource;
  *
  * @author favdb
  */
-public class LAF {
+public class LaF {
 
 	private static final String TT = "Laf.";
 
@@ -352,7 +352,7 @@ public class LAF {
 	}
 
 	/**
-	 * load the Nimbus LAF and initialize
+	 * load the Nimbus LaF and initialize
 	 */
 	public static void init() {
 		setFont();
@@ -362,7 +362,7 @@ public class LAF {
 	}
 
 	/**
-	 * init colors for the LAF
+	 * init colors for the LaF
 	 */
 	public static void setColors() {
 		// empty
@@ -390,12 +390,18 @@ public class LAF {
 	}
 
 	/**
-	 * update the LAF
+	 * update the LaF
 	 */
 	public static void update() {
 		for (Window w : Window.getWindows()) {
 			SwingUtilities.updateComponentTreeUI(w);
 		}
+	}
+
+	private static boolean DARK_THEME = false;
+
+	public static boolean isDark() {
+		return DARK_THEME;
 	}
 
 }

@@ -15,14 +15,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app;
+package app.ui;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.App;
+import app.Const;
+import app.Organise;
 import app.album.Album;
-import app.album.AlbumParam;
-import app.album.Diaporama;
+import app.diapo.DiapoParam;
+import app.diapo.DiapoPreview;
 import app.export.Export;
+import app.print.Print;
 import i18n.I18N;
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -37,6 +41,7 @@ import resources.icons.IconUtil;
 import tools.LOG;
 
 /**
+ * main JFrame class
  *
  * @author favdb
  */
@@ -48,12 +53,17 @@ public class MainFrame extends JFrame {
 	public JPanel panel;
 	private Organise organiser;
 	private Album album;
+	private File file;
+	private Print print;
 
 	public MainFrame() {
 		super();
 		initialize();
 	}
 
+	/**
+	 * initialize
+	 */
 	private void initialize() {
 		this.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
@@ -63,7 +73,7 @@ public class MainFrame extends JFrame {
 			}
 		});
 		setIconImage(IconUtil.getIconImage(ICONS.K.TPHOTOS.toString()));
-		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.GAP0, MIG.INS0, MIG.WRAP1)));
+		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.GAP0, MIG.INS0, MIG.WRAP1, MIG.HIDEMODE3)));
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setMaximumSize(sz);
 		appMenu = new MainMenu();
@@ -87,6 +97,9 @@ public class MainFrame extends JFrame {
 		doSorter();
 	}
 
+	/**
+	 * exit the app
+	 */
 	private void doExit() {
 		//LOG.trace(TT + "doExit()");
 		if (album.getTable().isModified()) {
@@ -96,25 +109,23 @@ public class MainFrame extends JFrame {
 		App.exit();
 	}
 
-	public void doNavigation() {
-
-	}
-
-	public void doAlbum() {
-		//LOG.trace(TT + "doAlbum()");
+	/**
+	 * do the diaporama
+	 */
+	public void doDiapo() {
+		//LOG.trace(TT + "doDiapo()");
 		if (appMenu.btSorter != null) {
 			appMenu.btSorter.setSelected(false);
 			appMenu.btExport.setSelected(false);
 		}
 		panel.removeAll();
 		panel.add(album.getContentPane(), MIG.GROW);
-		updateTitle();
+		titleUpdate();
 	}
 
-	public Album getAlbumPanel() {
-		return album;
-	}
-
+	/**
+	 * do the sort
+	 */
 	public void doSorter() {
 		//LOG.trace(TT + "doSorter()");
 		if (appMenu.btAlbum != null) {
@@ -123,10 +134,13 @@ public class MainFrame extends JFrame {
 		}
 		panel.removeAll();
 		panel.add(organiser.getContentPane(), MIG.GROWX);
-		updateTitle();
+		titleUpdate();
 	}
 
-	public void updateTitle() {
+	/**
+	 * update the title
+	 */
+	public void titleUpdate() {
 		StringBuilder b = new StringBuilder();
 		String modif = " ";//album.getTable().isModified() ? "*" : " ";
 		b.append(modif);
@@ -135,7 +149,7 @@ public class MainFrame extends JFrame {
 			if (appMenu.btSorter.isSelected()) {
 				b.append("(").append(App.preferences.photosDirGet()).append(")");
 			} else if (appMenu.btAlbum.isSelected()) {
-				b.append("(").append(album.albumNameGet()).append(")");
+				b.append("(").append(album.diapoNameGet()).append(")");
 			} else if (appMenu.btExport.isSelected()) {
 				b.append(" ").append(I18N.getMsg("export"));
 			} else {
@@ -153,12 +167,17 @@ public class MainFrame extends JFrame {
 		this.repaint();
 	}
 
-	public AlbumParam albumParamGet() {
-		if (album.getAlbumParam() == null) {
+	/**
+	 * get the diaporama parameters
+	 *
+	 * @return
+	 */
+	public DiapoParam diapoParamGet() {
+		if (album.diapoParamGet() == null) {
 			LOG.trace(TT + "albumParamGet() albumParam is null, create new");
-			album.albumParamCreate();
+			album.diapoParamCreate();
 		}
-		return album.getAlbumParam();
+		return album.diapoParamGet();
 	}
 
 	/**
@@ -166,40 +185,89 @@ public class MainFrame extends JFrame {
 	 *
 	 * @return
 	 */
-	public String albumTitleGet() {
-		return album.albumTitleGet();
+	public String diapoTitleGet() {
+		return album.diapoTitleGet();
 	}
 
+	/**
+	 * do the diaporama
+	 */
 	public void doDiaporama() {
 		if (album.getTable().getRowCount() < 1) {
 			return;
 		}
 		//DiapoParamDlg dlg = new DiapoParamDlg(this);
 		//dlg.setVisible(true);
-		Diaporama diaporama = new Diaporama(this);
-		doAlbum();
+		DiapoPreview diaporama = new DiapoPreview(this);
+		doDiapo();
 		this.appMenu.btAlbum.setSelected(true);
 	}
 
-	public void setAlbumFile(File file) {
-		album.setAlbumFile(file);
+	/**
+	 * set the current file
+	 *
+	 * @param file
+	 */
+	public void fileSet(File file) {
+		this.file = file;
+		album.fileSet(file);
 	}
 
-	public void setPhotosDir(File file) {
+	/**
+	 * get the current file
+	 *
+	 * @return
+	 */
+	public File fileGet() {
+		return file;
+	}
+
+	/**
+	 * set the current album root directory
+	 *
+	 * @param file
+	 */
+	public void photosDirSet(File file) {
 		album.setPhotosDir(file);
 	}
 
-	public void exportDo() {
+	/**
+	 * do the export
+	 */
+	public void doExport() {
 		appMenu.btSorter.setSelected(false);
 		appMenu.btAlbum.setSelected(false);
 		Export export = new Export(this);
 		panel.removeAll();
 		panel.add(export.getContentPane(), MIG.GROW);
-		updateTitle();
+		titleUpdate();
 	}
 
-	void refreshAlbum() {
+	/**
+	 * get the current album frame
+	 *
+	 * @return
+	 */
+	public Album albumGet() {
+		return album;
+	}
+
+	/**
+	 * refresh the album frame
+	 */
+	public void albumRefresh() {
 		album.refreshAll();
+	}
+
+	public void printDo() {
+		print = new Print(this);
+		panel.setVisible(false);
+		add(print);
+	}
+
+	public void printHide() {
+		panel.setVisible(true);
+		this.remove(print);
 	}
 
 }

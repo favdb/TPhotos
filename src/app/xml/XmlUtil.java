@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package tools.xml;
+package app.xml;
 
+import app.xml.XmlKey;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -40,7 +41,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import tools.LOG;
-import tools.xml.XmlKey.XK;
+import app.xml.XmlKey.XK;
 
 /**
  * utility class for setting/getting values from Xml

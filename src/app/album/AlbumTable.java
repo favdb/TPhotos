@@ -18,6 +18,7 @@
 package app.album;
 
 import app.App;
+import app.xml.Xml;
 import i18n.I18N;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
@@ -38,9 +39,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
+import tools.LOG;
 import tools.TableColumnAdjuster;
 import tools.file.FileUtil;
-import tools.xml.Xml;
 
 /**
  *
@@ -110,7 +111,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * load the table for the given XML file
+	 * load the table from the given XML file
 	 *
 	 * @param xml
 	 */
@@ -153,7 +154,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * add given rows in the table
+	 * add given objs as a row in the table
 	 *
 	 * @param objs
 	 */
@@ -233,7 +234,7 @@ public class AlbumTable extends JTable {
 	 *
 	 * @return
 	 */
-	public Xml getXml() {
+	public Xml xmlGet() {
 		return xml;
 	}
 
@@ -245,15 +246,32 @@ public class AlbumTable extends JTable {
 	public void save(String title) {
 		//LOG.trace(TT + "save()");
 		if (modified && xml != null) {
+			String existingPrint = "";
+			File outfile = xml.getFile();
+			if (outfile != null && outfile.exists()) {
+				try {
+					String content = FileUtil.fileReadAsString(outfile);
+					int start = content.indexOf("<print>");
+					int end = content.indexOf("</print>");
+					if (start != -1 && end != -1) {
+						existingPrint = content.substring(start, end + 9) + "\n";
+					}
+				} catch (Exception e) {
+					LOG.err(TT + "save() Erreur lecture sauvegarde <prints>", e);
+				}
+			}
 			StringBuilder b = new StringBuilder(Xml.getHeader())
 					.append("<album title=\"").append(title).append("\">\n")
-					.append(album.getAlbumParam().toXml())
+					.append(album.diapoParamGet().toXml())
 					.append("   <list>\n");
 			for (int i = 0; i < this.getRowCount(); i++) {
 				b.append(rowToXml(i));
 			}
-			b.append("   </list>\n")
-					.append("</album>");
+			b.append("   </list>\n");
+			if (!existingPrint.isEmpty()) {
+				b.append("   ").append(existingPrint);
+			}
+			b.append("</album>");
 			xml.close();
 			FileUtil.fileWriteString(xml.getFile(), b.toString());
 		}
@@ -275,6 +293,22 @@ public class AlbumTable extends JTable {
 				+ "file=\"" + file + "\" "
 				+ "comment=\"" + comment + "\" "
 				+ " />\n";
+	}
+
+	/**
+	 * Récupère l'AlbumItem correspondant à la ligne spécifiée
+	 *
+	 * @param row : l'index de la ligne
+	 * @return l'objet AlbumItem associé
+	 */
+	public AlbumItem getRow(int row) {
+		if (row >= 0 && row < getRowCount()) {
+			int id = (Integer) getValueAt(row, 0);
+			File file = (File) getValueAt(row, 1);
+			String text = (String) getValueAt(row, 2);
+			return new AlbumItem(id, text, file);
+		}
+		return null;
 	}
 
 	/**

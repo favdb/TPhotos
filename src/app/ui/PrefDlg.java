@@ -15,11 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.dialog;
+package app.ui;
 
 import api.mig.swing.MigLayout;
 import app.App;
-import app.MainFrame;
 import app.Pref;
 import i18n.I18N;
 import java.awt.Color;
@@ -36,7 +35,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import resources.icons.ICONS;
 import resources.icons.IconButton;
-import tools.LAF;
+import tools.LaF;
 import api.mig.MIG;
 import tools.Ui;
 
@@ -109,8 +108,8 @@ public class PrefDlg extends JDialog {
 
 	private void refreshAll() {
 		//LOG.trace(TT + "refreshAll()");
-		Color fg = LAF.THEME.text.get(!rbDark.isSelected());
-		Color bk = LAF.THEME.control.get(rbDark.isSelected());
+		Color fg = LaF.THEME.text.get(!rbDark.isSelected());
+		Color bk = LaF.THEME.control.get(rbDark.isSelected());
 		for (Component comp : this.getComponents()) {
 			if (((Container) comp).getComponentCount() > 0) {
 				setColor(comp, fg, bk);
@@ -151,10 +150,10 @@ public class PrefDlg extends JDialog {
 		dispose();
 		if (original != pref.toString().hashCode()) {
 			if (App.isDev()) {
-				LAF.setColors();
+				LaF.setColors();
 			}
-			LAF.setFont();
-			LAF.update();
+			LaF.setFont();
+			LaF.update();
 		}
 	}
 

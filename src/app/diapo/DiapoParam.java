@@ -15,8 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.album;
+package app.diapo;
 
+import app.xml.Xml;
+import app.xml.XmlUtil;
 import i18n.I18N;
 import java.io.File;
 import java.text.ParseException;
@@ -26,25 +28,22 @@ import java.util.HashMap;
 import java.util.Map;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import tools.LOG;
 import tools.file.FileUtil;
-import tools.xml.Xml;
-import tools.xml.XmlUtil;
 
 /**
  *
  * @author favdb
  */
-public class AlbumParam {
+public class DiapoParam {
 
 	private String name = "Album", comment = "{JJ/MM/AAAA}";
 	private Integer mode = 0, tempo = 0;
 
-	public AlbumParam() {
+	public DiapoParam() {
 
 	}
 
-	public AlbumParam(Xml xml) {
+	public DiapoParam(Xml xml) {
 		Node n = xml.getNode("pref");
 		if (n != null) {
 			mode = XmlUtil.getInteger(n, "mode");
@@ -105,11 +104,11 @@ public class AlbumParam {
 					if (str.contains(motif)) {
 						SimpleDateFormat fm2 = new SimpleDateFormat(entry.getValue());
 						str = str.replace(motif, fm2.format(date));
-						//break;
+						break;
 					}
 				}
 			} catch (ParseException ex) {
-				LOG.err("getComment error", ex);
+				return "";
 			}
 		}
 		return str;

@@ -15,10 +15,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.album;
+package app.diapo;
 
 import api.mig.swing.MigLayout;
-import app.MainFrame;
+import app.ui.MainFrame;
 import i18n.I18N;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -37,11 +37,11 @@ import tools.Ui;
  *
  * @author favdb
  */
-public class DiaporamaDlg extends JDialog {
+public class DiapoDlg extends JDialog {
 
 	private static final String TT = "DiapoParamDlg.";
 	private final MainFrame mainFrame;
-	private final AlbumParam param;
+	private final DiapoParam param;
 	private JComboBox cbMode;
 	private String[] modes = {
 		I18N.getMsg("album.param.mode_none"),
@@ -50,10 +50,10 @@ public class DiaporamaDlg extends JDialog {
 	};
 	private JTextField tfTempo;
 
-	public DiaporamaDlg(MainFrame mainFrame) {
+	public DiapoDlg(MainFrame mainFrame) {
 		super(mainFrame, true);
 		this.mainFrame = mainFrame;
-		param = mainFrame.albumParamGet();
+		param = mainFrame.diapoParamGet();
 		initialize();
 	}
 

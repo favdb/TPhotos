@@ -17,6 +17,7 @@
  */
 package app.album;
 
+import app.album.Album;
 import app.App;
 import app.Pref;
 import i18n.I18N;

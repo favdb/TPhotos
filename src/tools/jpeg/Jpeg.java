@@ -179,4 +179,5 @@ public class Jpeg {
 		}
 		return result.toString();
 	}
+
 }

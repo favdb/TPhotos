@@ -15,8 +15,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.album;
+package app.diapo;
 
+import app.album.Album;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import i18n.I18N;
@@ -33,28 +34,28 @@ import tools.Ui;
  *
  * @author favdb
  */
-public class AlbumParamDlg extends JDialog {
+public class DiapoParamDlg extends JDialog {
 
 	private static final String TT = "AlbumParamDlg.";
 
 	public static boolean showing(Album panel, boolean b) {
-		AlbumParamDlg dlg = new AlbumParamDlg(panel, b);
+		DiapoParamDlg dlg = new DiapoParamDlg(panel, b);
 		dlg.setVisible(true);
 		return !dlg.isCanceled();
 	}
 	private final Album albumPanel;
 	private JTextField tfComment;
-	private AlbumParam param;
+	private DiapoParam param;
 	private JComboBox cbDate;
 	private JButton btAdd;
 	private boolean canceled = true, saveComment = true;
 
-	public AlbumParamDlg(Album mainFrame, boolean b) {
+	public DiapoParamDlg(Album mainFrame, boolean b) {
 		super();
 		this.saveComment = b;
 		this.setModal(true);
 		this.albumPanel = mainFrame;
-		param = mainFrame.getAlbumParam();
+		param = mainFrame.diapoParamGet();
 		initialize();
 	}
 

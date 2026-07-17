@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<album title="Album">
+   <pref comment="{MMM AAAA}" mode="0" tempo="0" />
+   <list>
+      <item id="1" file="2024/01/20240101_115238.jpg" comment="janv. 2024" />
+      <item id="2" file="2024/01/20240104_151805.jpg" comment="janv. 2024" />
+      <item id="3" file="1964/05/19640501_150408.jpg" comment="mai 1964" />
+      <item id="4" file="2019/04/20190402_172339.jpg" comment="avr. 2019" />
+      <item id="5" file="2019/04/20190402_172403.jpg" comment="avr. 2019" />
+      <item id="6" file="2019/04/20190406_182120.jpg" comment="avr. 2019" />
+   </list>
+   <print format="A4" orient="portrait" size="5,3">
+       <libs>
+           <lib id="1"><![CDATA[
+                      <h2>Titre de la photo</h2>
+                      <p>Description ou commentaire associé au bloc de texte de la bibliothèque.</p>
+           ]]></lib>
+       </libs>
+       <pages>
+           <page id="1">
+               <cell type="p" pos="1,1,1" ref="1" />
+               <cell type="t" pos="2,2,1" ref="1" />
+               <cell type="p" pos="4,1,1" ref="2" />
+           </page>
+       </pages>
+   </print>
+</album>

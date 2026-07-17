@@ -21,9 +21,12 @@ import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
 import static app.album.AlbumTree.getSubdir;
-import app.dialog.ChangeDateDlg;
+import app.diapo.DiapoParam;
+import app.diapo.DiapoParamDlg;
 import app.gallery.Gallery;
 import app.gallery.ImageLabel;
+import app.ui.ChangeDateDlg;
+import app.xml.Xml;
 import i18n.I18N;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -55,7 +58,6 @@ import resources.icons.IconButton;
 import tools.LOG;
 import tools.Ui;
 import tools.file.FileUtil;
-import tools.xml.Xml;
 
 /**
  *
@@ -66,7 +68,7 @@ public class Album extends JFrame {
 	private static final String TT = "Album.";
 	private static final int IMG_SIZE = 200;
 
-	private AlbumParam param;
+	private DiapoParam param;
 	// tree and table
 	private AlbumTree tree;
 	private Gallery gallery;
@@ -83,6 +85,7 @@ public class Album extends JFrame {
 	private String curTxt;
 	private Dimension curSz;
 	private IconButton btAdd;
+	private File file;
 
 	public Album() {
 		super();
@@ -94,7 +97,7 @@ public class Album extends JFrame {
 	 *
 	 * @param value
 	 */
-	public void albumNameSet(String value) {
+	public void diapoNameSet(String value) {
 		this.albumName = value;
 	}
 
@@ -103,8 +106,8 @@ public class Album extends JFrame {
 	 *
 	 * @return
 	 */
-	public String albumNameGet() {
-		return table.getXml().getFile().getName();
+	public String diapoNameGet() {
+		return table.xmlGet().getFile().getName();
 	}
 
 	/**
@@ -118,8 +121,13 @@ public class Album extends JFrame {
 		if (xmlAlbum.isEmpty()) {
 			xmlAlbum = "Album.xml";
 		}
-		xml = new Xml(App.preferences.photosDirGet() + File.separator + xmlAlbum);
-		param = new AlbumParam(xml);
+		File xfile = new File(App.preferences.photosDirGet() + File.separator + xmlAlbum);
+		if (!xfile.exists()) {
+			xfile = new File(App.preferences.photosDirGet() + File.separator + "Album.xml");
+		}
+		xml = new Xml(xfile);
+		this.file = new File(App.preferences.photosDirGet() + File.separator + xmlAlbum);
+		param = new DiapoParam(xml);
 		JPanel ptree = initTree();
 		initGallery();
 		JPanel ptable = initTable();
@@ -195,7 +203,7 @@ public class Album extends JFrame {
 		JPanel ptitle = new JPanel(new MigLayout(MIG.FLOWX));
 		ptitle.add(new JLabel(I18N.getColonMsg("album.title")), MIG.SPLIT2);
 		ptitle.add(title = new JTextField(), MIG.get(MIG.SPAN, MIG.GROWX));
-		title.setText(xml.getTitle());
+		title.setText(xml.getAlbum().getTitle());
 		title.setColumns(32);
 		title.addCaretListener(e -> titleChange());
 		pTable.add(ptitle, MIG.get(MIG.GROWX));
@@ -279,8 +287,16 @@ public class Album extends JFrame {
 	 * @param file
 	 */
 	public void loadTable(File file) {
-		xml = new Xml(file.getAbsolutePath());
+		fileSet(file);
+		xml = new Xml(file);
 		loadTable();
+	}
+
+	public AlbumItem tableRowGet(int i) {
+		if (table == null || table.getRowCount() >= i) {
+			return table.getRow(i);
+		}
+		return null;
 	}
 
 	/**
@@ -298,12 +314,12 @@ public class Album extends JFrame {
 	}
 
 	/**
-	 * get the Table into XML format
+	 * get the Album into XML format
 	 *
 	 * @return
 	 */
-	public Xml getXml() {
-		return table.getXml();
+	public Xml xmlGet() {
+		return table.xmlGet();
 	}
 
 	/**
@@ -311,7 +327,7 @@ public class Album extends JFrame {
 	 *
 	 * @return the param
 	 */
-	public AlbumParam getAlbumParam() {
+	public DiapoParam diapoParamGet() {
 		return param;
 	}
 
@@ -319,27 +335,43 @@ public class Album extends JFrame {
 	 * load Album parameters
 	 */
 	public void loadParam() {
-		param = new AlbumParam(table.getXml());
+		param = new DiapoParam(table.xmlGet());
 	}
 
 	/**
 	 * create Album parameters
 	 */
-	public void albumParamCreate() {
+	public void diapoParamCreate() {
 		if (table != null && table.xml.isOpened()) {
 			loadParam();
 		}
 	}
 
-	public void setAlbumFile(File file) {
+	/**
+	 * set the current file
+	 *
+	 * @param file
+	 */
+	public void fileSet(File file) {
 		if (table.isModified()) {
 			table.save(title.getText());
 		}
+		this.file = file;
 		xml = new Xml(file);
 		table.load(xml);
 		loadParam();
-		title.setText(xml.getTitle());
+		title.setText(xml.getAlbum().getTitle());
 		tree.reload();
+	}
+
+	/**
+	 * get the current file
+	 *
+	 * @return
+	 */
+	public File fileGet() {
+		//LOG.trace(TT + "fileGet()=" + file.getAbsolutePath());
+		return file;
 	}
 
 	/**
@@ -348,7 +380,7 @@ public class Album extends JFrame {
 	 * @param file
 	 */
 	public void setPhotosDir(File file) {
-		setAlbumFile(new File(App.preferences.photosDirGet() + File.separator + "Album.xml"));
+		fileSet(new File(App.preferences.photosDirGet() + File.separator + "Album.xml"));
 	}
 
 	/**
@@ -357,7 +389,7 @@ public class Album extends JFrame {
 	public void refreshAll() {
 		tree.reload();
 		gallery.refresh();
-		setAlbumFile(new File(App.preferences.photosDirGet() + File.separator + "Album.xml"));
+		fileSet(new File(App.preferences.photosDirGet() + File.separator + "Album.xml"));
 	}
 
 	/**
@@ -366,7 +398,7 @@ public class Album extends JFrame {
 	public void btAddPhotos() {
 		List<ImageLabel> imgList = gallery.getImgList();
 		for (ImageLabel il : imgList) {
-			File f = il.getFile();
+			File f = il.fileGet();
 			if (il.getSel() == ImageLabel.SEL) {
 				table.addRow(new AlbumItem(table.getRowCount() + 1, param.getComment(f), f));
 				il.setSel(ImageLabel.SEL_ALBUM);
@@ -380,7 +412,7 @@ public class Album extends JFrame {
 	 */
 	public void btAddAction() {
 		//LOG.trace(TT + "btAddAction()");
-		if (!AlbumParamDlg.showing(this, true)) {
+		if (!DiapoParamDlg.showing(this, true)) {
 			return;
 		}
 		DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
@@ -416,7 +448,7 @@ public class Album extends JFrame {
 	public void changeComments() {
 		//LOG.trace(TT + "changeComments()");
 		//show comment dialog to get new comment template
-		AlbumParamDlg dlg = new AlbumParamDlg(this, false);
+		DiapoParamDlg dlg = new DiapoParamDlg(this, false);
 		dlg.setVisible(true);
 		if (dlg.isCanceled()) {
 			return;
@@ -486,18 +518,23 @@ public class Album extends JFrame {
 		JMenuItem item1 = new JMenuItem(I18N.getMsg("album.add"));
 		item1.addActionListener(act -> btAddAction());
 		popupMenu.add(item1);
-		if (node.isLeaf()) {
-			JMenuItem item2 = new JMenuItem(I18N.getMsg("date.change"));
-			item2.addActionListener(act -> changeDate());
-			popupMenu.add(item2);
-		}
 		popupMenu.show(e.getComponent(), e.getX(), e.getY());
 	}
 
+	/**
+	 * update the enabled button to add to the album
+	 *
+	 * @param b
+	 */
 	public void updateBtAdd(boolean b) {
 		btAdd.setEnabled(b);
 	}
 
+	/**
+	 * change the date-time of the given file image
+	 *
+	 * @param file
+	 */
 	public void changeDate(File file) {
 		if (file != null && App.jpegIs(file)) {
 			ChangeDateDlg dlg = new ChangeDateDlg(this, file);
@@ -521,46 +558,10 @@ public class Album extends JFrame {
 	}
 
 	/**
-	 * change the date-time of the selected image
-	 */
-	public void changeDate() {
-		//LOG.trace(TT + "changeDate()");
-		// vérification qu'on est bien sur une image*
-		TreePath[] paths = tree.getSelectionPaths();
-		DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-		if (node == null) {
-			return;
-		}
-		if (node.isLeaf()) {
-			File imgFile = (File) node.getUserObject();
-			if (App.jpegIs(imgFile)) {
-				ChangeDateDlg dlg = new ChangeDateDlg(this, imgFile);
-				dlg.setVisible(true);
-				if (!dlg.isCancel()) {
-					String origin = FileUtil.removeExtension(imgFile.getName());
-					String date = dlg.getDate();
-					if (!date.equals(origin)) try {
-						int mode = dlg.getMode();
-						String subdir = getSubdir(date, mode);
-						File out = new File(App.preferences.photosDirGet() + File.separator
-								+ subdir + File.separator + date + ".jpg");
-						out.mkdirs();
-						Files.move(imgFile.toPath(), out.toPath(), REPLACE_EXISTING);
-						tree.reload();
-						tree.select(out);
-					} catch (IOException ex) {
-						LOG.err(TT + "changeDate() move error", ex);
-					}
-				}
-			}
-		}
-	}
-
-	/**
 	 * change Album title
 	 */
 	private void titleChange() {
-		if (!title.getText().equals(xml.getTitle())) {
+		if (!title.getText().equals(xml.getAlbum().getTitle())) {
 			table.setModified();
 		}
 	}
@@ -570,8 +571,8 @@ public class Album extends JFrame {
 	 *
 	 * @return
 	 */
-	public String albumTitleGet() {
-		return xml.getTitle();
+	public String diapoTitleGet() {
+		return xml.getAlbum().getTitle();
 	}
 
 	public Gallery getGallery() {
@@ -581,13 +582,13 @@ public class Album extends JFrame {
 	/**
 	 * add the given photo to the current album
 	 *
-	 * @param lb
+	 * @param il
 	 */
 	public void photoAdd(ImageLabel il) {
-		if (!AlbumParamDlg.showing(this, true)) {
+		if (!DiapoParamDlg.showing(this, true)) {
 			return;
 		}
-		File f = il.getFile();
+		File f = il.fileGet();
 		table.addRow(new AlbumItem(table.getRowCount() + 1, param.getComment(f), f));
 		save();
 		gallery.refresh();
@@ -602,7 +603,7 @@ public class Album extends JFrame {
 		DefaultTableModel model = (DefaultTableModel) table.getModel();
 		for (int row = 0; row < table.getRowCount(); row++) {
 			File f = (File) model.getValueAt(row, 1);
-			if (f.getAbsolutePath().equals(lb.getFile().getAbsolutePath())) {
+			if (f.getAbsolutePath().equals(lb.fileGet().getAbsolutePath())) {
 				model.removeRow(row);
 				save();
 				gallery.refresh();

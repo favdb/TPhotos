@@ -1,0 +1,63 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #FAFAFA;
+    font-family: Arial, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.page {
+    width: 210mm;
+    height: 297mm;
+    margin: 10mm auto;
+    padding: 10mm;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    page-break-after: always;
+    page-break-inside: avoid;
+    position: relative;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); 
+    grid-template-rows: repeat(5, 1fr);    
+    gap: 4mm;
+    width: 100%;
+    height: 100%;
+}
+
+.cell {
+    border: 1px dashed #ccc;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.cell.photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cell.text {
+    display: block;
+    padding: 5px;
+    text-align: left;
+    word-wrap: break-word;
+}
+
+@media print {
+    html, body { background-color: white; }
+    .page {
+        margin: 0;  border: none;box-shadow: none;
+    }
+    .cell {
+        border: none;
+    }
+}

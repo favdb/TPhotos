@@ -310,15 +310,17 @@ public class FileUtil {
 				return false;
 			}
 			outfile.getParentFile().mkdirs();
-			FileOutputStream os;
-			try (FileInputStream is = new FileInputStream(infile)) {
-				os = new FileOutputStream(outfile);
-				byte[] buffer = new byte[1024];
-				int length;
-				while ((length = is.read(buffer)) > 0) {
-					os.write(buffer, 0, length);
+			if (!fileExists(infile, outfile)) {
+				FileOutputStream os;
+				try (FileInputStream is = new FileInputStream(infile)) {
+					os = new FileOutputStream(outfile);
+					byte[] buffer = new byte[1024];
+					int length;
+					while ((length = is.read(buffer)) > 0) {
+						os.write(buffer, 0, length);
+					}
+					os.close();
 				}
-				os.close();
 			}
 		} catch (IOException ex) {
 			LOG.err(String.format("Unable copy %s to %s\n%s",
@@ -387,6 +389,54 @@ public class FileUtil {
 	public static int getNbElement(File file) {
 		List<File> ls = computeList(file);
 		return ls.size();
+	}
+
+	/**
+	 * check if outfile exists
+	 *
+	 * @param infile
+	 * @param outfile
+	 * @return true if exists and identical
+	 */
+	private static boolean fileExists(File infile, File outfile) {
+		if (outfile.exists()) {
+			//check if content is identical
+			return fileCompare(infile, outfile);
+		}
+		return false;
+	}
+
+	/**
+	 * check if contyents of infile and outfile are identical
+	 *
+	 * @param infile
+	 * @param outfile
+	 * @return
+	 */
+	private static boolean fileCompare(File infile, File outfile) {
+		if (infile.length() != outfile.length()) {
+			return false;
+		}
+		if (infile.getAbsolutePath().equals(outfile.getAbsolutePath())) {
+			return true;
+		}
+		try (BufferedInputStream bis1 = new BufferedInputStream(
+				new FileInputStream(infile)); BufferedInputStream bis2
+				= new BufferedInputStream(new FileInputStream(outfile))) {
+			int byte1;
+			int byte2;
+			do {
+				byte1 = bis1.read();
+				byte2 = bis2.read();
+				if (byte1 != byte2) {
+					return false;
+				}
+			} while (byte1 != -1);
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace(System.err);
+			return false;
+		}
 	}
 
 	public boolean fileMove(String sourcePath, String targetPath) {

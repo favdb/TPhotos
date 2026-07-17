@@ -19,7 +19,7 @@ package tools.file;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
-import app.AbstractFrame;
+import app.ui.AbstractFrame;
 import app.App;
 import app.album.AlbumItem;
 import app.export.ExportImage;
@@ -34,6 +34,7 @@ import javax.swing.JProgressBar;
 import tools.Html;
 import tools.LOG;
 import tools.jpeg.Jpeg;
+import tools.jpeg.Webp;
 
 /**
  * copy files dialog
@@ -213,7 +214,7 @@ public class CopyFileDlg extends JDialog {
 		addReport(I18N.getMsg("photo.copy_end", outfiles.size()) + "</p>");
 		running = false;
 		dispose();
-		((AbstractFrame) getParent()).doCopyEnd();
+		((AbstractFrame) getParent()).copyEnd();
 	}
 
 	private File getOutfile(File infile) {
@@ -222,7 +223,13 @@ public class CopyFileDlg extends JDialog {
 		}
 		File outdir = new File(todir, infile.getName());
 		if (sorter != -1) {
-			String date = Jpeg.getDate(infile);
+			String extension = FileUtil.getExtension(infile).toLowerCase();
+			String date;
+			if ("webp".equals(extension)) {
+				date = Webp.getDate(infile);
+			} else {
+				date = Jpeg.getDate(infile); // Pour jpg/jpeg
+			}
 			if (date != null) {
 				StringBuilder subdir = new StringBuilder();
 				if (sorter < 3) {

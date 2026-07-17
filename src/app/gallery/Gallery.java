@@ -22,28 +22,28 @@ import api.mig.swing.MigLayout;
 import app.App;
 import app.album.Album;
 import app.album.AlbumTable;
-import i18n.I18N;
+import java.awt.Desktop;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.swing.BorderFactory;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JViewport;
 import javax.swing.SwingWorker;
 import javax.swing.table.TableModel;
 import resources.icons.ICONS;
-import resources.icons.IconUtil;
 import tools.ImageUtil;
 import tools.LOG;
 import tools.Ui;
 
 /**
- * gallery panel avec chargement asynchrone
+ * gallery panel with asynchroneus load
  *
  * @author favdb
  */
@@ -51,7 +51,8 @@ public class Gallery extends JPanel {
 
 	private static final String TT = "Gallery.";
 
-	private int IMG_SZ = 128;
+	private static String T_ALBUM = "album", T_TABLE = "table";
+	private String type = T_ALBUM;
 	private File rootdir = null;
 	private Album album;
 	private AlbumTable table = null;
@@ -59,6 +60,7 @@ public class Gallery extends JPanel {
 	private JScrollPane scroller;
 	private List<ImageLabel> imgList = new ArrayList<>();
 	private java.awt.event.ComponentAdapter resizeListener = null;
+	private SwingWorker<Void, Integer> currentWorker = null;
 
 	public Gallery() {
 		super();
@@ -68,12 +70,14 @@ public class Gallery extends JPanel {
 		super();
 		this.album = album;
 		this.rootdir = rootdir;
+		this.type = T_ALBUM;
 		initialize();
 	}
 
 	public Gallery(AlbumTable table) {
 		super();
 		this.table = table;
+		this.type = T_TABLE;
 		initialize();
 	}
 
@@ -85,7 +89,6 @@ public class Gallery extends JPanel {
 		if (pGallery == null) {
 			pGallery = new JPanel();
 		}
-		// cleanup the gallery panel before defining layout
 		pGallery.removeAll();
 		pGallery.setLayout(new MigLayout(MIG.get("al left top", MIG.INS0, MIG.GAP + " 6", MIG.WRAP + " " + nbcols)));
 		if (scroller == null) {
@@ -98,7 +101,7 @@ public class Gallery extends JPanel {
 			this.remove(scroller);
 		}
 		this.add(scroller, MIG.get(MIG.GROW, MIG.PUSH, "top, left"));
-		loadImages();
+		imagesLoad();
 		if (resizeListener != null) {
 			this.removeComponentListener(resizeListener);
 		}
@@ -113,7 +116,6 @@ public class Gallery extends JPanel {
 
 	private int computeNB_COLS() {
 		int textwidth = Ui.getTextWidth(" 99/99/9999 ", this.getFont());
-		IMG_SZ = textwidth - 4;
 		int currentWidth = this.getWidth();
 		if (currentWidth <= 0) {
 			currentWidth = 800;
@@ -128,21 +130,17 @@ public class Gallery extends JPanel {
 		initialize();
 	}
 
-	private SwingWorker<Void, Integer> currentWorker = null;
-
-	private void loadImages() {
+	private void imagesLoad() {
 		if (rootdir != null && rootdir.exists()) {
 			ImageUtil.cleanCache(rootdir);
 		}
 		if (currentWorker != null && !currentWorker.isDone()) {
 			currentWorker.cancel(true);
 		}
-
 		pGallery.removeAll();
 		imgList.clear();
-
-		final List<File> filesToLoad = new ArrayList<>();
-		if (table != null) {
+		List<File> filesToLoad = new ArrayList<>();
+		if (type.equals(T_TABLE)) {
 			for (int row = 0; row < table.getRowCount(); row++) {
 				File f = (File) table.getModel().getValueAt(row, 1);
 				if (f != null && f.exists()) {
@@ -160,16 +158,13 @@ public class Gallery extends JPanel {
 				}
 			}
 		}
-
 		for (File f : filesToLoad) {
 			ImageLabel il = new ImageLabel(this, f, "", table == null);
 			imgList.add(il);
 			pGallery.add(il);
 		}
-
 		pGallery.revalidate();
 		pGallery.repaint();
-
 		currentWorker = new SwingWorker<Void, Integer>() {
 			@Override
 			protected Void doInBackground() throws Exception {
@@ -189,7 +184,7 @@ public class Gallery extends JPanel {
 				for (Integer index : chunks) {
 					imgList.get(index).repaint();
 				}
-				setImagesAlbum();
+				imagesDiapoSet();
 			}
 		};
 		currentWorker.execute();
@@ -218,10 +213,10 @@ public class Gallery extends JPanel {
 	}
 
 	/**
-	 * set the ImageLabel to SEL_ALBUM when file is in album
+	 * set the ImageLabel to SEL_ALBUM when file is in diapo
 	 */
-	public void setImagesAlbum() {
-		//LOG.trace(TT + "setImagesAlbum()");
+	public void imagesDiapoSet() {
+		//LOG.trace(TT + "imagesDiapoSet()");
 		if (rootdir != null && rootdir.isDirectory()) {
 			List<File> falbum = new ArrayList<>();
 			TableModel model = album.getTable().getModel();
@@ -231,7 +226,7 @@ public class Gallery extends JPanel {
 			}
 			for (File f : falbum) {
 				for (ImageLabel lb : imgList) {
-					if (f.getName().equals(lb.getFile().getName())) {
+					if (f.getName().equals(lb.fileGet().getName())) {
 						lb.setSel(ImageLabel.SEL_ALBUM);
 					}
 				}
@@ -239,11 +234,17 @@ public class Gallery extends JPanel {
 		}
 	}
 
+	/**
+	 * refresh
+	 */
 	public void refresh() {
 		initialize();
 		updateBtAdd();
 	}
 
+	/**
+	 * update the add button
+	 */
 	public void updateBtAdd() {
 		album.updateBtAdd(false);
 		for (ImageLabel il : imgList) {
@@ -254,38 +255,74 @@ public class Gallery extends JPanel {
 		}
 	}
 
+	/**
+	 * show popup menu
+	 *
+	 * @param e
+	 * @param il
+	 */
 	public void showPopup(MouseEvent e, ImageLabel il) {
 		//LOG.trace(TT + "showPopup(il=" + il.toString() + ")");
 		JPopupMenu popupMenu = new JPopupMenu();
-		JMenuItem item1 = new JMenuItem(I18N.getMsg("date.change"));
-		item1.addActionListener(act -> album.changeDate(il.getFile()));
-		if (il.getSel() == ImageLabel.SEL_ALBUM) {
-			item1 = new JMenuItem(I18N.getMsg("album.remove"));
-			item1.addActionListener(act -> album.photoRemove(il));
-		}
-		popupMenu.add(item1);
-		if (il.getSel() != ImageLabel.SEL_ALBUM) {
-			JMenuItem itemDelete = new JMenuItem(I18N.getMsg("action.delete"));
-			itemDelete.setIcon(IconUtil.getIconSmall(ICONS.K.CANCEL));
-			itemDelete.addActionListener(al -> {
-				LOG.trace("delete: " + il.getFile().getAbsolutePath());
-				il.getFile().delete();
-				album.refreshAll();
-			});
-			popupMenu.add(itemDelete);
+		popupMenu.add(Ui.initMenuItem(ICONS.K.PHOTO, "menu.file_album_open",
+				act -> {
+					try {
+						Desktop.getDesktop().open(il.fileGet());
+					} catch (IOException ex) {
+						LOG.err("unable to open file", ex);
+					}
+				}));
+		if (table == null) {
+			if (il.getSel() != ImageLabel.SEL_ALBUM) {
+				popupMenu.add(Ui.initMenuItem(ICONS.K.PLUS, "album.add",
+						act -> album.photoAdd(il)));
+				popupMenu.add(new JSeparator());
+				popupMenu.add(Ui.initMenuItem(ICONS.K.CALENDAR, "date.change",
+						act -> album.changeDate(il.fileGet())));
+				popupMenu.add(Ui.initMenuItem(ICONS.K.CANCEL, "action.delete",
+						al -> {
+							LOG.trace("delete: " + il.fileGet().getAbsolutePath());
+							il.fileGet().delete();
+							album.refreshAll();
+						}));
+			} else {
+				popupMenu.add(Ui.initMenuItem(ICONS.K.MINUS, "album.remove",
+						act -> album.photoRemove(il)));
+			}
 		}
 		popupMenu.show(e.getComponent(), e.getX(), e.getY());
 	}
 
+	/**
+	 * get the images list
+	 *
+	 * @return
+	 */
 	public List<ImageLabel> getImgList() {
 		return imgList;
 	}
 
-	public void albumAdd(ImageLabel lb) {
+	/**
+	 * add an image label
+	 *
+	 * @param lb
+	 */
+	public void imageAdd(ImageLabel lb) {
+		if (table != null) {
+			return;
+		}
 		album.photoAdd(lb);
 	}
 
-	public void albumRemove(ImageLabel lb) {
+	/**
+	 * remove an image label
+	 *
+	 * @param lb
+	 */
+	public void imageRemove(ImageLabel lb) {
+		if (table != null) {
+			return;
+		}
 		album.photoRemove(lb);
 	}
 

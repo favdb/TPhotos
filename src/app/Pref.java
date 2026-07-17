@@ -39,6 +39,8 @@ import tools.file.EnvUtil;
  */
 public class Pref {
 
+	private static final String TT = "Pref.";
+
 	private Integer exportType;
 
 	public enum KEY {
@@ -54,7 +56,8 @@ public class Pref {
 		ORGANIZE_TYPE("OrganizeType", "0"),
 		ORGANIZE_DELETE("OrganizeDelete", "0"),
 		PHOTOS_DIR("PhotosDir", EnvUtil.getPhotosDir().getAbsolutePath()),
-		VERSION("Version", Const.getVersion());
+		VERSION("Version", Const.getVersion()),
+		IMAGE_LATSDIR("ImageLastDir", "");
 		final private String text, value;
 
 		private KEY(String text, String value) {
@@ -102,10 +105,7 @@ public class Pref {
 	 * @return : true if it is loaded
 	 */
 	private boolean isToLoad(String key) {
-		//LOG.trace(TT + ".isLoad(key=" + key + ")");
-		if (key.startsWith("Editor_") || key.startsWith("Table_")) {
-			return true;
-		}
+		//LOG.trace(TT + "isLoad(key=\"" + key + "\")");
 		for (KEY k : KEY.values()) {
 			if (k.toString().equals(key)) {
 				return true;
@@ -141,6 +141,8 @@ public class Pref {
 					}
 				}
 				br.close();
+			} catch (Exception e) {
+				LOG.err(TT + "load() err", e);
 			}
 		} catch (IOException e) {
 			e.printStackTrace(System.err);

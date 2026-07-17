@@ -20,6 +20,7 @@ package app.album;
 import java.io.File;
 
 /**
+ * class for a photo item
  *
  * @author favdb
  */
@@ -37,7 +38,7 @@ public class AlbumItem {
 
 	@Override
 	public String toString() {
-		return String.format("%d text=%s file=%s", id, text, file);
+		return String.format("%d text=%s file=%s pos=%s span=%s", id, text, file);
 	}
 
 }

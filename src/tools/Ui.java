@@ -26,6 +26,7 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -101,6 +102,42 @@ public class Ui {
 		bt.setMaximumSize(new Dimension((int) (IconUtil.getDefSize() * 1.3), (int) (IconUtil.getDefSize() * 1.3)));
 		bt.addActionListener(action);
 		return bt;
+	}
+
+	public static JButton initIconButton(String name, ICONS.K icon, String tt, ActionListener action) {
+		JButton bt = initIconButton(name, icon, action);
+		bt.setToolTipText(I18N.getMsg(tt));
+		return bt;
+	}
+
+	public static JButton initButton(String name, String text, ICONS.K icon,
+			String tooltip, ActionListener... act) {
+		//LOG.trace(TT+"initButton(name=" + name + ",
+		//text=" + text + ", icon=" + icon.toString() + ")");
+		JButton btn = new JButton();
+		btn.setName(name);
+		if (text != null && !text.isEmpty()) {
+			if (text.equals("...") || text.trim().isEmpty()) {
+				btn.setText(text);
+			} else if (!text.isEmpty() && !text.equalsIgnoreCase("none")) {
+				btn.setText(I18N.getMsg(text));
+			}
+		}
+		if (icon != null && icon != ICONS.K.NONE && icon != ICONS.K.EMPTY) {
+			btn.setIcon(IconUtil.getIconSmall(icon));
+			if (text == null || text.isEmpty()) {
+				btn.setMargin(new Insets(0, 0, 0, 0));
+				btn.setMaximumSize(IconUtil.getDefDim());
+			}
+
+		}
+		if (!tooltip.isEmpty()) {
+			btn.setToolTipText(I18N.getMsg(tooltip));
+		}
+		if (act != null && act.length > 0) {
+			btn.addActionListener(act[0]);
+		}
+		return btn;
 	}
 
 	/**
@@ -222,6 +259,14 @@ public class Ui {
 		AffineTransform at = new AffineTransform();
 		FontRenderContext frc = new FontRenderContext(at, true, true);
 		return (int) font.getStringBounds(str, frc).getWidth();
+	}
+
+	public static JComboBox<String> initComboBox(String paperlist, String[] list, String sel) {
+		JComboBox<String> cb = new JComboBox<String>(list);
+		if (!sel.isEmpty()) {
+			cb.setSelectedItem(sel);
+		}
+		return cb;
 	}
 
 }

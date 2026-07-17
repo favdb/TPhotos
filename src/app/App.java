@@ -17,8 +17,10 @@
  */
 package app;
 
-import app.dialog.AboutDlg;
-import app.dialog.PrefDlg;
+import app.ui.AboutDlg;
+import app.ui.MainFrame;
+import app.ui.PrefDlg;
+import app.xml.Xml;
 import i18n.I18N;
 import java.awt.Font;
 import java.io.File;
@@ -32,11 +34,10 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.FontUIResource;
 import resources.icons.IconUtil;
-import tools.LAF;
 import tools.LOG;
+import tools.LaF;
 import tools.file.EnvUtil;
 import tools.file.FileUtil;
-import tools.xml.Xml;
 
 /**
  * application main class
@@ -109,7 +110,7 @@ public class App {
 		}
 		prefInit();
 		fontInit();
-		LAF.init();
+		LaF.init();
 		if (lang.isEmpty()) {
 			I18N.initMessages(Locale.getDefault());
 		} else {
@@ -164,7 +165,7 @@ public class App {
 	 * initialize preferences
 	 */
 	private static void prefInit() {
-		//LOG.trace(TT + "initPref()");
+		//LOG.trace(TT + "prefInit()");
 		preferences = new Pref();
 	}
 
@@ -172,7 +173,7 @@ public class App {
 	 * exit application
 	 */
 	public static void exit() {
-		mainFrame.getAlbumPanel().save();
+		mainFrame.albumGet().save();
 		preferences.save();
 		System.exit(0);
 	}
@@ -195,7 +196,7 @@ public class App {
 			return false;
 		}
 		String str = f.getName().toLowerCase();
-		return (str.endsWith(".jpg") || str.endsWith(".jpeg"));
+		return (str.endsWith(".jpg") || str.endsWith(".jpeg") || str.endsWith(".webp"));
 	}
 
 	/**
@@ -238,10 +239,8 @@ public class App {
 		}
 		String newdir = chooser.getSelectedFile().getAbsolutePath();
 		preferences.photosDirSet(newdir);
-		mainFrame.setPhotosDir(new File(newdir));
-		Xml xml = mainFrame.getAlbumPanel().getXml();
-		File file = new File(newdir + File.separator + "Album.xml");
-		mainFrame.setAlbumFile(file);
+		mainFrame.photosDirSet(new File(newdir));
+		mainFrame.fileSet(new File(newdir + File.separator + "Album.xml"));
 	}
 
 	/**
@@ -251,13 +250,13 @@ public class App {
 	 */
 	private static void albumFileSet(File file) {
 		preferences.albumLastSet(file.getName());
-		mainFrame.setAlbumFile(file);
+		mainFrame.fileSet(file);
 	}
 
 	/**
 	 * create a new album file
 	 */
-	static void albumFileNew() {
+	public static void albumFileNew() {
 		FileNameExtensionFilter xmlfilter = new FileNameExtensionFilter("xml files (*.xml)", "xml");
 		String base = preferences.photosDirGet() + File.separator + "Album";
 		File inf = new File(base + ".xml");
@@ -296,7 +295,7 @@ public class App {
 					+ "<list/>"
 					+ "</album>"
 			);
-			mainFrame.setAlbumFile(file);
+			mainFrame.fileSet(file);
 		} else {
 			JOptionPane.showMessageDialog(mainFrame,
 					I18N.getMsg("album.error_exists", file),
@@ -317,7 +316,7 @@ public class App {
 		if (i != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
-		mainFrame.setAlbumFile(chooser.getSelectedFile());
+		mainFrame.fileSet(chooser.getSelectedFile());
 	}
 
 	/**
@@ -339,14 +338,14 @@ public class App {
 	 * do the album
 	 */
 	public static void albumDo() {
-		mainFrame.doAlbum();
+		mainFrame.doDiapo();
 	}
 
 	/**
 	 * refresh the album
 	 */
 	public static void albumRefresh() {
-		mainFrame.refreshAlbum();
+		mainFrame.albumRefresh();
 	}
 
 	/**
@@ -354,7 +353,7 @@ public class App {
 	 */
 	public static void updateTitle() {
 		if (mainFrame != null) {
-			mainFrame.updateTitle();
+			mainFrame.titleUpdate();
 			diaporamaEnable();
 		}
 	}
@@ -371,7 +370,7 @@ public class App {
 	 */
 	public static void diaporamaEnable() {
 		if (mainFrame != null) {
-			boolean b = mainFrame.getAlbumPanel().getTable().getRowCount() > 0;
+			boolean b = mainFrame.albumGet().getTable().getRowCount() > 0;
 			if (mainFrame.appMenu.btDiapo != null) {
 				mainFrame.appMenu.btDiapo.setVisible(b);
 				mainFrame.appMenu.btExport.setVisible(b);
@@ -383,8 +382,8 @@ public class App {
 	 * do the export
 	 */
 	public static void exportDo() {
-		//LOG.trace(TT+"exportDo()");
-		mainFrame.exportDo();
+		//LOG.trace(TT+"doExport()");
+		mainFrame.doExport();
 	}
 
 	/**
@@ -411,6 +410,10 @@ public class App {
 
 	public static String getLang() {
 		return lang;
+	}
+
+	public static void printDo() {
+		mainFrame.printDo();
 	}
 
 }

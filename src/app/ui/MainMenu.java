@@ -15,10 +15,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app;
+package app.ui;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.App;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.BorderFactory;
@@ -44,6 +45,7 @@ public class MainMenu {
 	private JMenuBar menuBar;
 	public JToggleButton btSorter, btAlbum, btExport, btShow;
 	public JButton btDiapo, btPhotos, btAbout;
+	private JButton btPrint;
 
 	public MainMenu() {
 		initialize();
@@ -91,6 +93,7 @@ public class MainMenu {
 		p.add(btAlbum = Ui.initToggleButton("app.album", false, e -> App.albumDo()));
 		p.add(btDiapo = Ui.initButton("app.diapo", ICONS.K.PIC, e -> App.diapoDo()));
 		btDiapo.setVisible(false);
+		p.add(btPrint = Ui.initButton("print", ICONS.K.F_PRINT, e -> App.printDo()));
 		p.add(btExport = Ui.initToggleButton("export", ICONS.K.F_EXPORT, false, e -> App.exportDo()));
 		btExport.setVisible(false);
 		return p;

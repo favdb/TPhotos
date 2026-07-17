@@ -18,18 +18,23 @@
 package app.gallery;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.IOException;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import tools.DateUtil;
 import tools.ImageUtil;
+import tools.LOG;
 import tools.file.FileUtil;
 
 /**
+ * class for a JLabel of an image
  *
  * @author favdb
  */
@@ -46,6 +51,7 @@ public class ImageLabel extends JLabel implements MouseListener {
 	private char sel = '0';
 	private boolean allowedSel;
 	private Gallery gallery;
+	private Timer clickTimer;
 
 	public ImageLabel(Gallery gallery, File file, String comment, boolean allowed) {
 		this.gallery = gallery;
@@ -56,18 +62,51 @@ public class ImageLabel extends JLabel implements MouseListener {
 		initialize();
 	}
 
+	/**
+	 * initialize
+	 */
 	private void initialize() {
 		setVerticalTextPosition(JLabel.BOTTOM);
 		setHorizontalTextPosition(JLabel.CENTER);
-		setFile(file);
+		fileSet(file);
 		setComment(comment);
 		setSel(sel);
 		this.addMouseListener(this);
 		int height = (int) (IMG_SZ * 1.5);
 		setMinimumSize(new Dimension(IMG_SZ, height));
 		setPreferredSize(new Dimension(IMG_SZ, height));
+		clickTimer = new javax.swing.Timer(250, javaEvent -> {
+			executeSimpleClickAction();
+		});
+		clickTimer.setRepeats(false);
 	}
 
+	/**
+	 * simple click action
+	 */
+	private void executeSimpleClickAction() {
+		if (allowedSel) {
+			switch (sel) {
+				case 'R':
+					setSel('0');
+					break;
+				case 'G':
+					break;
+				case 'B':
+					break;
+				case '0':
+					setSel('R');
+					break;
+			}
+			gallery.updateBtAdd();
+		}
+	}
+
+	/**
+	 * the the color
+	 *
+	 * @param sel
+	 */
 	private void setColor(char sel) {
 		Color c = UNSELECTED;
 		switch (sel) {
@@ -87,24 +126,47 @@ public class ImageLabel extends JLabel implements MouseListener {
 		setBorder(BorderFactory.createLineBorder(c, 2));
 	}
 
-	public File getFile() {
+	/**
+	 * get the file
+	 *
+	 * @return
+	 */
+	public File fileGet() {
 		return file;
 	}
 
-	public void setFile(File file) {
+	/**
+	 * set the file
+	 *
+	 * @param file
+	 */
+	public void fileSet(File file) {
 		this.file = file;
 		String n = DateUtil.toFormatted(FileUtil.removeExtension(file.getName())).replace(" ", "<br>");
 		setText("<html><p style=\"text-align: center;\">" + n + "</p></html>");
 	}
 
+	/**
+	 * load the thumnails
+	 */
 	public void loadThumbnail() {
 		this.setIcon(ImageUtil.getThumb(this.file, IMG_SZ));
 	}
 
+	/**
+	 * get the comment text
+	 *
+	 * @return
+	 */
 	public String getComment() {
 		return comment;
 	}
 
+	/**
+	 * set the comment text
+	 *
+	 * @param comment
+	 */
 	public void setComment(String comment) {
 		this.comment = comment;
 		if (comment != null && !comment.isEmpty()) {
@@ -112,60 +174,77 @@ public class ImageLabel extends JLabel implements MouseListener {
 		}
 	}
 
+	/**
+	 * get selection status
+	 *
+	 * @return
+	 */
 	public char getSel() {
 		return sel;
 	}
 
+	/**
+	 * set selection status
+	 *
+	 * @param sel
+	 */
 	public void setSel(char sel) {
 		this.sel = sel;
 		setColor(sel);
 	}
 
+	/**
+	 * set allowed selection
+	 *
+	 * @param b
+	 */
 	public void setAllowedSel(boolean b) {
 		this.allowedSel = b;
 	}
 
+	/**
+	 * check for popup action
+	 *
+	 * @param e
+	 */
+	private void checkForPopup(MouseEvent e) {
+		if (e.isPopupTrigger()) {
+			if (clickTimer != null && clickTimer.isRunning()) {
+				clickTimer.stop();
+			}
+			gallery.showPopup(e, this);
+			e.consume();
+		}
+	}
+
+	//** mouse actions **//
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		//LOG.trace(TT + "mouseClicked(e)");
-		if (SwingUtilities.isRightMouseButton(e)) {
-			gallery.showPopup(e, this);
-			e.consume();
-		} else if (e.getClickCount() == 2) {
-			if (this.getSel() == SEL_ALBUM) {
-				gallery.albumRemove(this);
-			} else {
-				gallery.albumAdd(this);
-			}
-			e.consume();
-		} else if (e.getClickCount() == 1) {
-			if (allowedSel) {
-				switch (sel) {
-					case 'R':
-						setSel('0');
-						break;
-					case 'G':
-						break;
-					case 'B':
-						break;
-					case '0':
-						setSel('R');
-						break;
+		if (SwingUtilities.isLeftMouseButton(e)) {
+			if (e.getClickCount() == 1) {
+				clickTimer.start();
+			} else if (e.getClickCount() == 2) {
+				if (clickTimer.isRunning()) {
+					clickTimer.stop();
 				}
-				gallery.updateBtAdd();
+				try {
+					Desktop.getDesktop().open(file);
+				} catch (IOException ex) {
+					LOG.err(TT + "open file error", ex);
+				}
 			}
-			e.consume();
 		}
 	}
 
 	@Override
 	public void mousePressed(MouseEvent e) {
-		//empty
+		checkForPopup(e);
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		//empty
+		checkForPopup(e);
 	}
 
 	@Override

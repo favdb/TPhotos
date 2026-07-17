@@ -15,10 +15,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.album;
+package app.diapo;
 
+import app.album.AlbumTable;
 import api.mig.swing.MigLayout;
-import app.MainFrame;
+import app.ui.MainFrame;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -41,7 +42,7 @@ import api.mig.MIG;
  *
  * @author favdb
  */
-public class Diaporama extends JFrame {
+public class DiapoPreview extends JFrame {
 
 	private static final Dimension SCREEN = Toolkit.getDefaultToolkit().getScreenSize();
 	private final MainFrame mainFrame;
@@ -49,7 +50,7 @@ public class Diaporama extends JFrame {
 	private JLabel lbImage, lbText;
 	private int nbImage, curImage = 0;
 
-	public Diaporama(MainFrame mainFrame) {
+	public DiapoPreview(MainFrame mainFrame) {
 		super();
 		this.mainFrame = mainFrame;
 		initialize();
@@ -60,7 +61,7 @@ public class Diaporama extends JFrame {
 	 * initialize the class
 	 */
 	private void initialize() {
-		table = mainFrame.getAlbumPanel().getTable();
+		table = mainFrame.albumGet().getTable();
 		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		this.setLayout(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.FILL, MIG.WRAP1)));
 		Container p = this.getContentPane();

@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app;
+package app.ui;
 
 import i18n.I18N;
 import javax.swing.JFrame;
@@ -23,6 +23,7 @@ import javax.swing.JTextPane;
 import tools.Html;
 
 /**
+ * abstract clas for standard frame
  *
  * @author favdb
  */
@@ -37,9 +38,9 @@ public abstract class AbstractFrame extends JFrame {
 
 	public abstract void initialize();
 
-	public abstract void doCopyBegin();
+	public abstract void copyBegin();
 
-	public abstract void doCopyEnd();
+	public abstract void copyEnd();
 
 	/**
 	 * set infos text

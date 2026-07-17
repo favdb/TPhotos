@@ -17,6 +17,7 @@
  */
 package app;
 
+import app.ui.AbstractFrame;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.album.AlbumItem;
@@ -141,7 +142,7 @@ public class Organise extends AbstractFrame {
 		btOrganiser = new JButton(I18N.getMsg("app.organiser"));
 		btOrganiser.setIcon(IconUtil.getIconSmall(ICONS.K.COGS));
 		btOrganiser.setEnabled(!tfFolder.getText().isEmpty());
-		btOrganiser.addActionListener(e -> doCopyBegin());
+		btOrganiser.addActionListener(e -> copyBegin());
 		p.add(btOrganiser, MIG.get(MIG.SPAN, MIG.RIGHT));
 		return p;
 	}
@@ -166,7 +167,7 @@ public class Organise extends AbstractFrame {
 	 * begining task for copying files
 	 */
 	@Override
-	public void doCopyBegin() {
+	public void copyBegin() {
 		if (tfFolder == null || tfFolder.getText().isEmpty()) {
 			return;
 		}
@@ -253,7 +254,7 @@ public class Organise extends AbstractFrame {
 	}
 
 	@Override
-	public void doCopyEnd() {
+	public void copyEnd() {
 		App.albumRefresh();
 		setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 	}
