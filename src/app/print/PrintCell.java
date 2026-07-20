@@ -17,6 +17,9 @@
  */
 package app.print;
 
+import app.App;
+import app.xml.XmlUtil;
+import java.io.File;
 import java.util.Comparator;
 import java.util.List;
 
@@ -25,7 +28,7 @@ import java.util.List;
  *
  * @author favdb
  */
-public class PrintItem {
+public class PrintCell {
 
 	public enum CellType {
 		EMPTY,
@@ -33,26 +36,30 @@ public class PrintItem {
 		TEXT
 	}
 
-	public int id, page, photoId = -1;
-	private int spanH = 1, spanV = 1, textId;
+	public int id, page, photoId = -1, textId = -1;
+	private int spanH = 1, spanV = 1;
 	public String type = "text", comment = "", photoFile = "", text = "";
 	private POSITION pos = new POSITION();
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public PrintItem(int id, int photo_id, String photo, String comment, int page, int... span) {
+	public PrintCell(int id, int photo_id, String photo, String comment, int page, int... span) {
 		this.id = id;
 		this.comment = comment;
 		this.photoId = photo_id;
 		this.photoFile = photo;
+		if (photo.startsWith(App.preferences.photosDirGet())) {
+			this.photoFile = photo.replace(App.preferences.photosDirGet() + File.separator, "");
+		}
 		this.type = "photo";
 		this.page = page;
 		this.spanSet(span);
 	}
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public PrintItem(int id, String text, int page, int... span) {
+	public PrintCell(int id, String text, int page, int... span) {
 		this.id = id;
 		this.type = "text";
+		this.textId = id;
 		this.text = text;
 		this.page = page;
 		this.spanSet(span);
@@ -65,14 +72,23 @@ public class PrintItem {
 	 * @param cellNum
 	 */
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public PrintItem(int id, int cellNum) {
+	public PrintCell(int id, int cellNum) {
 		this.id = id;
 		this.type = "";
 		this.cellNumSet(cellNum);
 		this.spanSet(1, 1);
 	}
 
-	public PrintItem() {
+	@SuppressWarnings("OverridableMethodCallInConstructor")
+	public PrintCell(int id) {
+		this.id = id;
+		this.type = "unknown";
+		this.cellNumSet(0);
+		this.spanSet(1, 1);
+	}
+
+	@SuppressWarnings("OverridableMethodCallInConstructor")
+	public PrintCell() {
 		this.id = 0;
 		this.type = "unknown";
 		this.cellNumSet(0);
@@ -300,7 +316,7 @@ public class PrintItem {
 	}
 
 	/**
-	 * get this PrintItem as a String
+	 * get this PrintCell as a String
 	 *
 	 * @return
 	 */
@@ -316,26 +332,24 @@ public class PrintItem {
 	}
 
 	/**
-	 * get the Xml String of this PrintItem
+	 * get the Xml String of this PrintCell
 	 *
 	 * @return
 	 */
 	public String toXml() {
 		StringBuilder b = new StringBuilder();
-		b.append("<cell")
-				.append(String.format(" id=\"%d\"", id))
-				.append(String.format(" pos=\"%s\"", pos.toString()));
+		b.append(XmlUtil.indent(4));
+		b.append("<cell ")
+				.append(XmlUtil.attributXml("id", id))
+				.append(XmlUtil.attributXml("pos", pos.toString()));
 		if (isPhoto()) {
-			b.append(String.format(" ref=\"%s\"", photoId))
-					.append(" type=\"photo\"")
-					.append(" />");
+			b.append(XmlUtil.attributXml("ref", photoId))
+					.append(XmlUtil.attributXml("type", "photo"));
 		} else {
-			b.append(" type=\"text\"")
-					.append(" />");
-			b.append(">");
-			b.append("<content><![CDATA[\n").append(text).append("]]></content>");
-			b.append("</cell>");
+			b.append(XmlUtil.attributXml("ref", textId))
+					.append(XmlUtil.attributXml("type", "text"));
 		}
+		b.append("/>\n");
 		return b.toString();
 	}
 
@@ -407,7 +421,7 @@ public class PrintItem {
 	}
 
 	/**
-	 * Clear content of this PrintItem (without change of POSITION)
+	 * Clear content of this PrintCell (without change of POSITION)
 	 */
 	public void clear() {
 		this.type = "unknown";
@@ -419,11 +433,11 @@ public class PrintItem {
 	}
 
 	/**
-	 * Swap content with the given PrintItem (without change of POSITION)
+	 * Swap content with the given PrintCell (without change of POSITION)
 	 *
 	 * @param old
 	 */
-	public void swapContentWith(PrintItem old) {
+	public void swapContentWith(PrintCell old) {
 		if (old == null) {
 			return;
 		}
@@ -483,13 +497,13 @@ public class PrintItem {
 	 *
 	 * @param cells
 	 */
-	public static void sortByPage(List<PrintItem> cells) {
+	public static void sortByPage(List<PrintCell> cells) {
 		if (cells == null || cells.isEmpty()) {
 			return;
 		}
 
-		cells.sort(Comparator.comparingInt(PrintItem::pageGet)
-				.thenComparingInt(PrintItem::posNumGet)
+		cells.sort(Comparator.comparingInt(PrintCell::pageGet)
+				.thenComparingInt(PrintCell::posNumGet)
 		);
 	}
 
@@ -498,13 +512,13 @@ public class PrintItem {
 	 *
 	 * @param cells
 	 */
-	public static void sortById(List<PrintItem> cells) {
+	public static void sortById(List<PrintCell> cells) {
 		if (cells == null || cells.isEmpty()) {
 			return;
 		}
 
-		cells.sort(Comparator.comparingInt(PrintItem::idGet)
-				.thenComparingInt(PrintItem::idGet)
+		cells.sort(Comparator.comparingInt(PrintCell::idGet)
+				.thenComparingInt(PrintCell::idGet)
 		);
 	}
 

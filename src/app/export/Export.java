@@ -25,6 +25,7 @@ import app.print.Print;
 import app.ui.AbstractFrame;
 import app.ui.MainFrame;
 import app.xml.Xml;
+import app.xml.XmlUtil;
 import i18n.I18N;
 import java.awt.Color;
 import java.awt.Container;
@@ -515,13 +516,13 @@ public class Export extends AbstractFrame {
 		}
 		StringBuilder b = new StringBuilder(Xml.getHeader())
 				.append("<album>\n")
-				.append(Xml.indent(1, "<list>\n"));
+				.append(XmlUtil.INDENT).append("<list>\n");
 		for (AlbumItem item : items) {
 			b.append(itemToXml(item));
 		}
-		b.append(Xml.indent(1, "</list>\n"));
+		b.append(XmlUtil.INDENT).append("<list>\n");
 		if (!existingPrint.isEmpty()) {
-			b.append(Xml.indent(1, existingPrint));
+			b.append(XmlUtil.INDENT).append(existingPrint);
 		}
 		b.append("</album>");
 		FileUtil.fileWriteString(outfile, b.toString());
@@ -538,11 +539,11 @@ public class Export extends AbstractFrame {
 	 */
 	private String itemToXml(AlbumItem item) {
 		String file = item.file.getName();
-		return Xml.indent(3, "<item "
+		return XmlUtil.INDENT + "<item "
 				+ "id=\"" + String.format("%03d", item.id + 1) + "\" "
 				+ "file=\"" + file + "\" "
 				+ "comment=\"" + item.text + "\" "
-				+ " />\n");
+				+ " />\n";
 	}
 
 }

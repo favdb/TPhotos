@@ -17,28 +17,21 @@
  */
 package app.xml;
 
-import app.print.PrintItem;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import tools.LOG;
+import tools.file.FileUtil;
 
 /**
  * Classe pivot technique gérant le document DOM XML global.
@@ -48,14 +41,13 @@ public class Xml {
 	private static final String TT = "Xml.";
 	private static final String HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 
-	public static String indent(int i, String list) {
-		return "   ";
-	}
-
 	private Document document = null;
 	private File file = null;
 	private Element rootNode = null;
 	private boolean opened = false;
+	private XmlAlbum xmlAlbum;
+	private XmlPrint xmlPrint;
+	private XmlLibs xmlLibs;
 
 	public Xml(File file) {
 		this.file = file;
@@ -83,6 +75,9 @@ public class Xml {
 			create();
 		}
 		this.opened = true;
+		xmlAlbum = new XmlAlbum(this);
+		xmlLibs = new XmlLibs(this);
+		xmlPrint = new XmlPrint(this);
 	}
 
 	public boolean isOpened() {
@@ -109,15 +104,15 @@ public class Xml {
 		return document;
 	}
 
-	public File getFile() {
+	public File fileGet() {
 		return file;
 	}
 
-	public Element getRoot() {
+	public Element rootGet() {
 		return rootNode;
 	}
 
-	public Node getNode(String tagName) {
+	public Node nodeGet(String tagName) {
 		NodeList list = document.getElementsByTagName(tagName);
 		if (list.getLength() > 0) {
 			return list.item(0);
@@ -138,7 +133,7 @@ public class Xml {
 		}
 	}
 
-	public void removeNode(String str) {
+	public void nodeRemove(String str) {
 		NodeList nodes = document.getElementsByTagName(str);
 		for (int i = 0; i < nodes.getLength(); i++) {
 			Node node = nodes.item(i);
@@ -146,12 +141,16 @@ public class Xml {
 		}
 	}
 
-	public XmlAlbum getAlbum() {
-		return new XmlAlbum(this);
+	public XmlAlbum albumGet() {
+		return xmlAlbum;
 	}
 
-	public XmlPrint getPrint() {
-		return new XmlPrint(this);
+	public XmlPrint printGet() {
+		return xmlPrint;
+	}
+
+	public XmlLibs libsGet() {
+		return xmlLibs;
 	}
 
 	public Element childCreate(Node parent, String tag, String... attribs) {
@@ -178,137 +177,25 @@ public class Xml {
 		return child;
 	}
 
-	public PrintItem getTextCell(String id) {
-		PrintItem pc = new PrintItem();
-		XmlAlbum album = getAlbum();
-		NodeList nodes = this.getRoot().getElementsByTagName("lib");
-		if (nodes != null) {
-			for (int i = 0; i < nodes.getLength(); i++) {
-				Element child = (Element) nodes.item(i);
-				if (attributeGet(child, "id").equals(id)) {
-					pc.cellIdSet(XmlUtil.getInteger(child, "id"));
-					pc.textSet(child.getTextContent());
-					return pc;
-				}
-			}
-		}
-		return null;
-	}
-
-	public PrintItem getPhotoCell(String id) {
-		PrintItem pc = new PrintItem();
-		XmlAlbum album = getAlbum();
-		NodeList nodes = this.getRoot().getElementsByTagName("item");
-		if (nodes != null) {
-			for (int i = 0; i < nodes.getLength(); i++) {
-				Element child = (Element) nodes.item(i);
-				if (attributeGet(child, "id").equals(id)) {
-					pc.cellIdSet(XmlUtil.getInteger(child, "id"));
-					pc.photoFileSet(XmlUtil.getString(child, "file"));
-					pc.commentSet(XmlUtil.getString(child, "comment"));
-					return pc;
-				}
-			}
-		}
-		return null;
-	}
-
 	/**
-	 * Met à jour le contenu d'une bibliothèque de texte par son identifiant.
-	 *
-	 * * @param id l'identifiant du texte à modifier
-	 * @param id
-	 * @param newText le nouveau texte HTML provenant de SHEF
-	 */
-	public void textLibraryUpdate(int id, String newText) {
-		if (document == null) {
-			return;
-		}
-
-		org.w3c.dom.NodeList libNodes = document.getElementsByTagName("lib");
-		for (int i = 0; i < libNodes.getLength(); i++) {
-			org.w3c.dom.Element el = (org.w3c.dom.Element) libNodes.item(i);
-			String idStr = attributeGet(el, "id");
-
-			if (!idStr.isEmpty() && Integer.parseInt(idStr) == id) {
-				// Remplacement du contenu par le nouveau texte épuré/HTML
-				el.setTextContent(newText);
-				return;
-			}
-		}
-	}
-
-	/**
-	 * load all cell from album and print
-	 *
-	 * @return
-	 */
-	public List<PrintItem> loadCells() {
-		List<PrintItem> list = new ArrayList<>();
-		//load photos
-		List<XmlPhoto> xphotos = getAlbum().load();
-		for (XmlPhoto x : xphotos) {
-			int cellid = Integer.parseInt(x.getId());
-			list.add(new PrintItem(cellid, cellid, x.getFile(), x.getComment(), 0));
-		}
-		// load libs
-		List<XmlLib> xlibs = getPrint().loadLibs();
-		int cellId = list.size() + 1;
-		for (XmlLib x : xlibs) {
-			int textId = Integer.parseInt(x.getId());
-			PrintItem cell = new PrintItem(cellId, x.getText(), 0);
-			cell.textIdSet(textId);
-			list.add(cell);
-		}
-		// update photos and libs for printing
-		List<XmlPrintPage> ppx = getPrint().printPageGetAll();
-		for (int np = 0; np < ppx.size(); np++) {
-			XmlPrintPage pp = ppx.get(np);
-			for (PrintItem pc : pp.cellsGet()) {
-				updateCell(list, np + 1, pc);
-			}
-		}
-		return list;
-	}
-
-	public void updateCell(List<PrintItem> list, int page, PrintItem pc) {
-		for (PrintItem c : list) {
-			if (c.isPhoto() && c.photoIdGet() == pc.photoIdGet()) {
-				c.pageSet(page);
-				c.posSet(pc.posGet());
-				break;
-			} else if (!c.isPhoto() && c.textIdGet() == pc.textIdGet()) {
-				c.pageSet(page);
-				c.posSet(pc.posGet());
-				break;
-			}
-		}
-	}
-
-	/**
-	 * Sauvegarde le document DOM actuel dans le fichier XML.
+	 * save with text method
 	 */
 	public void save() {
+		//LOG.trace(TT + "save()");
+		//printGet().traceCells();
 		if (document == null || file == null) {
 			return;
 		}
-		try {
-			TransformerFactory transformerFactory = TransformerFactory.newInstance();
-			Transformer transformer = transformerFactory.newTransformer();
+		StringBuilder b = new StringBuilder();
+		b.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+		b.append("<album title=\"").append(albumGet().titleGet()).append("\">\n");
+		b.append(albumGet().toXml());
+		b.append(xmlLibs.toXml());
+		b.append(printGet().toXml());
+		b.append("</album>\n");
 
-			// Configuration pour un rendu propre (indentation)
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-			transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "3");
-
-			DOMSource source = new DOMSource(document);
-			StreamResult result = new StreamResult(file);
-
-			transformer.transform(source, result);
-			//LOG.trace(TT + "save() XML sauvegardé avec succès.");
-		} catch (javax.xml.transform.TransformerException ex) {
-			LOG.err(TT + "save() Erreur lors de l'écriture du fichier XML", ex);
-		}
+		//String nf = FileUtil.changeExt(file.getAbsolutePath(), "2.xml");
+		FileUtil.fileWriteString(file, b.toString());
 	}
 
 }

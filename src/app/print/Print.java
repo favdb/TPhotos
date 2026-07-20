@@ -20,6 +20,7 @@ package app.print;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.ui.MainFrame;
+import app.ui.SHEFDialog;
 import app.xml.Xml;
 import app.xml.XmlPrint;
 import app.xml.XmlPrintPage;
@@ -36,18 +37,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.Border;
-import org.w3c.dom.CDATASection;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import resources.icons.ICONS;
-import tools.LOG;
 import tools.Ui;
 
 /**
  * Configuration interface for the print layout.
  *
- * * @author favdb
+ * @author favdb
  */
 public class Print extends JPanel {
 
@@ -65,13 +61,14 @@ public class Print extends JPanel {
 	private boolean isPortrait = true;
 	private int currentPage = 1, totalPages = 1;
 	private final Xml xml;
+	public XmlPrint xmlPrint;
 	List<XmlPrintPage> pages = new ArrayList<>();
-	List<PrintItem> cells = new ArrayList<>();
+	List<PrintCell> cells = new ArrayList<>();
 
 	public Print(MainFrame mainFrame) {
 		super();
 		this.mainFrame = mainFrame;
-		this.xml = new Xml(mainFrame.albumGet().fileGet());
+		this.xml = mainFrame.albumGet().xmlGet();
 		setName(I18N.getMsg(TT + "panel"));
 		initialize();
 	}
@@ -84,32 +81,33 @@ public class Print extends JPanel {
 	 * initialize this JFrame
 	 */
 	private void initialize() {
-		pages = xml.getPrint().printPageGetAll();
+		//LOG.trace(TT + "initialize()");
+		xmlPrint = xml.printGet();
+		pages = xmlPrint.getPages();
 		if (pages.size() < 1) {
-			pages.add(new XmlPrintPage("1"));
+			pages.add(new XmlPrintPage(xml, "1"));
 		}
-		cells = xml.loadCells();
-		for (PrintItem c : cells) {
-			//LOG.trace("cell=" + c.toString());
-		}
-		this.setLayout(new MigLayout(MIG.get(MIG.FILL), "[][]"));
+		totalPages = pages.size();
+		cells = xmlPrint.getCells();
+
+		this.setLayout(new MigLayout(MIG.get(MIG.FILL), "[256px][]"));
 		add(poolInit(), MIG.get(MIG.TOP, MIG.GROWY));
 		add(gridInit(), MIG.get(MIG.SPAN, MIG.GROW));
 		add(bottomPanelInit(), MIG.get(MIG.SPAN, MIG.RIGHT));
 		refresh();
 	}
 
-	public List<PrintItem> getCells() {
+	public List<PrintCell> getCells() {
 		return cells;
 	}
 
-	public PrintItem printCellFind(int i) {
-		for (PrintItem p : cells) {
+	public PrintCell printCellFind(int i) {
+		for (PrintCell p : cells) {
 			if (p.cellNumGet() == i) {
 				return p;
 			}
 		}
-		return new PrintItem();
+		return new PrintCell();
 	}
 
 	//******************************//
@@ -125,6 +123,7 @@ public class Print extends JPanel {
 	 * @return
 	 */
 	private JScrollPane poolInit() {
+		//LOG.trace(TT + "poolInit()");
 		pPool = new Pool(this);
 		JScrollPane scroller = new JScrollPane(pPool);
 		scroller.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.pool")));
@@ -166,6 +165,7 @@ public class Print extends JPanel {
 	 * @return
 	 */
 	private JPanel gridInit() {
+		//LOG.trace(TT + "gridInit()");
 		pGrid = new Grid(this);
 		JPanel panel = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS1, MIG.GAP1)));
 		panel.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.page")));
@@ -173,8 +173,7 @@ public class Print extends JPanel {
 		JScrollPane scroll = new JScrollPane(pGrid);
 		scroll.getVerticalScrollBar().setUnitIncrement(16);
 		scroll.getHorizontalScrollBar().setUnitIncrement(16);
-		Dimension dim = new Dimension(615, 850);
-		scroll.setPreferredSize(dim);
+		scroll.setPreferredSize(new Dimension(1920, 1920));
 		panel.add(scroll, MIG.get(MIG.SPAN, MIG.GROW));
 		return panel;
 	}
@@ -186,27 +185,19 @@ public class Print extends JPanel {
 		if (pGrid == null) {
 			return;
 		}
-
-		// 1. Déterminer les dimensions de la grille actuelle
 		int totalRows = pGrid.rowsGet();
 		int totalCols = pGrid.colsGet();
 		int maxCells = totalRows * totalCols;
-
-		// 2. Cartographier les emplacements déjà occupés par de vraies cellules sur la page courante
 		boolean[] occupied = new boolean[maxCells + 1];
 		int indexPage = currentPage - 1;
-
 		if (indexPage >= 0 && indexPage < pages.size()) {
-			for (PrintItem cell : cells) {
+			for (PrintCell cell : cells) {
 				if (cell.pageGet() == currentPage) {
 					int cellNum = cell.cellNumGet();
 					int sH = cell.spanHorizontalGet();
 					int sV = cell.spanVerticalGet();
-
-					// Calculer le rectangle d'occupation pour gérer les spans éventuels
 					int startRow = (cellNum - 1) / totalCols;
 					int startCol = (cellNum - 1) % totalCols;
-
 					for (int r = 0; r < sV && (startRow + r) < totalRows; r++) {
 						for (int c = 0; c < sH && (startCol + c) < totalCols; c++) {
 							int slot = ((startRow + r) * totalCols) + (startCol + c) + 1;
@@ -218,37 +209,24 @@ public class Print extends JPanel {
 				}
 			}
 		}
-
-		// 3. Parcourir les photos non positionnées et les placer dans les trous disponibles
 		int currentSlot = 1;
 		boolean modified = false;
-
-		for (PrintItem cell : cells) {
-			// On ne s'occupe que des photos du pool qui n'ont pas encore de page
+		for (PrintCell cell : cells) {
 			if (cell.isPhoto() && cell.pageGet() == 0) {
-
-				// Trouver le prochain emplacement libre
 				while (currentSlot <= maxCells && occupied[currentSlot]) {
 					currentSlot++;
 				}
-
-				// Si la page est pleine, on arrête l'ajout automatique
 				if (currentSlot > maxCells) {
 					break;
 				}
-
-				// Assigner la photo à cet emplacement sur la page courante
 				cell.pageSet(currentPage);
 				cell.cellNumSet(currentSlot);
-				cell.spanSet(1, 1); // Configuration par défaut lors d'un ajout automatique
-
-				// Marquer l'emplacement comme occupé et signaler le changement
+				cell.spanHorizontalSet(1);
+				cell.spanVerticalSet(1);
 				occupied[currentSlot] = true;
 				modified = true;
 			}
 		}
-
-		// 4. Si des modifications ont eu lieu, sauvegarder et rafraîchir l'affichage
 		if (modified) {
 			actionSave();
 		}
@@ -259,6 +237,7 @@ public class Print extends JPanel {
 	 */
 	@SuppressWarnings("unchecked")
 	private JPanel gridTopInit() {
+		//LOG.trace(TT + "gridTopInit()");
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.WRAP, "ins 5"), "[][][][][]"));
 		p.setBorder(BorderFactory.createEtchedBorder());
 		String array[] = {I18N.getMsg("print.orientation_portrait"),
@@ -288,7 +267,9 @@ public class Print extends JPanel {
 	 * add a page to the grid
 	 */
 	private void gridPageAdd() {
-		pages.add(new XmlPrintPage("" + pages.size()));
+		//LOG.trace(TT + "gridPageAdd()");
+		pages.add(new XmlPrintPage(xml, String.valueOf(pages.size() + 1)));
+		totalPages = pages.size();
 		refresh();
 	}
 
@@ -298,8 +279,11 @@ public class Print extends JPanel {
 	private void gridOrientationChange() {
 		int str = cbOrientation.getSelectedIndex();
 		isPortrait = (str != 1);
+		String sorient = (isPortrait ? "portrait" : "landscape");
 		int rows = (isPortrait ? 5 : 3), cols = (isPortrait ? 3 : 5);
 		pGrid.orientationSet(rows, cols);
+		xml.printGet().orientationSet(sorient);
+		gridGet().setDim("A4", sorient);
 		gridRefresh();
 	}
 
@@ -307,9 +291,9 @@ public class Print extends JPanel {
 	 * Initialize the bottom panel (preview, actionSave and exit buttons)
 	 */
 	private JPanel bottomPanelInit() {
+		//LOG.trace(TT + "bottomPanelInit()");
 		JPanel p = new JPanel(new MigLayout("ins 5, alignx right"));
 		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW, e -> actionPreview()));
-		//p.add(Ui.initButton("print.action_save", ICONS.K.OK, e -> actionSave()));
 		p.add(Ui.initButton("print.action_exit", ICONS.K.EXIT, e -> actionClose()));
 		return p;
 	}
@@ -317,9 +301,11 @@ public class Print extends JPanel {
 	/**
 	 * refresh this Print
 	 */
-	private void refresh() {
+	public void refresh() {
+		//LOG.trace(TT + "refresh()");
 		pPool.refresh();
 		pGrid.refresh();
+		refreshButtons();
 	}
 
 	/**
@@ -329,7 +315,6 @@ public class Print extends JPanel {
 		int rows = isPortrait ? 5 : 3;
 		int cols = isPortrait ? 3 : 5;
 		int cellsPerPage = rows * cols;
-		// Compute number of pages
 		int row_count = mainFrame.albumGet().getTable().getRowCount();
 		if (row_count == 0) {
 			totalPages = 1;
@@ -337,9 +322,7 @@ public class Print extends JPanel {
 			totalPages = (int) Math.ceil((double) row_count / cellsPerPage);
 		}
 		currentPage = 1;
-		refreshButtons();
-		gridRefresh();
-		poolRefresh();
+		refresh();
 	}
 
 	/**
@@ -364,14 +347,14 @@ public class Print extends JPanel {
 		if (currentPage > totalPages) {
 			currentPage = totalPages;
 		}
-		refreshButtons();
-		gridRefresh();
+		refresh();
 	}
 
 	/**
 	 * Refresh the grid panel
 	 */
 	private void gridRefresh() {
+		//LOG.trace(TT + "gridRefresh()");
 		pGrid.refresh();
 	}
 
@@ -382,7 +365,7 @@ public class Print extends JPanel {
 		File fx = mainFrame.albumGet().fileGet();
 		File dirDest = fx.getParentFile();
 		File outfile = new File(dirDest, fx.getName().replace(".xml", "") + "_print.html");
-		BuilderHtml.generateHTML(xml, outfile, true);
+		BuilderHtml.generateHTML(this, outfile, true);
 	}
 
 	/**
@@ -416,82 +399,29 @@ public class Print extends JPanel {
 	 * @return
 	 */
 	public XmlPrint xmlPrintGet() {
-		return xml.getPrint();
+		return xmlPrint;
 	}
 
 	/**
 	 * Save Print data
 	 */
 	public void actionSave() {
-		PrintItem.sortByPage(cells);
-		try {
-			Document doc = xml.getDocument();
-			Element root = xml.getRoot();
-			NodeList existingPrint = root.getElementsByTagName("print");
-			if (existingPrint.getLength() > 0) {
-				root.removeChild(existingPrint.item(0));
-			}
-			String orient = isPortrait ? "portrait" : "landscape";
-			String size = isPortrait ? "5,3" : "3,5";
-			Element printEl = doc.createElement("print");
-			printEl.setAttribute("format", "A4");
-			printEl.setAttribute("orient", orient);
-			printEl.setAttribute("size", size);
-			root.appendChild(printEl);
-			Element libsEl = doc.createElement("libs");
-			printEl.appendChild(libsEl);
-			for (PrintItem cell : cells) {
-				if (cell.isText()) {
-					Element libEl = doc.createElement("lib");
-					libEl.setAttribute("id", String.valueOf(cell.textIdGet()));
-					CDATASection cdata = doc.createCDATASection(cell.textGet());
-					libEl.appendChild(cdata);
-					libsEl.appendChild(libEl);
-				}
-			}
-			Element pagesEl = doc.createElement("pages");
-			printEl.appendChild(pagesEl);
-			Element pageNode = null;
-			int lastPageId = -1;
-			for (PrintItem pcell : cells) {
-				if (pcell.isEmpty() || pcell.pageGet() == 0) {
-					continue;
-				}
-				int cellPage = pcell.pageGet();
-				if (pageNode == null || cellPage != lastPageId) {
-					lastPageId = cellPage;
-					pageNode = doc.createElement("page");
-					pageNode.setAttribute("id", String.valueOf(cellPage));
-					pagesEl.appendChild(pageNode);
-				}
-				Element cellEl = doc.createElement("cell");
-				String typeStr = pcell.isPhoto() ? "p" : "t";
-				cellEl.setAttribute("type", typeStr);
-				cellEl.setAttribute("pos", pcell.posGet());
-				int refId = pcell.isPhoto() ? pcell.photoIdGet() : pcell.textIdGet();
-				cellEl.setAttribute("ref", String.valueOf(refId));
-				pageNode.appendChild(cellEl);
-			}
-			xml.save();
-			this.pages = xml.getPrint().printPageGetAll();
-			this.cells = xml.loadCells();
-			refresh();
-		} catch (Exception ex) {
-			LOG.err("Print save error", ex);
-		}
+		//LOG.trace(TT + "actionSave()");
+		PrintCell.sortByPage(cells);
+		xml.save();
 	}
 
 //***************************************************
 // Manage interaction between Pool and Grid
 //***************************************************
-	private PrintItem pendingCellToPlace = null;
+	private PrintCell pendingCellToPlace = null;
 
 	/**
-	 * Define the Pool cell waiting forplacement on the Grid
+	 * Define the Pool cell waiting for placement on the Grid
 	 *
 	 * @param cell
 	 */
-	public void pendingCellToPlaceSet(PrintItem cell) {
+	public void pendingCellToPlaceSet(PrintCell cell) {
 		this.pendingCellToPlace = cell;
 	}
 
@@ -500,7 +430,7 @@ public class Print extends JPanel {
 	 *
 	 * @return
 	 */
-	public PrintItem pendingCellToPlaceGet() {
+	public PrintCell pendingCellToPlaceGet() {
 		return this.pendingCellToPlace;
 	}
 
@@ -508,10 +438,35 @@ public class Print extends JPanel {
 	 * Reinit current selection
 	 */
 	public void pendingCellClear() {
+		pendingCellToPlace.pageSet(0);
+		xml.save();
 		this.pendingCellToPlace = null;
-		if (this.gridGet() != null) {
-			this.gridGet().repaint();
+		refresh();
+	}
+
+	public void shefEdit(PrintCell item) {
+		SHEFDialog dlg = new SHEFDialog(mainFrame, item.textGet());
+		if (dlg.isSaved()) {
+			item.textSet(dlg.getHtmlContent());
+			xml.save();
+			refresh();
 		}
 	}
 
+	public void updateCell(PrintCell dest, int pageGet, String posGet) {
+		xmlPrint.updateCell(dest, pageGet, posGet);
+		xml.save();
+		refresh();
+	}
+
+	public void swapCell(PrintCell srce, PrintCell dest) {
+		int sPage = srce.pageGet();
+		String sPos = srce.posGet();
+		srce.pageSet(dest.pageGet());
+		srce.posSet(dest.posGet());
+		dest.pageSet(sPage);
+		dest.posSet(sPos);
+		xml.save();
+		pGrid.refresh();
+	}
 }

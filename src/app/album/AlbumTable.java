@@ -120,7 +120,7 @@ public class AlbumTable extends JTable {
 		this.xml = xml;
 		DefaultTableModel model = (DefaultTableModel) getModel();
 		model.setRowCount(0);
-		NodeList nodes = xml.getRoot().getElementsByTagName("item");
+		NodeList nodes = xml.rootGet().getElementsByTagName("item");
 		if (nodes != null) {
 			for (int i = 0; i < nodes.getLength(); i++) {
 				Element child = (Element) nodes.item(i);
@@ -247,7 +247,7 @@ public class AlbumTable extends JTable {
 		//LOG.trace(TT + "save()");
 		if (modified && xml != null) {
 			String existingPrint = "";
-			File outfile = xml.getFile();
+			File outfile = xml.fileGet();
 			if (outfile != null && outfile.exists()) {
 				try {
 					String content = FileUtil.fileReadAsString(outfile);
@@ -273,7 +273,7 @@ public class AlbumTable extends JTable {
 			}
 			b.append("</album>");
 			xml.close();
-			FileUtil.fileWriteString(xml.getFile(), b.toString());
+			FileUtil.fileWriteString(xml.fileGet(), b.toString());
 		}
 	}
 

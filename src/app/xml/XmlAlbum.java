@@ -13,41 +13,88 @@ import org.w3c.dom.NodeList;
 public class XmlAlbum {
 
 	private final Xml xml;
-	private final List<XmlPhoto> photos = new ArrayList<>();
+	private String title = "album", prefComment = "";
+	private int prefMode = 0, prefTempo = 0;
+	private List<XmlAlbumPhoto> photos = new ArrayList<>();
 
+	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlAlbum(Xml xml) {
 		this.xml = xml;
+		load();
 	}
 
-	public String getTitle() {
-		return xml.attributeGet(xml.getRoot(), "title");
+	public String getPrefComment() {
+		return prefComment;
 	}
 
-	public void setTitle(String title) {
-		xml.attributeSet(xml.getRoot(), "title", title);
+	public void setPrefComment(String prefComment) {
+		this.prefComment = prefComment;
 	}
 
-	public List<XmlPhoto> load() {
+	public int getPrefMode() {
+		return prefMode;
+	}
+
+	public void setPrefMode(int prefMode) {
+		this.prefMode = prefMode;
+	}
+
+	public int getPrefTempo() {
+		return prefTempo;
+	}
+
+	public void setPrefTempo(int tempo) {
+		this.prefTempo = tempo;
+	}
+
+	public String titleGet() {
+		return title;
+	}
+
+	public void titleSet(String title) {
+		this.title = title;
+	}
+
+	public void load() {
 		//LOG.trace(TT + "load()");
+		title = xml.attributeGet(xml.rootGet(), "title");
 		photos.clear();
-		NodeList nodes = xml.getRoot().getElementsByTagName("item");
+		NodeList nodes = xml.rootGet().getElementsByTagName("item");
 		if (nodes != null) {
 			for (int i = 0; i < nodes.getLength(); i++) {
 				Element child = (Element) nodes.item(i);
-				XmlPhoto p = new XmlPhoto(child.getAttribute("id"),
+				XmlAlbumPhoto p = new XmlAlbumPhoto(child.getAttribute("id"),
 						App.preferences.photosDirGet() + File.separator + child.getAttribute("file"),
 						child.getAttribute("comment"));
 				photos.add(p);
 			}
 		}
+	}
+
+	public List<XmlAlbumPhoto> photosAllGet() {
 		return photos;
 	}
 
-	public XmlPhoto getPhoto(int i) {
+	public XmlAlbumPhoto getPhoto(int i) {
 		if (i < photos.size()) {
 			return photos.get(i);
 		}
 		return null;
+	}
+
+	public String toXml() {
+		StringBuilder b = new StringBuilder();
+		b.append(XmlUtil.INDENT).append("<pref ")
+				.append(XmlUtil.attributXml("comment", getPrefComment()))
+				.append(XmlUtil.attributXml("mode", getPrefMode()))
+				.append(XmlUtil.attributXml("tempo", getPrefTempo()))
+				.append("/>\n");
+		b.append(XmlUtil.INDENT).append("<list>\n");
+		for (XmlAlbumPhoto p : photos) {
+			b.append(p.toXml());
+		}
+		b.append(XmlUtil.INDENT).append("</list>\n");
+		return b.toString();
 	}
 
 }

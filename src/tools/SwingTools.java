@@ -15,48 +15,40 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.xml;
+package tools;
+
+import java.awt.Dimension;
+import javax.swing.JComponent;
 
 /**
  *
  * @author favdb
  */
-public class XmlLib {
+public class SwingTools {
 
-	private String id = "", text = "";
-
-	public XmlLib(String id, String text) {
-		this.id = id;
-		this.text = text;
+	/**
+	 * set fixed size for the given JComponent
+	 *
+	 * @param comp: the component
+	 * @param dim : the new size
+	 */
+	public static void setFixedSize(JComponent comp, Dimension dim) {
+		comp.setSize(dim);
+		comp.setPreferredSize(dim);
+		comp.setMaximumSize(dim);
+		comp.setMinimumSize(dim);
 	}
 
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
-	}
-
-	public String getText() {
-		return text;
-	}
-
-	public void setFile(String value) {
-		this.text = value;
-	}
-
-	public String toString() {
-		return id + "," + text;
-	}
-
-	public String toXml() {
-		StringBuilder b = new StringBuilder(XmlUtil.indent(2));
-		b.append("<lib ");
-		b.append("id=\"").append(id).append("\"> ")
-				.append("<![CDATA[").append(text).append("]]>")
-				.append("</lib>\n");
-		return b.toString();
+	/**
+	 * set fixed size for the given JComponent
+	 *
+	 * @param comp: the component
+	 * @param width: the new width
+	 * @param height: the new height
+	 */
+	public static void setFixedSize(JComponent comp, int width, int height) {
+		Dimension dim = new Dimension(width, height);
+		setFixedSize(comp, dim);
 	}
 
 }

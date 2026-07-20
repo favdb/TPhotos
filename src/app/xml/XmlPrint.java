@@ -17,12 +17,11 @@
  */
 package app.xml;
 
-import app.print.PrintItem;
+import app.print.PrintCell;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import tools.LOG;
 
@@ -34,12 +33,20 @@ public class XmlPrint {
 	private static final String TT = "XmlPrint.";
 
 	private final Xml xml;
-	private String format = "A4";
-	private String orientation = "portrait";
-	private final List<XmlLib> libs = new ArrayList<>();
+	private String format = "A4", orientation = "portrait";
+	private final List<XmlPrintPage> pages = new ArrayList<>();
+	private List<PrintCell> cells = new ArrayList<>();
 
 	public XmlPrint(Xml xml) {
 		this.xml = xml;
+		load();
+	}
+
+	public void traceCells() {
+		LOG.trace(TT + "traceCells()");
+		for (PrintCell c : cells) {
+			LOG.trace(c.toString());
+		}
 	}
 
 	public void load() {
@@ -47,6 +54,41 @@ public class XmlPrint {
 		NodeList node = xml.getDocument().getElementsByTagName("print");
 		format = xml.attributeGet((Element) node.item(0), "format");
 		orientation = xml.attributeGet((Element) node.item(0), "orient");
+
+		// 1. Initialise la liste globale unique de référence avec TOUTES les instances possibles
+		loadCells();
+
+		// 2. Recréation des structures de pages (sans données internes dupliquées)
+		pages.clear();
+		NodeList pagesnode = xml.getDocument().getElementsByTagName("page");
+
+		for (int i = 0; i < pagesnode.getLength(); i++) {
+			Node pageNode = pagesnode.item(i);
+			int pageId = XmlUtil.integerGet(pageNode, "id");
+			pages.add(new XmlPrintPage(xml, XmlUtil.stringGet(pageNode, "id")));
+
+			NodeList cellnodes = ((Element) pageNode).getElementsByTagName("cell");
+			for (int ii = 0; ii < cellnodes.getLength(); ii++) {
+				Element el = (Element) cellnodes.item(ii);
+
+				String type = XmlUtil.stringGet(el, "type");
+				int ref = XmlUtil.integerGet(el, "ref");
+				int page = XmlUtil.integerGet(el, "page");
+				String pos = XmlUtil.stringGet(el, "pos");
+
+				// 3. Recherche de la VRAIE cellule de référence déjà existante
+				for (PrintCell target : cells) {
+					int cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
+
+					// Si le type et l'ID métier correspondent, on lui injecte ses coordonnées
+					if ((target.typeGet().equals(type) || target.typeGet().startsWith(type)) && cId == ref) {
+						target.pageSet(pageId);
+						target.posSet(pos);
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -105,7 +147,7 @@ public class XmlPrint {
 	 * @param id
 	 * @return
 	 */
-	public String findPhoto(int id) {
+	public String photoFind(int id) {
 		NodeList nodes = xml.getDocument().getElementsByTagName("item");
 		for (int i = 0; i < nodes.getLength(); i++) {
 			Element el = (Element) nodes.item(i);
@@ -118,99 +160,85 @@ public class XmlPrint {
 	}
 
 	/**
-	 * load the library of text Key: ID of the text, Value: HTML content (in a CDATA)
+	 * load all cell from album and print
+	 *
 	 */
-	private Map<Integer, String> loadTextLibrary() {
-		Map<Integer, String> libMap = new HashMap<>();
-		NodeList libsNodes = xml.getDocument().getElementsByTagName("lib");
-		for (int i = 0; i < libsNodes.getLength(); i++) {
-			Element el = (Element) libsNodes.item(i);
-			String idStr = xml.attributeGet(el, "id").trim();
-			if (!idStr.isEmpty()) {
-				libMap.put(Integer.parseInt(idStr), el.getTextContent().trim());
-			}
+	public void loadCells() {
+		LOG.trace(TT + "loadCells()");
+		cells.clear();
+		List<XmlAlbumPhoto> xphotos = xml.albumGet().photosAllGet();
+		for (XmlAlbumPhoto x : xphotos) {
+			int cellid = Integer.parseInt(x.idGet());
+			cells.add(new PrintCell(cellid, cellid, x.fileGet(), x.commentGet(), 0));
 		}
-		return libMap;
+		int nid = 1;
+		for (XmlLib x : xml.libsGet().getAll()) {
+			PrintCell cell = new PrintCell(nid++, x.getText(), 0);
+			cells.add(cell);
+		}
+		//setting page and pos
 	}
 
-	/**
-	 * Load all pages as List of XmlPage
-	 *
-	 * @return
-	 */
-	public List<XmlPrintPage> printPageGetAll() {
-		List<XmlPrintPage> list = new ArrayList<>();
-		Map<Integer, String> textLibrary = loadTextLibrary();
-		NodeList nodes = xml.getDocument().getElementsByTagName("page");
-		for (int i = 0; i < nodes.getLength(); i++) {
-			Element elPage = (Element) nodes.item(i);
-			String idPage = xml.attributeGet(elPage, "id");
-			if (!idPage.isEmpty()) {
-				XmlPrintPage page = new XmlPrintPage(idPage);
-				NodeList cells = elPage.getElementsByTagName("cell");
-				for (int j = 0; j < cells.getLength(); j++) {
-					Element elCell = (Element) cells.item(j);
-					PrintItem cell = new PrintItem();
-					String type = xml.attributeGet(elCell, "type");
-					cell.typeSet(type);
-					String posRaw = xml.attributeGet(elCell, "pos");
-					if (!posRaw.isEmpty()) {
-						String[] tokens = posRaw.split(",");
-						if (tokens.length == 3) {
-							cell.cellIdSet(Integer.parseInt(tokens[0].trim()));
-							cell.spanHorizontalSet(Integer.parseInt(tokens[1].trim()));
-							cell.spanVerticalSet(Integer.parseInt(tokens[2].trim()));
-						}
-					}
-					String refStr = xml.attributeGet(elCell, "ref");
-					if (!refStr.isEmpty()) {
-						int refId = Integer.parseInt(refStr);
-						if ("p".equals(type)) {
-							cell.photoIdSet(refId);
-							cell.photoFileSet(findPhoto(refId));
-						} else if ("t".equals(type)) {
-							cell.textIdSet(refId);
-							cell.textSet(textLibrary.get(refId));
-						}
-					}
-					page.callAdd(cell);
-				}
-				list.add(page);
-			}
-		}
-		return list;
-	}
-
-	/**
-	 * load all text as List of XmlLib
-	 *
-	 * @return
-	 */
-	public List<XmlLib> loadLibs() {
-		libs.clear();
-		NodeList nodes = xml.getRoot().getElementsByTagName("lib");
+	public PrintCell photoCellGet(String id) {
+		PrintCell pc = new PrintCell();
+		XmlAlbum album = xml.albumGet();
+		NodeList nodes = xml.rootGet().getElementsByTagName("item");
 		if (nodes != null) {
 			for (int i = 0; i < nodes.getLength(); i++) {
 				Element child = (Element) nodes.item(i);
-				String text = child.getTextContent();
-				XmlLib p = new XmlLib(child.getAttribute("id"), text);
-				libs.add(p);
+				if (xml.attributeGet(child, "id").equals(id)) {
+					pc.cellIdSet(XmlUtil.integerGet(child, "id"));
+					pc.photoFileSet(XmlUtil.stringGet(child, "file"));
+					pc.commentSet(XmlUtil.stringGet(child, "comment"));
+					return pc;
+				}
 			}
 		}
-		return libs;
+		return null;
 	}
 
-	/**
-	 * get the XmlLib for the given index
-	 *
-	 * @param i
-	 * @return
-	 */
-	public XmlLib getLib(int i) {
-		if (i < libs.size()) {
-			return libs.get(i);
+	public void updateCell(PrintCell target, int page, String pos) {
+		LOG.trace(TT + "updateCell(target=" + target.typeGet() + "." + target.idGet()
+				+ ", page=" + page
+				+ ", pos=" + pos + ")");
+
+		String targetType = target.typeGet();
+		int targetId = target.idGet();
+
+		for (PrintCell c : cells) {
+			// Comparaison brute et directe des types et des identifiants principaux
+			if (c.typeGet().equals(targetType) && c.idGet() == targetId) {
+				c.pageSet(page);
+				c.posSet(pos);
+				LOG.trace("-> CELLULE TROUVÉE ET MODIFIÉE !");
+				return;
+			}
 		}
-		return null;
+		LOG.err(TT + "updateCell: Toujours aucune correspondance dans la liste globale cells !");
+	}
+
+	public String toXml() {
+		StringBuilder b = new StringBuilder();
+		b.append(XmlUtil.indent(1)).append("<print ")
+				.append(XmlUtil.attributXml("format", format))
+				.append(XmlUtil.attributXml("orient", orientation))
+				.append(XmlUtil.attributXml("size", sizeGet()))
+				.append(">\n");
+		b.append(XmlUtil.indent(2)).append("<pages>\n");
+		for (XmlPrintPage p : pages) {
+			b.append(p.toXml());
+		}
+		b.append(XmlUtil.indent(2)).append("</pages>\n");
+		b.append(XmlUtil.indent(1)).append("</print>\n");
+		return b.toString();
+	}
+
+	public List<XmlPrintPage> getPages() {
+		return pages;
+	}
+
+	public List<PrintCell> getCells() {
+		return cells;
 	}
 
 }

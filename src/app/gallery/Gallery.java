@@ -22,6 +22,7 @@ import api.mig.swing.MigLayout;
 import app.App;
 import app.album.Album;
 import app.album.AlbumTable;
+import app.ui.MainFrame;
 import java.awt.Desktop;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -79,6 +80,10 @@ public class Gallery extends JPanel {
 		this.table = table;
 		this.type = T_TABLE;
 		initialize();
+	}
+
+	public MainFrame getMainFrame() {
+		return App.mainFrame;
 	}
 
 	private void initialize() {

@@ -2,12 +2,21 @@
 <album title="Album">
    <pref comment="{MMM AAAA}" mode="0" tempo="0" />
    <list>
-      <item id="1" file="2024/01/20240101_115238.jpg" comment="janv. 2024" />
-      <item id="2" file="2024/01/20240104_151805.jpg" comment="janv. 2024" />
-      <item id="3" file="1964/05/19640501_150408.jpg" comment="mai 1964" />
-      <item id="4" file="2019/04/20190402_172339.jpg" comment="avr. 2019" />
-      <item id="5" file="2019/04/20190402_172403.jpg" comment="avr. 2019" />
-      <item id="6" file="2019/04/20190406_182120.jpg" comment="avr. 2019" />
+      <item id="1" file="34b2a6763103a3b4209ced8f2b0756de.JPEG" comment=""  />
+      <item id="2" file="6adda4a4e5dda411883477d5d47abd71.JPEG" comment=""  />
+      <item id="3" file="7659fa3a748da8d9e1817d05bf7cda89.JPEG" comment=""  />
+      <item id="4" file="a981c984f36416f05cb87a66bdcc265b.JPEG" comment=""  />
+      <item id="5" file="ca786b851605af08aa90159aa73ff281.JPEG" comment=""  />
+      <item id="6" file="d3dca531d19af5ce7c403a69f92c9e2f.JPEG" comment=""  />
+      <item id="7" file="d70954b28c1242b1617608fad4b8ba40.JPEG" comment=""  />
+      <item id="8" file="d989fbdd951b77745cad090e41aa7e03.JPEG" comment=""  />
+      <item id="9" file="f740a77559b34bca7aeb53b9feade16a.JPEG" comment=""  />
+      <item id="10" file="07009ca67116df62915728c7ce124de1.JPEG" comment=""  />
+      <item id="11" file="0a34e14551639b5341be620152243168.JPEG" comment=""  />
+      <item id="12" file="0b7082b19c1c5813bd3515a8607e317c.JPEG" comment=""  />
+      <item id="13" file="0c84bb5da7ed9696b842f25ae2debb8a.JPEG" comment=""  />
+      <item id="14" file="10503bac7aaacc579d4bae2fd85da0c8.JPEG" comment=""  />
+      <item id="15" file="11b367e688d83cf9324c20d16e9132a6.JPEG" comment=""  />
    </list>
    <print format="A4" orient="portrait" size="5,3">
        <libs>
@@ -19,8 +28,9 @@
        <pages>
            <page id="1">
                <cell type="p" pos="1,1,1" ref="1" />
-               <cell type="t" pos="2,2,1" ref="1" />
-               <cell type="p" pos="4,1,1" ref="2" />
+               <cell type="p" pos="2,1,1" ref="2" />
+               <cell type="t" pos="3,1,2" ref="1" />
+               <cell type="p" pos="4,1,1" ref="3" />
            </page>
        </pages>
    </print>

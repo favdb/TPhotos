@@ -41,7 +41,7 @@ public class SHEFDialog extends JDialog {
 	private HTMLEditorPane editor;
 	private boolean validate = false;
 
-	public SHEFDialog(Frame parentFrame, boolean b, String text) {
+	public SHEFDialog(Frame parentFrame, String text) {
 		super(parentFrame, true);
 		this.text = text;
 		initialize();

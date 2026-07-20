@@ -16,20 +16,16 @@
  */
 package app.xml;
 
-import app.xml.XmlKey;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -41,7 +37,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import tools.LOG;
-import app.xml.XmlKey.XK;
 
 /**
  * utility class for setting/getting values from Xml
@@ -49,6 +44,24 @@ import app.xml.XmlKey.XK;
  * @author favdb
  */
 public class XmlUtil {
+
+	public static final String INDENT = "   ";
+
+	public static String attributXml(String key, String value) {
+		return key + "=\"" + value + "\" ";
+	}
+
+	public static String attributXml(String key, Integer value) {
+		return key + "=\"" + value.toString() + "\" ";
+	}
+
+	public static String indent(int n) {
+		StringBuilder b = new StringBuilder();
+		for (int i = 0; i < n; i++) {
+			b.append(INDENT);
+		}
+		return b.toString();
+	}
 
 	public XmlUtil() {
 
@@ -89,30 +102,6 @@ public class XmlUtil {
 	}
 
 	/**
-	 * set a Xml output String for a boolean value (set only the getId())
-	 *
-	 * @param tab
-	 * @param key
-	 * @param value
-	 * @return
-	 */
-	public static String setAttribute(int tab, XmlKey.XK key, boolean value) {
-		return setAttribute(tab, key.toString(), (value ? "1" : "0"));
-	}
-
-	/**
-	 * set a Xml output String for a boolean value
-	 *
-	 * @param tab
-	 * @param key
-	 * @param value
-	 * @return
-	 */
-	public static String setAttribute(int tab, String key, boolean value) {
-		return setAttribute(tab, key, (value ? "1" : "0"));
-	}
-
-	/**
 	 * set a Xml output String for an Integer value
 	 *
 	 * @param tab
@@ -143,71 +132,6 @@ public class XmlUtil {
 	}
 
 	/**
-	 * set a Xml output String for a Long value
-	 *
-	 * @param tab
-	 * @param name
-	 * @param value
-	 * @return
-	 */
-	public static String setAttribute(int tab, XmlKey.XK name, Long value) {
-		if (value == null) {
-			return "";
-		}
-		return setAttribute(tab, name.toString(), value.toString());
-	}
-
-	/**
-	 * set a Xml output String for a Long value
-	 *
-	 * @param tab
-	 * @param key
-	 * @param value
-	 * @return
-	 */
-	public static String setAttribute(int tab, String key, Long value) {
-		if (value == null) {
-			return "";
-		}
-		return setAttribute(tab, key, value.toString());
-	}
-
-	/**
-	 * set a Xml output String for a Timestamp value
-	 *
-	 * @param tab
-	 * @param name
-	 * @param value
-	 * @param dateonly
-	 *
-	 * @return
-	 */
-	public static String setAttribute(int tab, XK name, Timestamp value, boolean... dateonly) {
-		if (value == null) {
-			return "";
-		}
-		if (dateonly != null && dateonly[0]) {
-			return setAttribute(tab, name, value.toString().split(" ")[0]);
-		}
-		return setAttribute(tab, name, value.toString());
-	}
-
-	/**
-	 * set a Xml output String for a Date value
-	 *
-	 * @param tab
-	 * @param name
-	 * @param value
-	 * @return
-	 */
-	public static String setAttribute(int tab, XK name, Date value) {
-		if (value == null) {
-			return "";
-		}
-		return setAttribute(tab, name, value.toString());
-	}
-
-	/**
 	 * get a String for a child node
 	 *
 	 * @param n: level indent
@@ -217,7 +141,7 @@ public class XmlUtil {
 	 *
 	 * @return
 	 */
-	public static String setChild(int n, String key, String value, boolean html) {
+	public static String childSet(int n, String key, String value, boolean html) {
 		StringBuilder b = new StringBuilder();
 		for (int i = 0; i < n; i++) {
 			b.append("    ");
@@ -243,48 +167,13 @@ public class XmlUtil {
 	 * @param key
 	 * @return
 	 */
-	public static String getString(Node node, XmlKey.XK key) {
-		return getString(node, key.toString().toLowerCase());
+	public static String stringGet(Node node, XmlKey.XK key) {
+		return stringGet(node, key.toString().toLowerCase());
 	}
 
-	public static String getString(Node node, String n) {
+	public static String stringGet(Node node, String n) {
 		Element e = (Element) node;
 		return (e.getAttribute(n).trim());
-	}
-
-	/**
-	 * get a Boolean value of a node attribute, if not exists return false
-	 *
-	 * @param node
-	 * @param key
-	 * @return
-	 */
-	public static boolean getBoolean(Node node, XmlKey.XK key) {
-		return getBoolean(node, key.toString().toLowerCase());
-	}
-
-	public static boolean getBoolean(Node node, String key) {
-		String s = getString(node, key);
-		return (s.equals("yes") || s.equals("true") || s.equals("1"));
-	}
-
-	/**
-	 * get a Long value of a node attribute, if not exists return -1L
-	 *
-	 * @param node
-	 * @param key
-	 * @return
-	 */
-	public static Long getLong(Node node, String key) {
-		String x = getString(node, key);
-		if (x.isEmpty() || "null".equals(x)) {
-			return -1L;
-		}
-		return Long.valueOf(x);
-	}
-
-	public static Long getLong(Node node, XmlKey.XK key) {
-		return getLong(node, key.toString().toLowerCase());
 	}
 
 	/**
@@ -294,38 +183,16 @@ public class XmlUtil {
 	 * @param key
 	 * @return
 	 */
-	public static Integer getInteger(Node node, XmlKey.XK key) {
-		return getInteger(node, key.toString().toLowerCase());
+	public static Integer integerGet(Node node, XmlKey.XK key) {
+		return integerGet(node, key.toString().toLowerCase());
 	}
 
-	public static Integer getInteger(Node node, String n) {
-		String x = getString(node, n);
+	public static Integer integerGet(Node node, String n) {
+		String x = stringGet(node, n);
 		if (x == null || x.isEmpty()) {
 			return -1;
 		}
 		return Integer.valueOf(x);
-	}
-
-	/**
-	 * get the Timestamp value of a node attribute
-	 *
-	 * @param node
-	 * @param key
-	 * @return
-	 */
-	public static Timestamp getTimestamp(Node node, XmlKey.XK key) {
-		return XmlUtil.getTimestamp(node, key.toString().toLowerCase());
-	}
-
-	public static Timestamp getTimestamp(Node node, String key) {
-		String ts = getString(node, key);
-		if (!ts.isEmpty()) {
-			if (!ts.contains(":")) {
-				ts = ts + " 00:00:00";
-			}
-			return (Timestamp.valueOf(ts));
-		}
-		return ((Timestamp) null);
 	}
 
 	/**
@@ -335,11 +202,11 @@ public class XmlUtil {
 	 * @param key
 	 * @return
 	 */
-	public static String getText(Node node, XmlKey.XK key) {
-		return getText(node, key.toString().toLowerCase());
+	public static String textGet(Node node, XmlKey.XK key) {
+		return textGet(node, key.toString().toLowerCase());
 	}
 
-	public static String getText(Node node, String key) {
+	public static String textGet(Node node, String key) {
 		NodeList t = node.getChildNodes();
 		if (t.getLength() > 0) {
 			for (int i = 0; i < t.getLength(); i++) {
@@ -349,49 +216,6 @@ public class XmlUtil {
 			}
 		}
 		return ("");
-	}
-
-	/**
-	 * get a list of String from a node attribute
-	 *
-	 * @param node
-	 * @param key
-	 * @return
-	 */
-	public static List<String> getList(Node node, XmlKey.XK key) {
-		return getList(node, key.toString().toLowerCase());
-	}
-
-	public static List<String> getList(Node node, String key) {
-		NodeList t = node.getChildNodes();
-		List<String> list = new ArrayList<>();
-		if (t.getLength() > 0) {
-			for (int i = 0; i < t.getLength(); i++) {
-				if (t.item(i).getNodeName().equals(key)) {
-					list.add(t.item(i).getTextContent().trim());
-				}
-			}
-		}
-		return (list);
-	}
-
-	/**
-	 * get a list of Long attribute
-	 *
-	 * @param node
-	 * @param key
-	 * @return
-	 */
-	public static List<Long> getLongList(Node node, XK key) {
-		String ns = getString(node, key);
-		List<Long> list = new ArrayList<>();
-		if (!ns.isEmpty()) {
-			String nl[] = ns.split(",");
-			for (String x : nl) {
-				list.add(Long.valueOf(x.trim()));
-			}
-		}
-		return list;
 	}
 
 	/**
@@ -427,4 +251,20 @@ public class XmlUtil {
 		}
 	}
 
+	public static String elementToString(Element element) {
+		try {
+			TransformerFactory tf = TransformerFactory.newInstance();
+			Transformer transformer = tf.newTransformer();
+			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			StringWriter writer = new StringWriter();
+			transformer.transform(new DOMSource(element), new StreamResult(writer));
+			return writer.toString();
+		} catch (TransformerConfigurationException ex) {
+			LOG.err("XmlUtil...", ex);
+		} catch (TransformerException ex) {
+			LOG.err("XmlUtil...", ex);
+		}
+		return "err";
+	}
 }

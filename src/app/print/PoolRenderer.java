@@ -19,9 +19,11 @@ package app.print;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.io.File;
 import javax.swing.BorderFactory;
 import javax.swing.JTree;
 import javax.swing.border.Border;
+import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import tools.ImageUtil;
 
@@ -36,7 +38,7 @@ public class PoolRenderer extends DefaultTreeCellRenderer {
 	private final int ins = 4;
 	private int icon_sz = Pool.ROW_SZ - ins;
 
-	// Définition des bordures de couleur (épaisseur 2 pixels, adaptable à votre besoin)
+	// Définition des bordures de couleur (épaisseur 2 pixels)
 	private static final Border BORDER_RED = BorderFactory.createLineBorder(Color.RED, 2);
 	private static final Border BORDER_WHITE = BorderFactory.createLineBorder(Color.WHITE, 2);
 	private static final Border BORDER_GREEN = BorderFactory.createLineBorder(Color.GREEN, 2);
@@ -50,31 +52,65 @@ public class PoolRenderer extends DefaultTreeCellRenderer {
 			boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
 		Component comp = super.getTreeCellRendererComponent(tree, value, sel,
 				expanded, leaf, row, hasFocus);
+
+		// Extraction sécurisée de la PrintCell depuis le nœud[cite: 10]
+		PrintCell cell = null;
 		if (value instanceof PoolCell) {
-			PrintItem cell = ((PoolCell) value).getPrintCell();
+			cell = ((PoolCell) value).printCellGet();
+		} else if (value instanceof DefaultMutableTreeNode) {
+			Object userObj = ((DefaultMutableTreeNode) value).getUserObject();
+			if (userObj instanceof PrintCell) {
+				cell = (PrintCell) userObj;
+			}
+		}
+
+		// Si on a trouvé une cellule, on applique le rendu graphique personnalisé[cite: 10]
+		if (cell != null) {
 			if (cell.isPhoto()) {
-				setIcon(ImageUtil.getImage(cell.photoFileGet(), icon_sz - ins));
+				// Reconstitution et vérification du chemin d'accès
+				String fullPath = app.App.preferences.photosDirGet() + File.separator + cell.photoFileGet();
+				File fileCheck = new File(fullPath);
+
+				if (!fileCheck.exists() && cell.photoFileGet() != null) {
+					fileCheck = new File(cell.photoFileGet());
+				}
+
+				if (fileCheck.exists() && fileCheck.isFile()) {
+					setIcon(ImageUtil.getImage(cell.photoFileGet(), icon_sz - ins));
+				} else {
+					// Fallback : Texte HTML rouge explicite indiquant que le fichier est inconnu
+					String filename = (cell.photoFileGet() != null) ? new File(cell.photoFileGet()).getName() : "?";
+					String errorTxt = "<html><body style='padding:2px; text-align:center; color:red; font-size:9px;'>"
+							+ "<b>⚠️ [?]</b><br>"
+							+ "<small style='font-size:8px;'>" + filename + "</small></body></html>";
+					setIcon(ImageUtil.createTextImage(errorTxt, icon_sz - ins));
+				}
 			} else {
 				String txt = "<html><body style='padding:5px;'>" + cell.textGet() + "</body></html>";
 				setIcon(ImageUtil.createTextImage(txt, icon_sz - ins));
 			}
 			setText("");
+
 			Border colorBorder;
 			if (cell.pageGet() > 0) {
 				colorBorder = BORDER_GREEN;
 			} else if (sel) {
+				pool.printGet().pendingCellToPlaceSet(cell);
 				colorBorder = BORDER_RED;
 			} else {
 				colorBorder = BORDER_WHITE;
 			}
+
 			setBorder(BorderFactory.createCompoundBorder(
 					BorderFactory.createEmptyBorder(ins, 0, ins, 0),
 					colorBorder
 			));
 			return comp;
 		} else {
+			// Pour les branches principales ("Photos" / "Textes")[cite: 10]
 			setBorder(null);
 			return comp;
 		}
 	}
+
 }

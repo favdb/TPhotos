@@ -17,41 +17,43 @@
  */
 package app.xml;
 
+import java.io.File;
+
 /**
  *
  * @author favdb
  */
-public class XmlPhoto {
+public class XmlAlbumPhoto {
 
 	private String id = "", file = "", comment = "";
 
-	public XmlPhoto(String id, String file, String comment) {
+	public XmlAlbumPhoto(String id, String file, String comment) {
 		this.id = id;
 		this.file = file;
 		this.comment = comment;
 	}
 
-	public String getId() {
+	public String idGet() {
 		return id;
 	}
 
-	public void setId(String id) {
+	public void idSet(String id) {
 		this.id = id;
 	}
 
-	public String getFile() {
+	public String fileGet() {
 		return file;
 	}
 
-	public void setFile(String file) {
+	public void fileSet(String file) {
 		this.file = file;
 	}
 
-	public String getComment() {
+	public String commentGet() {
 		return comment;
 	}
 
-	public void setComment(String comment) {
+	public void commentSet(String comment) {
 		this.comment = comment;
 	}
 
@@ -61,11 +63,13 @@ public class XmlPhoto {
 	}
 
 	public String toXml() {
-		StringBuilder b = new StringBuilder("<item ");
+		StringBuilder b = new StringBuilder();
+		File ff = new File(file);
+		b.append(XmlUtil.INDENT).append(XmlUtil.INDENT).append("<item ");
 		b.append("id=\"").append(id).append("\" ")
-				.append("file=\"").append(file).append("\" ")
+				.append("file=\"").append(ff.getName()).append("\" ")
 				.append("comment=\"").append(comment).append("\" ")
-				.append("/>");
+				.append("/>\n");
 		return b.toString();
 	}
 }

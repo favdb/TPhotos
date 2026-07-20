@@ -38,6 +38,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
+import tools.ImageUtil;
 import tools.LOG;
 
 /**
@@ -268,6 +269,10 @@ public class MainFrame extends JFrame {
 	public void printHide() {
 		panel.setVisible(true);
 		this.remove(print);
+	}
+
+	public void showPhoto(String item) {
+		ImageUtil.showPhoto(this, item);
 	}
 
 }

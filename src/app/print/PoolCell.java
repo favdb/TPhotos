@@ -1,42 +1,27 @@
-/*
- * Copyright (C) 2026 favdb
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
 package app.print;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 
 /**
- *
  * @author favdb
  */
 public class PoolCell extends DefaultMutableTreeNode {
 
-	private PrintItem printCell;
+	private PrintCell poolCell;
 
-	public PoolCell(PrintItem printCell) {
-		this.printCell = printCell;
+	public PoolCell(PrintCell printCell) {
+		// Crucial : transmet l'objet au système de nœuds du JTree
+		super(printCell);
+		this.poolCell = printCell;
 	}
 
-	public PrintItem getPrintCell() {
-		return printCell;
+	public PrintCell printCellGet() {
+		return poolCell;
 	}
 
-	public void setPrintCell(PrintItem printCell) {
-		this.printCell = printCell;
+	public void printCellSet(PrintCell printCell) {
+		this.poolCell = printCell;
+		this.setUserObject(printCell);
 	}
 
 }

@@ -50,7 +50,7 @@ public class App {
 
 	public static Pref preferences;
 	private static Font fontDef;
-	private static MainFrame mainFrame;
+	public static MainFrame mainFrame;
 	private static boolean dev;
 	private static String lang = "";//to force the language
 

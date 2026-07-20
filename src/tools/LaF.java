@@ -20,6 +20,7 @@ package tools;
 import app.App;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.awt.Window;
 import java.util.Enumeration;
 import javax.swing.SwingUtilities;
@@ -37,7 +38,11 @@ public class LaF {
 	private static final String TT = "Laf.";
 
 	public static int getScreenWidth() {
-		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+		return Toolkit.getDefaultToolkit().getScreenSize().width;
+	}
+
+	public static int getScreenHeight() {
+		return Toolkit.getDefaultToolkit().getScreenSize().height;
 	}
 
 	public enum THEME {

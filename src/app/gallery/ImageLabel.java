@@ -18,12 +18,10 @@
 package app.gallery;
 
 import java.awt.Color;
-import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
-import java.io.IOException;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
@@ -229,9 +227,9 @@ public class ImageLabel extends JLabel implements MouseListener {
 					clickTimer.stop();
 				}
 				try {
-					Desktop.getDesktop().open(file);
-				} catch (IOException ex) {
-					LOG.err(TT + "open file error", ex);
+					gallery.getMainFrame().showPhoto(file.getAbsolutePath());
+				} catch (Exception ex) {
+					LOG.err(TT + "show photo error", ex);
 				}
 			}
 		}

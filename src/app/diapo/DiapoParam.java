@@ -44,13 +44,13 @@ public class DiapoParam {
 	}
 
 	public DiapoParam(Xml xml) {
-		Node n = xml.getNode("pref");
+		Node n = xml.nodeGet("pref");
 		if (n != null) {
-			mode = XmlUtil.getInteger(n, "mode");
-			tempo = XmlUtil.getInteger(n, "tempo");
-			comment = XmlUtil.getString(n, "comment");
+			mode = XmlUtil.integerGet(n, "mode");
+			tempo = XmlUtil.integerGet(n, "tempo");
+			comment = XmlUtil.stringGet(n, "comment");
 		} else {
-			xml.childCreate(xml.getRoot(), "pref");
+			xml.childCreate(xml.rootGet(), "pref");
 		}
 	}
 
@@ -115,10 +115,10 @@ public class DiapoParam {
 	}
 
 	public void updateXml(Xml xml) {
-		Element n = (Element) xml.getNode("pref");
+		Element n = (Element) xml.nodeGet("pref");
 		if (n == null) {
 			n = xml.getDocument().createElement("pref");
-			xml.getRoot().appendChild(n);
+			xml.rootGet().appendChild(n);
 		}
 		mode = Math.max(mode, 0);
 		tempo = Math.max(tempo, 0);

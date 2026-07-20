@@ -1,0 +1,8 @@
+api.shef:
+- novaworx.jar et sam.jar à supprimer 
+- rsyntaxarea à ajouter
+
+app.print:
+- gérer le changement de format (A4<=>A3)
+- utiliser un enum pour PORTRAIT et LANDSCAPE
+

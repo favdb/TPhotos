@@ -17,7 +17,7 @@
  */
 package app.xml;
 
-import app.print.PrintItem;
+import app.print.PrintCell;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,10 +29,17 @@ import java.util.List;
 public class XmlPrintPage {
 
 	private String id;
-	private List<PrintItem> cells = new ArrayList<>();
+	private final Xml xml;
 
-	public XmlPrintPage(String idPage) {
+	@SuppressWarnings("OverridableMethodCallInConstructor")
+	public XmlPrintPage(Xml xml, String idPage) {
+		this.xml = xml;
 		this.id = idPage;
+		load();
+	}
+
+	public void load() {
+		//empty all data loaded as PrintCell
 	}
 
 	/**
@@ -58,8 +65,15 @@ public class XmlPrintPage {
 	 *
 	 * @return
 	 */
-	public List<PrintItem> cellsGet() {
-		return cells;
+	public List<PrintCell> cellsGet() {
+		List<PrintCell> l = new ArrayList<>();
+		for (PrintCell c : xml.printGet().getCells()) {
+			String sid = Integer.toString(c.pageGet());
+			if (id.equals(sid)) {
+				l.add(c);
+			}
+		}
+		return l;
 	}
 
 	/**
@@ -67,13 +81,31 @@ public class XmlPrintPage {
 	 *
 	 * @param cell
 	 */
-	public void callAdd(PrintItem cell) {
-		this.cells.add(cell);
+	public void cellAdd(PrintCell cell) {
+		if (cell == null) {
+			return;
+		}
+
+		// Assigner la cellule à cette page modifie sa propriété interne.
+		// cellsGet() la détectera automatiquement au prochain rafraîchissement.
+		cell.pageSet(Integer.parseInt(id));
 	}
 
 	@Override
 	public String toString() {
-		return String.format("id=%s nb_cells=%d", id, cells.size());
+		return String.format("page id=%s nb_cells=%d", id, cellsGet().size());
+	}
+
+	public String toXml() {
+		StringBuilder b = new StringBuilder();
+		b.append(XmlUtil.indent(3)).append("<page ")
+				.append(XmlUtil.attributXml("id", id))
+				.append(">\n");
+		for (PrintCell p : cellsGet()) {
+			b.append(p.toXml());
+		}
+		b.append(XmlUtil.indent(3)).append("</page>\n");
+		return b.toString();
 	}
 
 }

@@ -26,6 +26,7 @@ import app.diapo.DiapoParamDlg;
 import app.gallery.Gallery;
 import app.gallery.ImageLabel;
 import app.ui.ChangeDateDlg;
+import app.ui.MainFrame;
 import app.xml.Xml;
 import i18n.I18N;
 import java.awt.Color;
@@ -107,7 +108,7 @@ public class Album extends JFrame {
 	 * @return
 	 */
 	public String diapoNameGet() {
-		return table.xmlGet().getFile().getName();
+		return table.xmlGet().fileGet().getName();
 	}
 
 	/**
@@ -203,7 +204,7 @@ public class Album extends JFrame {
 		JPanel ptitle = new JPanel(new MigLayout(MIG.FLOWX));
 		ptitle.add(new JLabel(I18N.getColonMsg("album.title")), MIG.SPLIT2);
 		ptitle.add(title = new JTextField(), MIG.get(MIG.SPAN, MIG.GROWX));
-		title.setText(xml.getAlbum().getTitle());
+		title.setText(xml.albumGet().titleGet());
 		title.setColumns(32);
 		title.addCaretListener(e -> titleChange());
 		pTable.add(ptitle, MIG.get(MIG.GROWX));
@@ -360,7 +361,7 @@ public class Album extends JFrame {
 		xml = new Xml(file);
 		table.load(xml);
 		loadParam();
-		title.setText(xml.getAlbum().getTitle());
+		title.setText(xml.albumGet().titleGet());
 		tree.reload();
 	}
 
@@ -561,7 +562,7 @@ public class Album extends JFrame {
 	 * change Album title
 	 */
 	private void titleChange() {
-		if (!title.getText().equals(xml.getAlbum().getTitle())) {
+		if (!title.getText().equals(xml.albumGet().titleGet())) {
 			table.setModified();
 		}
 	}
@@ -572,7 +573,7 @@ public class Album extends JFrame {
 	 * @return
 	 */
 	public String diapoTitleGet() {
-		return xml.getAlbum().getTitle();
+		return xml.albumGet().titleGet();
 	}
 
 	public Gallery getGallery() {
@@ -610,6 +611,10 @@ public class Album extends JFrame {
 				break;
 			}
 		}
+	}
+
+	public MainFrame getMainFrame() {
+		return App.mainFrame;
 	}
 
 }

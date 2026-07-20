@@ -24,24 +24,19 @@ package app.xml;
 public class XmlKey {
 
 	public enum XK {
+		COMMENT, CREATION,
+		FILE, FORMAT,
 		ID,
-		NAME,
-		CREATION,
-		MAJ,
-		UPDATE,
-		DATE,
-		DESCRIPTION,
-		NOTES,
-		DURATION,
-		FILE,
-		KEY,
-		NUMBER,
-		SORT,
+		MODE,
+		NAME, NUMBER,
+		ORIENT,
+		POS,
+		REF,
+		SIZE,
+		TEMPO,
 		TEXT,
-		TIME,
-		TYPE,
-		UUID,
-		VALUE;
+		TITLE,
+		TYPE;
 
 		@Override
 		public String toString() {

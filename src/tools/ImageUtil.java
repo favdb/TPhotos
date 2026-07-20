@@ -24,12 +24,15 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.JDialog;
 import javax.swing.JEditorPane;
+import javax.swing.JLabel;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
 import tools.file.EnvUtil;
@@ -42,6 +45,14 @@ public class ImageUtil {
 
 	private static final String TT = "ImageUtil.";
 	private static final String CACHE_PATH = EnvUtil.getPrefDir() + File.separator + "cache";
+
+	public static ImageIcon createTextImage(String htmlContent, int width, int height) {
+		if (width <= 0 || height <= 0) {
+			width = 100;
+			height = 100;
+		}
+		return createTextImage(htmlContent, new Dimension(width, height));
+	}
 
 	public static ImageIcon createTextImage(String htmlText, Dimension dim) {
 		BufferedImage image = new BufferedImage(dim.height, dim.width, BufferedImage.TYPE_INT_ARGB);
@@ -171,20 +182,16 @@ public class ImageUtil {
 	public static ImageIcon getImage(String f, int size) {
 		File ff = new File(f);
 		if (!ff.exists()) {
-			ff = new File(App.preferences.photosDirGet()
-					+ File.separator
-					+ f);
+			ff = new File(App.preferences.photosDirGet() + File.separator + f);
 		}
 		return getImage(ff, size);
 	}
 
 	public static ImageIcon getImage(String f, Dimension size) {
-		LOG.trace(TT + "getImage(file=" + f + ", size=" + size.toString() + ")");
+		//LOG.trace(TT + "getImage(file=" + f + ", size=" + size.toString() + ")");
 		File ff = new File(f);
 		if (!ff.exists()) {
-			ff = new File(App.preferences.photosDirGet()
-					+ File.separator
-					+ f);
+			ff = new File(App.preferences.photosDirGet() + File.separator + f);
 		}
 		return getImage(ff, size);
 	}
@@ -195,9 +202,8 @@ public class ImageUtil {
 		if (f.exists()) {
 			img = new ImageIcon(f.getAbsolutePath());
 		} else {
-			File ff = new File(App.preferences.photosDirGet()
-					+ File.separator
-					+ f.getName());
+			LOG.err("image " + f.getAbsolutePath() + " not exists");
+			File ff = new File(App.preferences.photosDirGet() + File.separator + f.getName());
 			if (ff.exists()) {
 				img = new ImageIcon(f.getAbsolutePath());
 			} else {
@@ -213,9 +219,7 @@ public class ImageUtil {
 		if (f.exists()) {
 			img = new ImageIcon(f.getAbsolutePath());
 		} else {
-			File ff = new File(App.preferences.photosDirGet()
-					+ File.separator
-					+ f.getName());
+			File ff = new File(App.preferences.photosDirGet() + File.separator + f.getName());
 			if (ff.exists()) {
 				img = new ImageIcon(f.getAbsolutePath());
 			} else {
@@ -296,4 +300,22 @@ public class ImageUtil {
 		return new ImageIcon(scaledImage);
 	}
 
+	public static void showPhoto(Window parent, String fichier) {
+		try {
+			File fichierImage = new File(App.preferences.photosDirGet(), fichier);
+			ImageIcon img = getImage(fichier, 1024);
+
+			// Construction du JDialog
+			JDialog dialog = new JDialog(parent, "Aperçu de la photo " + fichierImage.getAbsolutePath());
+			dialog.setModal(true);
+			dialog.add(new JLabel(img));
+
+			dialog.pack();
+			dialog.setLocationRelativeTo(parent);
+			dialog.setVisible(true);
+
+		} catch (Exception e) {
+			e.printStackTrace(System.err);
+		}
+	}
 }

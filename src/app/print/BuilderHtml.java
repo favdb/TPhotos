@@ -17,7 +17,6 @@
  */
 package app.print;
 
-import app.xml.Xml;
 import app.xml.XmlPrintPage;
 import java.awt.Desktop;
 import java.io.File;
@@ -108,53 +107,49 @@ public class BuilderHtml {
 	/**
 	 * Build a page into the grid.
 	 */
-	private static String buildPagesHtml(Xml xml) {
+	private static String buildPageHtml(XmlPrintPage page, String rowsCount, String colsCount) {
 		StringBuilder b = new StringBuilder();
-		String[] sizeConfig = xml.getPrint().sizeGet().split(",");
-		String rowsCount = sizeConfig[0];
-		String colsCount = sizeConfig[1];
 		int colsCountInt = Integer.parseInt(colsCount);
 
-		for (XmlPrintPage page : xml.getPrint().printPageGetAll()) {
-			b.append("<div class=\"page\">\n");
-			b.append("  <div class=\"grid-container\" style=\"")
-					.append("grid-template-rows: repeat(").append(rowsCount).append(", 1fr); ")
-					.append("grid-template-columns: repeat(").append(colsCount).append(", 1fr);\">\n");
-			for (PrintItem cell : page.cellsGet()) {
-				int indexZeroBased = cell.cellIdGet() - 1;
-				int line = (indexZeroBased / colsCountInt) + 1;
-				int col = (indexZeroBased % colsCountInt) + 1;
-				String gridStyle = String.format("grid-row: %d / span %d; grid-column: %d / span %d;",
-						line, cell.spanVerticalGet(), col, cell.spanHorizontalGet());
-				if (cell.isPhoto()) {
-					b.append("    <div class=\"cell photo\" style=\"").append(gridStyle).append("\">\n");
-					String src = xml.getPrint().findPhoto(cell.photoId);
-					b.append("      <img src=\"").append(src).append("\" alt=\"\">\n");
-					b.append("    </div>\n");
-				} else {
-					b.append("    <div class=\"cell text\" style=\"").append(gridStyle).append("\">\n");
-					b.append("      ").append(cell.textGet()).append("\n");
-					b.append("    </div>\n");
-				}
+		b.append("<div class=\"page\">\n");
+		b.append("  <div class=\"grid-container\" style=\"")
+				.append("grid-template-rows: repeat(").append(rowsCount).append(", 1fr); ")
+				.append("grid-template-columns: repeat(").append(colsCount).append(", 1fr);\">\n");
+		for (PrintCell cell : page.cellsGet()) {
+			int indexZeroBased = cell.cellIdGet() - 1;
+			int line = (indexZeroBased / colsCountInt) + 1;
+			int col = (indexZeroBased % colsCountInt) + 1;
+			String gridStyle = String.format("grid-row: %d / span %d; grid-column: %d / span %d;",
+					line, cell.spanVerticalGet(), col, cell.spanHorizontalGet());
+			if (cell.isPhoto()) {
+				b.append("    <div class=\"cell photo\" style=\"").append(gridStyle).append("\">\n");
+				String src = cell.photoFileGet();
+				b.append("      <img src=\"").append(src).append("\" alt=\"\">\n");
+				b.append("    </div>\n");
+			} else {
+				b.append("    <div class=\"cell text\" style=\"").append(gridStyle).append("\">\n");
+				b.append("      ").append(cell.textGet()).append("\n");
+				b.append("    </div>\n");
 			}
-			b.append("  </div>\n");
-			b.append("</div>\n");
 		}
+		b.append("  </div>\n");
+		b.append("</div>\n");
 		return b.toString();
 	}
 
 	/**
 	 * generate the HTML preview photoId from the given Xml
 	 *
-	 * @param xml: input xml photoId
+	 * @param print
 	 * @param outfile: photoId to build
 	 * @param toOpen: true to open the result HTML photoId into the default browser
 	 */
-	public static void generateHTML(Xml xml, File outfile, boolean toOpen) {
+	public static void generateHTML(Print print, File outfile, boolean toOpen) {
 		try {
+			String rows = print.gridGet().rowsGet() + "";
+			String cols = print.gridGet().colsGet() + "";
 			StringBuilder b = new StringBuilder();
 			String css = buildCSSOrientation("A4", "portrait") + buildCSS();
-			//the HTML header with style CSS
 			b.append("<!DOCTYPE html>\n")
 					.append("<html lang=\"fr\">\n")
 					.append("<head>\n")
@@ -164,7 +159,9 @@ public class BuilderHtml {
 					.append("    <style>").append(css).append("</style>\n")
 					.append("</head>\n")
 					.append("<body>\n");
-			b.append(buildPagesHtml(xml));
+			for (XmlPrintPage page : print.pages) {
+				b.append(buildPageHtml(page, rows, cols));
+			}
 			b.append("</body>\n</html>");
 			Files.write(outfile.toPath(), b.toString().getBytes(StandardCharsets.UTF_8));
 			if (toOpen && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {

@@ -17,11 +17,8 @@
  */
 package app.print;
 
-import app.ui.SHEFDialog;
-import app.xml.Xml;
 import i18n.I18N;
 import java.awt.BorderLayout;
-import java.awt.Frame;
 import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -37,6 +34,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -53,11 +51,16 @@ public class Pool extends JScrollPane {
 	private DefaultMutableTreeNode rootNode;
 	private DefaultMutableTreeNode photosBranch;
 	private DefaultMutableTreeNode textsBranch;
+	private PoolCell poolCellSelected;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public Pool(Print contact) {
-		this.print = contact;
+	public Pool(Print print) {
+		this.print = print;
 		initialize();
+	}
+
+	public Print printGet() {
+		return print;
 	}
 
 	public void initialize() {
@@ -78,10 +81,10 @@ public class Pool extends JScrollPane {
 	public void refresh() {
 		photosBranch.removeAllChildren();
 		textsBranch.removeAllChildren();
-		List<PrintItem> cells = print.getCells();
-		PrintItem.sortById(cells);
+		List<PrintCell> cells = print.getCells();
+		PrintCell.sortById(cells);
 		for (int i = 0; i < cells.size(); i++) {
-			PrintItem p = cells.get(i);
+			PrintCell p = cells.get(i);
 			if (p.isPhoto()) {
 				photosBranch.add(new PoolCell(p));
 			} else {
@@ -99,6 +102,7 @@ public class Pool extends JScrollPane {
 	 * @return
 	 */
 	public Object getSelectedResource() {
+		LOG.trace(TT + "getSelectedResource()");
 		TreePath path = tree.getSelectionPath();
 		if (path == null) {
 			return null;
@@ -114,26 +118,26 @@ public class Pool extends JScrollPane {
 		if (userObject == null || userObject instanceof String) {
 			return;
 		}
-		JPopupMenu menu = new JPopupMenu();
 		if (userObject instanceof PoolCell) {
-			PrintItem cell = ((PoolCell) userObject).getPrintCell();
+			JPopupMenu menu = new JPopupMenu();
+			PrintCell cell = ((PoolCell) userObject).printCellGet();
 			if (cell.isPhoto()) {
 				JMenuItem openItem = new JMenuItem(I18N.getMsg("print.pool.open_photo"));
 				openItem.addActionListener(al -> openPreviewAction(cell));
 				menu.add(openItem);
 			} else {
 				JMenuItem editItem = new JMenuItem(I18N.getMsg("print.edit.text"));
-				editItem.addActionListener(al -> openShefAction(cell));
+				editItem.addActionListener(al -> print.shefEdit(cell));
 				menu.add(editItem);
 			}
+			menu.show(e.getComponent(), e.getX(), e.getY());
 		}
-		menu.show(e.getComponent(), e.getX(), e.getY());
 	}
 
 	/**
 	 * show Photo as a dialog
 	 */
-	private void openPreviewAction(PrintItem photo) {
+	private void openPreviewAction(PrintCell photo) {
 		try {
 			String fullPath = app.App.preferences.photosDirGet() + File.separator + photo.photoFileGet();
 			File imageFile = new File(fullPath);
@@ -173,30 +177,82 @@ public class Pool extends JScrollPane {
 		}
 	}
 
-	/**
-	 * Double-clic on text : call SHEF editor
-	 */
-	private void openShefAction(PrintItem cell) {
-		try {
-			Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
-			SHEFDialog dlg = new SHEFDialog(parentFrame, true, cell.textGet());
-			dlg.setHtmlContent(cell.textGet());
-			dlg.setVisible(true);
-			if (dlg.isSaved()) {
-				String updatedText = dlg.getHtmlContent();
-				Xml xml = print.xmlGet();
-				if (xml != null) {
-					xml.textLibraryUpdate(cell.textIdGet(), updatedText);
-					cell.textSet(updatedText);
-					if (print.gridGet() != null) {
-						print.actionSave();
-						print.gridGet().refresh();
+	public void updatePoolNode(PrintCell cell) {
+		DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
+		DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+
+		// Parcours de l'arbre pour trouver le nœud correspondant à la cellule
+		for (int i = 0; i < root.getChildCount(); i++) {
+			DefaultMutableTreeNode groupNode = (DefaultMutableTreeNode) root.getChildAt(i);
+
+			for (int j = 0; j < groupNode.getChildCount(); j++) {
+				DefaultMutableTreeNode node = (DefaultMutableTreeNode) groupNode.getChildAt(j);
+
+				if (node.getUserObject() instanceof PoolCell) {
+					PoolCell pc = (PoolCell) node.getUserObject();
+					if (pc.printCellGet() == cell) {
+						// Notifie le JTree que ce nœud spécifique a changé pour son rendu graphique
+						model.nodeChanged(node);
+						return;
 					}
-					refresh();
 				}
 			}
-		} catch (Exception ex) {
-			LOG.err("PrintPool.openShefAction error", ex);
+		}
+	}
+
+	public PoolCell poolCellSelectedGet() {
+		return poolCellSelected;
+	}
+
+	public void poolCellSelect(PoolCell cell) {
+		poolCellSelected = cell;
+	}
+
+	public void poolCellUnselect() {
+		poolCellSelected = null;
+		if (this.tree != null) {
+			this.tree.clearSelection();
+		}
+	}
+
+	private final Timer timer = new Timer(250, e -> handleSimpleClick());
+
+	{
+		timer.setRepeats(false);
+	}
+
+	private void handleSimpleClick() {
+		LOG.trace(TT + "handleSimpleClick()");
+		try {
+			Object userObject = tree.getSelectionModel().getSelectionPath().getPath()[0];
+			if (userObject instanceof PoolCell) {
+				PrintCell cell = ((PoolCell) userObject).printCellGet();
+				if (cell.pageGet() > 0) {
+					print.pendingCellClear();
+					return;
+				}
+				print.pendingCellToPlaceSet(cell);
+			}
+		} catch (Exception e) {
+			//nothing to LOG
+		}
+	}
+
+	private void handleDoubleClick(Object object) {
+		print.pendingCellClear();
+		try {
+			Object userObject = tree.getSelectionModel().getSelectionPath().getPath()[0];
+			if (userObject instanceof PoolCell) {
+				PrintCell cell = ((PoolCell) userObject).printCellGet();
+				if (cell.isPhoto()) {
+					print.getMainFrame().showPhoto(cell.photoFileGet());
+				}
+				if (cell.isText()) {
+					print.shefEdit(cell);
+				}
+			}
+		} catch (Exception e) {
+			//nothing to LOG
 		}
 	}
 
@@ -210,61 +266,27 @@ public class Pool extends JScrollPane {
 				return;
 			}
 			Object userObject = path.getLastPathComponent();
-			if (userObject instanceof PoolCell) {
-				PrintItem cell = ((PoolCell) userObject).getPrintCell();
-				if (cell.pageGet() > 0) {
-					print.pendingCellClear();
-					e.consume();
-					return;
-				}
-				print.pendingCellToPlaceSet(cell);
-				tree.setSelectionPath(path);
-				if (e.getClickCount() == 2) {
-					if (cell.isPhoto()) {
-						openPreviewAction(cell);
-					} else {
-						openShefAction(cell);
-					}
-				} else if (e.getButton() == MouseEvent.BUTTON3 || e.isPopupTrigger()) {
-					showContextMenu(e, userObject);
+			if (SwingUtilities.isLeftMouseButton(e)) {
+				switch (e.getClickCount()) {
+					case 1:
+						timer.restart();
+						break;
+					case 2:
+						timer.stop();
+						handleDoubleClick(userObject);
+						break;
 				}
 			}
 		}
 
 		@Override
 		public void mousePressed(MouseEvent e) {
-			if (e.isPopupTrigger()) {
-				TreePath path = tree.getPathForLocation(e.getX(), e.getY());
-				if (path != null) {
-					Object userObject = path.getLastPathComponent();
-					if (userObject instanceof PoolCell) {
-						PrintItem cell = ((PoolCell) userObject).getPrintCell();
-						if (cell.pageGet() > 0) {
-							return;
-						}
-					}
-					tree.setSelectionPath(path);
-					showContextMenu(e, getSelectedResource());
-				}
-			}
+			showPopupMenu(e);
 		}
 
 		@Override
 		public void mouseReleased(MouseEvent e) {
-			if (e.isPopupTrigger()) {
-				TreePath path = tree.getPathForLocation(e.getX(), e.getY());
-				if (path != null) {
-					Object userObject = path.getLastPathComponent();
-					if (userObject instanceof PoolCell) {
-						PrintItem cell = ((PoolCell) userObject).getPrintCell();
-						if (cell.pageGet() > 0) {
-							return;
-						}
-					}
-					tree.setSelectionPath(path);
-					showContextMenu(e, getSelectedResource());
-				}
-			}
+			showPopupMenu(e);
 		}
 
 		@Override
@@ -273,6 +295,23 @@ public class Pool extends JScrollPane {
 
 		@Override
 		public void mouseExited(MouseEvent e) {
+		}
+
+		private void showPopupMenu(MouseEvent e) {
+			if (e.isPopupTrigger()) {
+				TreePath path = tree.getPathForLocation(e.getX(), e.getY());
+				if (path != null) {
+					Object userObject = path.getLastPathComponent();
+					if (userObject instanceof PoolCell) {
+						PrintCell cell = ((PoolCell) userObject).printCellGet();
+						if (cell.pageGet() > 0) {
+							return;
+						}
+					}
+					tree.setSelectionPath(path);
+					showContextMenu(e, getSelectedResource());
+				}
+			}
 		}
 	}
 
