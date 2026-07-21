@@ -17,6 +17,7 @@
  */
 package app.xml;
 
+import static app.print.Print.*;
 import app.print.PrintCell;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,10 +34,11 @@ public class XmlPrint {
 	private static final String TT = "XmlPrint.";
 
 	private final Xml xml;
-	private String format = "A4", orientation = "portrait";
+	private String format = "A4", orientation = PORTRAIT;
 	private final List<XmlPrintPage> pages = new ArrayList<>();
-	private List<PrintCell> cells = new ArrayList<>();
+	private final List<PrintCell> cells = new ArrayList<>();
 
+	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlPrint(Xml xml) {
 		this.xml = xml;
 		load();
@@ -50,7 +52,7 @@ public class XmlPrint {
 	}
 
 	public void load() {
-		LOG.trace(TT + "load()");
+		//LOG.trace(TT + "load()");
 		NodeList node = xml.getDocument().getElementsByTagName("print");
 		format = xml.attributeGet((Element) node.item(0), "format");
 		orientation = xml.attributeGet((Element) node.item(0), "orient");
@@ -101,7 +103,7 @@ public class XmlPrint {
 	}
 
 	/**
-	 * get the format (may be A4)
+	 * get the fpaper ormat (may be A4 or A3)
 	 *
 	 * @return
 	 */
@@ -110,35 +112,40 @@ public class XmlPrint {
 	}
 
 	/**
-	 * get orientation
+	 * set the paper format
+	 *
+	 * @param format (may be A4 or A3)
+	 */
+	public void formatSet(String format) {
+		this.format = (format.equals("A3") ? "A3" : "A4");
+	}
+
+	/**
+	 * get paper orientation
 	 *
 	 * @return
 	 */
 	public String orientationGet() {
-		LOG.trace(TT + "orientationGet() = " + orientation);
+		//LOG.trace(TT + "orientationGet() = " + orientation);
 		return orientation;
 	}
 
 	/**
-	 * set orientation (may be portrait or landscape)
+	 * set paper orientation (may be portrait or landscape)
 	 *
 	 * @param value
 	 */
 	public void orientationSet(String value) {
-		if (value.equalsIgnoreCase("landscape")) {
-			this.orientation = value;
-		} else {
-			this.orientation = "portrait";
-		}
+		this.orientation = (value.equalsIgnoreCase(LANDSCAPE) ? LANDSCAPE : PORTRAIT);
 	}
 
 	/**
-	 * check if orientation is portrait
+	 * check if orientation is PORTRAIT
 	 *
 	 * @return
 	 */
 	public boolean isPortrait() {
-		return orientation.equals("portrait");
+		return orientation.equals(PORTRAIT);
 	}
 
 	/**
@@ -176,7 +183,6 @@ public class XmlPrint {
 			PrintCell cell = new PrintCell(nid++, x.getText(), 0);
 			cells.add(cell);
 		}
-		//setting page and pos
 	}
 
 	public PrintCell photoCellGet(String id) {
@@ -198,37 +204,49 @@ public class XmlPrint {
 	}
 
 	public void updateCell(PrintCell target, int page, String pos) {
-		LOG.trace(TT + "updateCell(target=" + target.typeGet() + "." + target.idGet()
+		/*LOG.trace(TT + "updateCell(target=" + target.typeGet() + "." + target.idGet()
 				+ ", page=" + page
-				+ ", pos=" + pos + ")");
-
+				+ ", pos=" + pos + ")");*/
 		String targetType = target.typeGet();
 		int targetId = target.idGet();
-
 		for (PrintCell c : cells) {
-			// Comparaison brute et directe des types et des identifiants principaux
 			if (c.typeGet().equals(targetType) && c.idGet() == targetId) {
 				c.pageSet(page);
 				c.posSet(pos);
-				LOG.trace("-> CELLULE TROUVÉE ET MODIFIÉE !");
 				return;
 			}
 		}
-		LOG.err(TT + "updateCell: Toujours aucune correspondance dans la liste globale cells !");
 	}
 
 	public String toXml() {
 		StringBuilder b = new StringBuilder();
+		//open print tag
 		b.append(XmlUtil.indent(1)).append("<print ")
 				.append(XmlUtil.attributXml("format", format))
 				.append(XmlUtil.attributXml("orient", orientation))
 				.append(XmlUtil.attributXml("size", sizeGet()))
 				.append(">\n");
+		//save all pages
 		b.append(XmlUtil.indent(2)).append("<pages>\n");
-		for (XmlPrintPage p : pages) {
-			b.append(p.toXml());
+		int page = 0;
+		for (PrintCell c : cells) {
+			if (c.pageGet() == 0) {
+				continue;
+			}
+			if (c.pageGet() != page) {
+				if (page > 0) {
+					b.append(XmlUtil.indent(3)).append("</page>\n");
+				}
+				page = c.pageGet();
+				b.append(XmlUtil.indent(3)).append("<page id=\"" + page + "\">\n");
+			}
+			b.append(c.toXml());
+		}
+		if (page > 0) {
+			b.append(XmlUtil.indent(3)).append("</page>\n");
 		}
 		b.append(XmlUtil.indent(2)).append("</pages>\n");
+		//close print tag
 		b.append(XmlUtil.indent(1)).append("</print>\n");
 		return b.toString();
 	}
@@ -239,6 +257,10 @@ public class XmlPrint {
 
 	public List<PrintCell> getCells() {
 		return cells;
+	}
+
+	public void addCell(PrintCell cell) {
+		cells.add(cell);
 	}
 
 }

@@ -126,7 +126,7 @@ public class Pool extends JScrollPane {
 				openItem.addActionListener(al -> openPreviewAction(cell));
 				menu.add(openItem);
 			} else {
-				JMenuItem editItem = new JMenuItem(I18N.getMsg("print.edit.text"));
+				JMenuItem editItem = new JMenuItem(I18N.getMsg("print.text_edit"));
 				editItem.addActionListener(al -> print.shefEdit(cell));
 				menu.add(editItem);
 			}

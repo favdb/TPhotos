@@ -228,11 +228,17 @@ public class GridCell extends JLabel {
 		menu.addSeparator();
 		//shef editor if text
 		if (item.isText()) {
-			JMenuItem toggleType = new JMenuItem(I18N.getMsg("print.menu.type.text"));
-			toggleType.addActionListener(al -> {
+			JMenuItem textEdit = new JMenuItem(I18N.getMsg("print.text_edit"));
+			textEdit.addActionListener(al -> {
 				grid.getPrint().shefEdit(item);
 			});
-			menu.add(toggleType);
+			menu.add(textEdit);
+		} else if (item.isEmpty()) {
+			JMenuItem textCreate = new JMenuItem(I18N.getMsg("print.text_create"));
+			textCreate.addActionListener(al -> {
+				grid.getPrint().textCreate(item);
+			});
+			menu.add(textCreate);
 		}
 		//clear cell
 		JMenuItem clearCell = new JMenuItem(I18N.getMsg("print.menu.clear"));

@@ -52,6 +52,8 @@ public class Print extends JPanel {
 			BORDER_ALLOW = BorderFactory.createLineBorder(Color.GREEN, 2),
 			BORDER_SELECTED = BorderFactory.createLineBorder(Color.RED, 2);
 
+	public static String PORTRAIT = "portrait", LANDSCAPE = "landscape";
+
 	private final MainFrame mainFrame;
 	private Grid pGrid;
 	private Pool pPool;
@@ -64,6 +66,7 @@ public class Print extends JPanel {
 	public XmlPrint xmlPrint;
 	List<XmlPrintPage> pages = new ArrayList<>();
 	List<PrintCell> cells = new ArrayList<>();
+	private JComboBox cbFormat;
 
 	public Print(MainFrame mainFrame) {
 		super();
@@ -93,7 +96,7 @@ public class Print extends JPanel {
 		this.setLayout(new MigLayout(MIG.get(MIG.FILL), "[256px][]"));
 		add(poolInit(), MIG.get(MIG.TOP, MIG.GROWY));
 		add(gridInit(), MIG.get(MIG.SPAN, MIG.GROW));
-		add(bottomPanelInit(), MIG.get(MIG.SPAN, MIG.RIGHT));
+		add(bottomInit(), MIG.get(MIG.SPAN, MIG.RIGHT));
 		refresh();
 	}
 
@@ -166,11 +169,10 @@ public class Print extends JPanel {
 	 */
 	private JPanel gridInit() {
 		//LOG.trace(TT + "gridInit()");
-		pGrid = new Grid(this);
 		JPanel panel = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS1, MIG.GAP1)));
 		panel.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.page")));
 		panel.add(gridTopInit(), MIG.get(MIG.SPAN, MIG.GROWX));
-		JScrollPane scroll = new JScrollPane(pGrid);
+		JScrollPane scroll = new JScrollPane(pGrid = new Grid(this));
 		scroll.getVerticalScrollBar().setUnitIncrement(16);
 		scroll.getHorizontalScrollBar().setUnitIncrement(16);
 		scroll.setPreferredSize(new Dimension(1920, 1920));
@@ -240,11 +242,21 @@ public class Print extends JPanel {
 		//LOG.trace(TT + "gridTopInit()");
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.WRAP, "ins 5"), "[][][][][]"));
 		p.setBorder(BorderFactory.createEtchedBorder());
-		String array[] = {I18N.getMsg("print.orientation_portrait"),
+		String orFmt[] = {"A4", "A3"};
+		cbFormat = new JComboBox(orFmt);
+		cbFormat.setSelectedItem(xmlPrint.formatGet());
+		cbFormat.addItemListener(s -> {
+			xmlPrint.formatSet(paperFormatGet());
+			xml.save();
+		});
+		//p.add(cbFormat);
+
+		String orList[] = {I18N.getMsg("print.orientation_portrait"),
 			I18N.getMsg("print.orientation_landscape")};
-		cbOrientation = new JComboBox(array);
+		cbOrientation = new JComboBox(orList);
+		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
 		cbOrientation.addItemListener(s -> {
-			this.gridOrientationChange();
+			this.paperOrientationChange();
 		});
 		p.add(cbOrientation);
 		p.add(Ui.initIconButton("btRefresh", ICONS.K.REFRESH, "print.refresh", e -> refresh()));
@@ -273,16 +285,25 @@ public class Print extends JPanel {
 		refresh();
 	}
 
+	public String paperFormatGet() {
+		return (String) cbFormat.getSelectedItem();
+	}
+
+	public String paperOrientationGet() {
+		return (cbOrientation.getSelectedIndex() == 0 ? PORTRAIT : LANDSCAPE);
+	}
+
 	/**
-	 * Change the orientation (portrait or landscape)
+	 * Change the orientation (PORTRAIT or LANDSCAPE)
 	 */
-	private void gridOrientationChange() {
+	private void paperOrientationChange() {
 		int str = cbOrientation.getSelectedIndex();
-		isPortrait = (str != 1);
-		String sorient = (isPortrait ? "portrait" : "landscape");
+		isPortrait = (str == 0);
+		String sorient = (isPortrait ? PORTRAIT : LANDSCAPE);
 		int rows = (isPortrait ? 5 : 3), cols = (isPortrait ? 3 : 5);
 		pGrid.orientationSet(rows, cols);
-		xml.printGet().orientationSet(sorient);
+		xmlPrint.orientationSet(sorient);
+		xml.save();
 		gridGet().setDim("A4", sorient);
 		gridRefresh();
 	}
@@ -290,7 +311,7 @@ public class Print extends JPanel {
 	/**
 	 * Initialize the bottom panel (preview, actionSave and exit buttons)
 	 */
-	private JPanel bottomPanelInit() {
+	private JPanel bottomInit() {
 		//LOG.trace(TT + "bottomPanelInit()");
 		JPanel p = new JPanel(new MigLayout("ins 5, alignx right"));
 		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW, e -> actionPreview()));
@@ -468,5 +489,18 @@ public class Print extends JPanel {
 		dest.posSet(sPos);
 		xml.save();
 		pGrid.refresh();
+	}
+
+	public void textCreate(PrintCell item) {
+		SHEFDialog dlg = new SHEFDialog(mainFrame, "");
+		if (dlg.isSaved()) {
+			PrintCell cell = new PrintCell(xml.libsGet().getAll().size() + 1,
+					dlg.getHtmlContent(),
+					item.pageGet(),
+					item.posGet());
+			xmlPrint.addCell(cell);
+			xml.save();
+			refresh();
+		}
 	}
 }

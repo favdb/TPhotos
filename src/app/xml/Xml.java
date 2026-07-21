@@ -182,7 +182,6 @@ public class Xml {
 	 */
 	public void save() {
 		//LOG.trace(TT + "save()");
-		//printGet().traceCells();
 		if (document == null || file == null) {
 			return;
 		}

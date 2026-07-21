@@ -17,6 +17,7 @@
  */
 package app.print;
 
+import static app.print.Print.PORTRAIT;
 import app.xml.XmlPrintPage;
 import java.awt.Desktop;
 import java.io.File;
@@ -31,7 +32,20 @@ import tools.LOG;
  */
 public class BuilderHtml {
 
-	private static String buildCSS() {
+	private static final String TT = "BuilderHtml.";
+
+	private static String buildCSS(String format, String orientation) {
+		int pageWidth = 210, pageHeight = 297;
+		if (format.equals("A4") && !orientation.equals(PORTRAIT)) {
+			pageWidth = 297;
+			pageHeight = 210;
+		} else if (format.equals("A3") && orientation.equals(PORTRAIT)) {
+			pageWidth = 297;
+			pageHeight = 420;
+		} else {
+			pageWidth = 420;
+			pageHeight = 297;
+		}
 		return "html, body {\n"
 				+ "    margin: 0;\n"
 				+ "    padding: 0;\n"
@@ -42,8 +56,8 @@ public class BuilderHtml {
 				+ "}\n"
 				+ "\n"
 				+ ".page {\n"
-				+ "    width: 210mm;\n"
-				+ "    height: 297mm;\n"
+				+ "    width: " + pageWidth + "mm;\n"
+				+ "    height: " + pageHeight + "mm;\n"
 				+ "    margin: 10mm auto;\n"
 				+ "    padding: 10mm;\n"
 				+ "    background: white;\n"
@@ -64,7 +78,6 @@ public class BuilderHtml {
 				+ "}\n"
 				+ "\n"
 				+ ".cell {\n"
-				//+ "    border: 1px dashed #ccc;\n"
 				+ "    overflow: hidden;\n"
 				+ "    display: flex;\n"
 				+ "    justify-content: center;\n"
@@ -98,10 +111,12 @@ public class BuilderHtml {
 	}
 
 	/**
-	 * Build the CSS to inject for A4 orientation.
+	 * Build the CSS to inject for format and orientation.
 	 */
 	private static String buildCSSOrientation(String format, String orientation) {
-		return "@page { size: " + format + " " + orientation + "; margin: 0;}";
+		LOG.trace(TT + "buildCSSOrientation(" + format + ", " + orientation + ")");
+		return "@page { size: " + format + " " + orientation + "; margin: 0;}\n"
+				+ buildCSS(format, orientation);
 	}
 
 	/**
@@ -149,7 +164,7 @@ public class BuilderHtml {
 			String rows = print.gridGet().rowsGet() + "";
 			String cols = print.gridGet().colsGet() + "";
 			StringBuilder b = new StringBuilder();
-			String css = buildCSSOrientation("A4", "portrait") + buildCSS();
+			String css = buildCSSOrientation(print.paperFormatGet(), print.paperOrientationGet());
 			b.append("<!DOCTYPE html>\n")
 					.append("<html lang=\"fr\">\n")
 					.append("<head>\n")
@@ -159,7 +174,7 @@ public class BuilderHtml {
 					.append("    <style>").append(css).append("</style>\n")
 					.append("</head>\n")
 					.append("<body>\n");
-			for (XmlPrintPage page : print.pages) {
+			for (XmlPrintPage page : print.printPagesGet()) {
 				b.append(buildPageHtml(page, rows, cols));
 			}
 			b.append("</body>\n</html>");

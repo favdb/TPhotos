@@ -65,6 +65,16 @@ public class PrintCell {
 		this.spanSet(span);
 	}
 
+	@SuppressWarnings("OverridableMethodCallInConstructor")
+	public PrintCell(int id, String text, int page, String span) {
+		this.id = id;
+		this.type = "text";
+		this.textId = id;
+		this.text = text;
+		this.page = page;
+		this.spanSet(span);
+	}
+
 	/**
 	 * empty PrintCell
 	 *
@@ -128,7 +138,7 @@ public class PrintCell {
 	 * @return
 	 */
 	public boolean isEmpty() {
-		return !"text".equals(typeGet()) && !"photo".equals(typeGet());
+		return !"text".equals(type) && !"photo".equals(type);
 	}
 
 	/**

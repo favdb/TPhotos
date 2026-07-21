@@ -20,6 +20,7 @@ package app.print;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
+import static app.print.Print.*;
 import app.xml.XmlPrintPage;
 import java.awt.Dimension;
 import javax.swing.JPanel;
@@ -49,16 +50,12 @@ public class Grid extends JPanel {
 	public void setDim(String format, String orientation) {
 		int pH = (LaF.getScreenHeight() - (App.fontGet().getSize() * 12) - 5);
 		int pW = (LaF.getScreenWidth() - 256) - 5;
-
-		boolean isPortrait = "portrait".equalsIgnoreCase(orientation);
-
+		boolean isPortrait = PORTRAIT.equalsIgnoreCase(orientation);
 		rows = isPortrait ? 5 : 3;
 		cols = isPortrait ? 3 : 5;
 		cellConf = new Dimension(cols, rows);
-
-		// Calcul de la taille maximale du carré disponible sans marge de feuille artificielle
 		int size = Math.min(pW / cols, pH / rows);
-
+		size = Math.min(pW, pH) / 5;
 		cellDim = new Dimension(size, size);
 		imgWidth = size;
 		imgHeight = size;
@@ -68,7 +65,7 @@ public class Grid extends JPanel {
 	 * initialize
 	 */
 	public void initialize() {
-		setDim("A4", "portrait");
+		setDim("A4", print.paperOrientationGet());
 
 		// Suppression de l'aspect "Page blanche papier" (Border, Background opaque)
 		// Le JPanel s'adapte naturellement à ses enfants ou au conteneur parent
@@ -166,7 +163,7 @@ public class Grid extends JPanel {
 	public void orientationSet(int rows, int cols) {
 		this.rows = rows;
 		this.cols = cols;
-		String orientation = (rows >= cols) ? "portrait" : "landscape";
+		String orientation = (rows >= cols) ? PORTRAIT : LANDSCAPE;
 		setDim(print.xmlPrintGet().formatGet(), orientation);
 	}
 
@@ -282,6 +279,9 @@ public class Grid extends JPanel {
 
 	/**
 	 * Vérifie si la cellule peut augmenter son span horizontal (+1)
+	 *
+	 * @param item
+	 * @return
 	 */
 	public boolean isAllowedSpanH(PrintCell item) {
 		if (item == null || item.pageGet() <= 0) {
@@ -319,6 +319,9 @@ public class Grid extends JPanel {
 
 	/**
 	 * Vérifie si la cellule peut augmenter son span vertical (+1)
+	 *
+	 * @param item
+	 * @return
 	 */
 	public boolean isAllowedSpanV(PrintCell item) {
 		if (item == null || item.pageGet() <= 0) {
