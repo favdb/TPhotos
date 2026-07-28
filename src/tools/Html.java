@@ -20,12 +20,15 @@ package tools;
 import app.App;
 import i18n.I18N;
 import java.awt.Color;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
+import javax.swing.text.html.HTML;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.parser.ParserDelegator;
 
 /**
  * utilities clas for HTML
@@ -241,26 +244,57 @@ public class Html {
 	 * @param preserveNewLines true for preserving new lines char
 	 * @return
 	 */
-	public static String htmlToText(String src, boolean preserveNewLines) {
+	public static String htmlToText(String html, boolean preserveNewLines) {
 		//LOG.trace(TT + "htmlToText(src, preserve=" + (preserveNewLines ? "true" : "false")+")");
-		if (src == null) {
-			return ("");
+		if (html == null || html.trim().isEmpty()) {
+			return "";
 		}
-		String html = src;
-		if (!preserveNewLines) {
-			html = Jsoup.parse(html).text();
-		} else {
-			html = Jsoup.parse(html).wholeText();
+
+		StringBuilder sb = new StringBuilder();
+
+		HTMLEditorKit.ParserCallback callback = new HTMLEditorKit.ParserCallback() {
+			private boolean inBlockTag = false;
+
+			@Override
+			public void handleText(char[] data, int pos) {
+				sb.append(data);
+				inBlockTag = false;
+			}
+
+			@Override
+			public void handleSimpleTag(HTML.Tag t, javax.swing.text.MutableAttributeSet a, int pos) {
+				if (preserveNewLines && t == HTML.Tag.BR) {
+					sb.append("\n");
+					inBlockTag = true;
+				}
+			}
+
+			@Override
+			public void handleStartTag(HTML.Tag t, javax.swing.text.MutableAttributeSet a, int pos) {
+				if (preserveNewLines && isBlockTag(t)) {
+					// Évite de multiplier les saut de lignes inutiles si plusieurs balises bloc s'enchaînent
+					if (sb.length() > 0 && !inBlockTag && sb.charAt(sb.length() - 1) != '\n') {
+						sb.append("\n");
+					}
+					inBlockTag = true;
+				}
+			}
+
+			private boolean isBlockTag(HTML.Tag t) {
+				return t == HTML.Tag.P || t == HTML.Tag.DIV || t == HTML.Tag.H1
+						|| t == HTML.Tag.H2 || t == HTML.Tag.H3 || t == HTML.Tag.H4
+						|| t == HTML.Tag.H5 || t == HTML.Tag.H6 || t == HTML.Tag.LI
+						|| t == HTML.Tag.TR;
+			}
+		};
+
+		Reader reader = new StringReader(html);
+		try {
+			new ParserDelegator().parse(reader, callback, true);
+		} catch (IOException ex) {
+			sb.append("");
 		}
-		html = html.replace("\n\n", NL);
-		while (html.startsWith(NL)) {
-			html = html.substring(1);
-		}
-		html = html.trim();
-		while (html.endsWith(NL)) {
-			html = html.substring(0, html.length() - 1);
-		}
-		return html;
+		return sb.toString().trim();
 	}
 
 	/**
@@ -330,23 +364,6 @@ public class Html {
 		return (rHex.length() == 2 ? "" + rHex : "0" + rHex)
 				+ (gHex.length() == 2 ? "" + gHex : "0" + gHex)
 				+ (bHex.length() == 2 ? "" + bHex : "0" + bHex);
-	}
-
-	public static String removeTag(String html, String tag) {
-		Document doc = Jsoup.parse(html);
-		for (Element element : doc.select(tag)) {
-			element.remove();
-		}
-		String t = doc.body().outerHtml()
-				.replace("<body>", "")
-				.replace("</body>", "");
-		if (t.startsWith(NL)) {
-			t = t.substring(1);
-		}
-		if (t.endsWith(NL)) {
-			t = t.substring(0, t.length() - 1);
-		}
-		return t.trim();
 	}
 
 }

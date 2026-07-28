@@ -6,5 +6,4 @@ app
 - changer la gestion du Xml: fichier .tpht (Xml compressé)
 
 app.print:
-- gérer le changement de format (A4<=>A3)
 

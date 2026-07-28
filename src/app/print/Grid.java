@@ -144,7 +144,6 @@ public class Grid extends JPanel {
 				print.poolGet().poolCellUnselect();
 			}
 			print.pendingCellClear();
-			print.refresh();
 		}
 	}
 

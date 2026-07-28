@@ -38,6 +38,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 import resources.icons.ICONS;
+import tools.LOG;
 import tools.Ui;
 
 /**
@@ -138,6 +139,7 @@ public class Print extends JPanel {
 	 * Refresh the photos pool
 	 */
 	private void poolRefresh() {
+		LOG.trace(TT + "poolRefresh()");
 		pPool.refresh();
 	}
 
@@ -309,13 +311,17 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Initialize the bottom panel (preview, actionSave and exit buttons)
+	 * Initialize the bottom panel (preview, print and exit buttons)
 	 */
 	private JPanel bottomInit() {
 		//LOG.trace(TT + "bottomPanelInit()");
 		JPanel p = new JPanel(new MigLayout("ins 5, alignx right"));
-		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW, e -> actionPreview()));
-		p.add(Ui.initButton("print.action_exit", ICONS.K.EXIT, e -> actionClose()));
+		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW,
+				e -> actionPreview()));
+		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT,
+				e -> Printer.executePrint(this)));
+		p.add(Ui.initButton("print.action_close", ICONS.K.EXIT,
+				e -> actionClose()));
 		return p;
 	}
 
@@ -323,7 +329,7 @@ public class Print extends JPanel {
 	 * refresh this Print
 	 */
 	public void refresh() {
-		//LOG.trace(TT + "refresh()");
+		LOG.trace(TT + "refresh()");
 		pPool.refresh();
 		pGrid.refresh();
 		refreshButtons();
@@ -390,6 +396,13 @@ public class Print extends JPanel {
 	}
 
 	/**
+	 * action for previewing in default browser as a HTML
+	 */
+	private void actionPrint() {
+		Printer.executePrint(this);
+	}
+
+	/**
 	 * action for close (return to the default album panel)
 	 */
 	private void actionClose() {
@@ -397,7 +410,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * get the PintPage list
+	 * get the PrintPage list
 	 *
 	 * @return
 	 */
@@ -459,8 +472,10 @@ public class Print extends JPanel {
 	 * Reinit current selection
 	 */
 	public void pendingCellClear() {
-		pendingCellToPlace.pageSet(0);
-		xml.save();
+		if (pendingCellToPlace != null) {
+			pendingCellToPlace.pageSet(0);
+			xml.save();
+		}
 		this.pendingCellToPlace = null;
 		refresh();
 	}

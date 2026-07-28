@@ -6,7 +6,7 @@
     <property name="java.version" value="1.8"/>
     <property name="name.app" value="TPhotos"/>
     <property name="name.package" value="tphotos"/>
-    <property name="version" value="3.01"/>
+    <property name="version" value="3.02"/>
     <property name="src.dir" value="src"/>
     <property name="build.dir" value="build"/>
     <property name="dist.dir" value="dist"/>
@@ -23,6 +23,23 @@
     </tstamp>
     
     <target name="-post-jar">
+        <echo level="info" message="--- Fusion des libraries dans ${name.app}.jar"/>
+        <delete dir="${build.dir}/mergedjar"/>
+        <mkdir dir="${build.dir}/mergedjar"/>
+        <!-- On extrait d'abord le jar de l'appli : son MANIFEST.MF (Main-Class, etc.) est conservé -->
+        <unjar src="${dist.dir}/${name.app}.jar" dest="${build.dir}/mergedjar"/>
+        <!-- Puis on extrait les libs par-dessus, sans écraser le MANIFEST.MF ni les signatures -->
+        <unzip dest="${build.dir}/mergedjar">
+            <fileset dir="${dist.dir}/lib" includes="*.jar"/>
+            <patternset excludes="META-INF/MANIFEST.MF, META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+        </unzip>
+        <delete file="${dist.dir}/${name.app}.jar"/>
+        <jar destfile="${dist.dir}/${name.app}.jar"
+             basedir="${build.dir}/mergedjar"
+             manifest="${build.dir}/mergedjar/META-INF/MANIFEST.MF"/>
+        <delete dir="${build.dir}/mergedjar"/>
+        <!-- Le dossier dist/lib n'est plus utile puisque tout est dans le jar -->
+        <delete dir="${dist.dir}/lib"/>
         <chmod perm="755" file="${dist.dir}/${name.app}.jar"/>
     </target>
 
@@ -172,6 +189,8 @@
             <fileset dir="${dist.dir}"/>
         </copy>
     </target>
+    
+    <!-- ===pre-compile ============================= -->
     <target name="build-pre-compile">
         <echo level="info" message="--- start of -pre-compile"/>
         <tstamp>

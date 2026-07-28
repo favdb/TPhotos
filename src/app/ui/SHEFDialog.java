@@ -22,6 +22,7 @@ import api.mig.swing.MigLayout;
 import api.shef.SHEF;
 import api.shef.editor.HTMLEditorPane;
 import app.App;
+import i18n.I18N;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -51,11 +52,13 @@ public class SHEFDialog extends JDialog {
 		SHEF.scaleAuto();
 		this.setFont(App.fontGet());
 		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP1)));
-		this.setPreferredSize(new Dimension(1024, 480));
+		this.setTitle(I18N.getMsg("print.text_edit"));
+		this.setPreferredSize(new Dimension(940, 480));
 		add(editor = new HTMLEditorPane(), MIG.GROW);
+		editor.setPreferredSize(new Dimension(1024, 480));
 		editor.setFont(App.fontGet());
 		editor.setText(text);
-		JPanel pok = new JPanel(new MigLayout());
+		JPanel pok = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0)));
 		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
 		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> {
 			dispose();
@@ -66,6 +69,7 @@ public class SHEFDialog extends JDialog {
 			c.setFont(App.fontGet());
 		}
 		this.setLocationRelativeTo(getParent());
+		this.setVisible(true);
 	}
 
 	public void setHtmlContent(String text) {

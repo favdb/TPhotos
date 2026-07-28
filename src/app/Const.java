@@ -40,7 +40,7 @@ public class Const {
 	public enum TPhotos {
 		NAME("TPhotos"),
 		VERSION_MAJOR("3"),
-		VERSION_MINOR("01"),
+		VERSION_MINOR("02"),
 		VERSION(VERSION_MAJOR + "." + VERSION_MINOR);
 		final private String text;
 

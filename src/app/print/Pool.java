@@ -53,6 +53,14 @@ public class Pool extends JScrollPane {
 	private DefaultMutableTreeNode textsBranch;
 	private PoolCell poolCellSelected;
 
+	private Object pendingClickedObject;
+
+	private final Timer timer = new Timer(250, e -> handleSimpleClick());
+
+	{
+		timer.setRepeats(false);
+	}
+
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public Pool(Print print) {
 		this.print = print;
@@ -130,6 +138,12 @@ public class Pool extends JScrollPane {
 				editItem.addActionListener(al -> print.shefEdit(cell));
 				menu.add(editItem);
 			}
+			JMenuItem createtext = new JMenuItem(I18N.getMsg("print.text_create"));
+			createtext.addActionListener(l -> {
+				PrintCell ncell = new PrintCell();
+				print.textCreate(ncell);
+			});
+			menu.add(createtext);
 			menu.show(e.getComponent(), e.getX(), e.getY());
 		}
 	}
@@ -139,7 +153,8 @@ public class Pool extends JScrollPane {
 	 */
 	private void openPreviewAction(PrintCell photo) {
 		try {
-			String fullPath = app.App.preferences.photosDirGet() + File.separator + photo.photoFileGet();
+			String fullPath = app.App.preferences.photosDirGet()
+					+ File.separator + photo.photoFileGet();
 			File imageFile = new File(fullPath);
 			if (!imageFile.exists()) {
 				imageFile = new File(photo.photoFileGet());
@@ -178,21 +193,19 @@ public class Pool extends JScrollPane {
 	}
 
 	public void updatePoolNode(PrintCell cell) {
+		LOG.trace(TT + "updatePoolNode(cell=" + cell.toString() + ")");
 		DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
 		DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
-
-		// Parcours de l'arbre pour trouver le nœud correspondant à la cellule
 		for (int i = 0; i < root.getChildCount(); i++) {
 			DefaultMutableTreeNode groupNode = (DefaultMutableTreeNode) root.getChildAt(i);
-
 			for (int j = 0; j < groupNode.getChildCount(); j++) {
 				DefaultMutableTreeNode node = (DefaultMutableTreeNode) groupNode.getChildAt(j);
-
 				if (node.getUserObject() instanceof PoolCell) {
 					PoolCell pc = (PoolCell) node.getUserObject();
 					if (pc.printCellGet() == cell) {
-						// Notifie le JTree que ce nœud spécifique a changé pour son rendu graphique
 						model.nodeChanged(node);
+						tree.revalidate();
+						tree.repaint();
 						return;
 					}
 				}
@@ -215,45 +228,50 @@ public class Pool extends JScrollPane {
 		}
 	}
 
-	private final Timer timer = new Timer(250, e -> handleSimpleClick());
-
-	{
-		timer.setRepeats(false);
-	}
-
 	private void handleSimpleClick() {
-		LOG.trace(TT + "handleSimpleClick()");
-		try {
-			Object userObject = tree.getSelectionModel().getSelectionPath().getPath()[0];
-			if (userObject instanceof PoolCell) {
-				PrintCell cell = ((PoolCell) userObject).printCellGet();
-				if (cell.pageGet() > 0) {
-					print.pendingCellClear();
-					return;
-				}
-				print.pendingCellToPlaceSet(cell);
+		//LOG.trace(TT + "handleSimpleClick()");
+		if (!(pendingClickedObject instanceof PoolCell)) {
+			return;
+		}
+
+		PoolCell cellClicked = (PoolCell) pendingClickedObject;
+		PrintCell cell = cellClicked.printCellGet();
+
+		if (cell.pageGet() > 0) {
+			return;
+		}
+
+		// Si l'élément cliqué est déjà sélectionné -> Désélection
+		if (poolCellSelected == cellClicked) {
+			poolCellUnselect();
+			print.pendingCellClear();
+		} else {
+			// Sinon -> Sélection de l'élément
+			poolCellSelect(cellClicked);
+			print.pendingCellToPlaceSet(cell);
+		}
+		tree.repaint();
+	}
+
+	private void handleDoubleClick(Object userObject) {
+		//LOG.trace(TT + "handleDoubleClick()");
+		// Forcer la désélection de tout élément
+		poolCellUnselect();
+		print.pendingCellClear();
+		tree.repaint();
+
+		if (userObject instanceof PoolCell) {
+			PrintCell cell = ((PoolCell) userObject).printCellGet();
+			if (cell.isPhoto()) {
+				print.getMainFrame().showPhoto(cell.photoFileGet());
+			} else if (cell.isText()) {
+				print.shefEdit(cell);
 			}
-		} catch (Exception e) {
-			//nothing to LOG
 		}
 	}
 
-	private void handleDoubleClick(Object object) {
-		print.pendingCellClear();
-		try {
-			Object userObject = tree.getSelectionModel().getSelectionPath().getPath()[0];
-			if (userObject instanceof PoolCell) {
-				PrintCell cell = ((PoolCell) userObject).printCellGet();
-				if (cell.isPhoto()) {
-					print.getMainFrame().showPhoto(cell.photoFileGet());
-				}
-				if (cell.isText()) {
-					print.shefEdit(cell);
-				}
-			}
-		} catch (Exception e) {
-			//nothing to LOG
-		}
+	public void refreshCell(PrintCell item) {
+		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
 	}
 
 	private class PoolMouseListener implements MouseListener {
@@ -262,13 +280,18 @@ public class Pool extends JScrollPane {
 		public void mouseClicked(MouseEvent e) {
 			TreePath path = tree.getPathForLocation(e.getX(), e.getY());
 			if (path == null) {
+				poolCellUnselect();
 				print.pendingCellClear();
+				tree.repaint();
 				return;
 			}
+
 			Object userObject = path.getLastPathComponent();
+
 			if (SwingUtilities.isLeftMouseButton(e)) {
 				switch (e.getClickCount()) {
 					case 1:
+						pendingClickedObject = userObject;
 						timer.restart();
 						break;
 					case 2:

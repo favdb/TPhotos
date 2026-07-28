@@ -19,6 +19,7 @@ package app.xml;
 
 import static app.print.Print.*;
 import app.print.PrintCell;
+import app.xml.XmlLibs.XmlLib;
 import java.util.ArrayList;
 import java.util.List;
 import org.w3c.dom.Element;
@@ -171,7 +172,7 @@ public class XmlPrint {
 	 *
 	 */
 	public void loadCells() {
-		LOG.trace(TT + "loadCells()");
+		//LOG.trace(TT + "loadCells()");
 		cells.clear();
 		List<XmlAlbumPhoto> xphotos = xml.albumGet().photosAllGet();
 		for (XmlAlbumPhoto x : xphotos) {

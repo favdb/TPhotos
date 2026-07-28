@@ -33,6 +33,7 @@ public class XmlLibs {
 	private final Xml xml;
 	List<XmlLib> libs = new ArrayList<>();
 
+	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlLibs(Xml xml) {
 		this.xml = xml;
 		load();
@@ -52,7 +53,7 @@ public class XmlLibs {
 			Element el = (Element) libsNodes.item(i);
 			String idStr = xml.attributeGet(el, "id").trim();
 			if (!idStr.isEmpty()) {
-				libMap.put(Integer.parseInt(idStr), el.getTextContent().trim());
+				libMap.put(Integer.valueOf(idStr), el.getTextContent().trim());
 			}
 		}
 		return libMap;
@@ -119,6 +120,46 @@ public class XmlLibs {
 		}
 		b.append(XmlUtil.indent(1)).append("</libs>\n");
 		return b.toString();
+	}
+
+	public class XmlLib {
+
+		private String id = "", text = "";
+
+		public XmlLib(String id, String text) {
+			this.id = id;
+			this.text = text;
+		}
+
+		public String getId() {
+			return id;
+		}
+
+		public void setId(String id) {
+			this.id = id;
+		}
+
+		public String getText() {
+			return text;
+		}
+
+		public void setFile(String value) {
+			this.text = value;
+		}
+
+		public String toString() {
+			return id + "," + text;
+		}
+
+		public String toXml() {
+			StringBuilder b = new StringBuilder(XmlUtil.indent(2));
+			b.append("<lib ");
+			b.append("id=\"").append(id).append("\"> ")
+					.append("<![CDATA[").append(text).append("]]>")
+					.append("</lib>\n");
+			return b.toString();
+		}
+
 	}
 
 }

@@ -23,6 +23,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.MediaTracker;
 import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.image.BufferedImage;
@@ -38,28 +39,33 @@ import resources.icons.IconUtil;
 import tools.file.EnvUtil;
 
 /**
+ * tools for images
  *
  * @author favdb
  */
 public class ImageUtil {
 
 	private static final String TT = "ImageUtil.";
-	private static final String CACHE_PATH = EnvUtil.getPrefDir() + File.separator + "cache";
+	private static final String CACHE_PATH
+			= EnvUtil.getPrefDir() + File.separator + "cache";
 
-	public static ImageIcon createTextImage(String htmlContent, int width, int height) {
+	public static ImageIcon createTextImage(String html, int width, int height) {
 		if (width <= 0 || height <= 0) {
 			width = 100;
 			height = 100;
 		}
-		return createTextImage(htmlContent, new Dimension(width, height));
+		return createTextImage(html, new Dimension(width, height));
 	}
 
 	public static ImageIcon createTextImage(String htmlText, Dimension dim) {
-		BufferedImage image = new BufferedImage(dim.height, dim.width, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage image = new BufferedImage(dim.height, dim.width,
+				BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = image.createGraphics();
 		try {
-			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+					RenderingHints.VALUE_ANTIALIAS_ON);
 			g2.setColor(Color.WHITE);
 			g2.fillRect(0, 0, dim.height, dim.width);
 			JEditorPane pane = new JEditorPane();
@@ -78,11 +84,14 @@ public class ImageUtil {
 	public static ImageIcon createTextImage(String htmlText, int width) {
 		/*LOG.trace(TT + "createTextImage("
 				+ "htmlText=" + htmlText + ", width=" + width + ",  height=" + height + ")");*/
-		BufferedImage image = new BufferedImage(width, width, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage image = new BufferedImage(width, width,
+				BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = image.createGraphics();
 		try {
-			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+					RenderingHints.VALUE_ANTIALIAS_ON);
 			g2.setColor(Color.WHITE);
 			g2.fillRect(0, 0, width, width);
 			JEditorPane pane = new JEditorPane();
@@ -98,16 +107,16 @@ public class ImageUtil {
 		return resizeIcon(new ImageIcon(image), width);
 	}
 
-	public static ImageIcon getThumb(File sourceFile, int size) {
+	public static ImageIcon getThumb(File srce, int size) {
 		File cacheDir = new File(CACHE_PATH);
 		if (!cacheDir.exists()) {
 			cacheDir.mkdirs();
 		}
-		File thumbFile = new File(cacheDir, sourceFile.getName());
-		if (!thumbFile.exists() || sourceFile.lastModified() > thumbFile.lastModified()) {
-			createThumb(sourceFile, thumbFile, size);
+		File thumb = new File(cacheDir, srce.getName());
+		if (!thumb.exists() || srce.lastModified() > thumb.lastModified()) {
+			createThumb(srce, thumb, size);
 		}
-		return new ImageIcon(thumbFile.getAbsolutePath());
+		return new ImageIcon(thumb.getAbsolutePath());
 	}
 
 	private static void createThumb(File srce, File dest, int size) {
@@ -117,27 +126,32 @@ public class ImageUtil {
 			if (srcImg == null) {
 				return;
 			}
-			// Calcul des dimensions proportionnelles
-			int width = srcImg.getWidth();
-			int height = srcImg.getHeight();
-			if (width > height) {
-				height = (height * size) / width;
-				width = size;
+			int w = srcImg.getWidth();
+			int h = srcImg.getHeight();
+			if (w > h) {
+				h = (h * size) / w;
+				w = size;
 			} else {
-				width = (width * size) / height;
-				height = size;
+				w = (w * size) / h;
+				h = size;
 			}
-			BufferedImage thumbImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+			BufferedImage thumbImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g2 = thumbImg.createGraphics();
 			// Optimisation de la qualité pour Java 8
-			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-			g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g2.drawImage(srcImg, 0, 0, width, height, null);
+			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+					RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+					RenderingHints.VALUE_RENDER_QUALITY);
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+					RenderingHints.VALUE_ANTIALIAS_ON);
+			g2.drawImage(srcImg, 0, 0, w, h, null);
 			g2.dispose();
 			ImageIO.write(thumbImg, "JPG", dest);
 		} catch (IOException e) {
-			LOG.err("createThumbnail(srce=" + srce + ", dest=" + dest + ", size=" + size + ") error", e);
+			LOG.err("createThumbnail(srce=" + srce
+					+ ", dest=" + dest
+					+ ", size=" + size
+					+ ") error", e);
 		}
 	}
 
@@ -214,7 +228,7 @@ public class ImageUtil {
 	}
 
 	public static ImageIcon getImage(File f, Dimension size) {
-		LOG.trace(TT + "getImage(file=" + f.getAbsolutePath() + ", size=" + size.toString() + ")");
+		//LOG.trace(TT + "getImage(file=" + f.getAbsolutePath() + ", size=" + size.toString() + ")");
 		ImageIcon img;
 		if (f.exists()) {
 			img = new ImageIcon(f.getAbsolutePath());
@@ -230,7 +244,7 @@ public class ImageUtil {
 	}
 
 	public static ImageIcon resizeIcon(ImageIcon icon, int size) {
-		if (icon == null || size <= 0 || size <= 0) {
+		if (icon == null || size <= 0) {
 			return icon;
 		}
 		int originalWidth = icon.getIconWidth();
@@ -254,66 +268,60 @@ public class ImageUtil {
 		return new ImageIcon(scaledImage);
 	}
 
-	public static ImageIcon resizeIcon(ImageIcon icon, Dimension targetSize) {
-		if (icon == null || targetSize == null || targetSize.width <= 0 || targetSize.height <= 0) {
+	/**
+	 * 'cover' resize the given ImageIcon to maximize the fit in targetSize
+	 */
+	public static ImageIcon resizeIcon(ImageIcon icon, Dimension target) {
+		if (icon == null
+				|| target == null
+				|| target.width <= 0
+				|| target.height <= 0) {
 			return icon;
 		}
-
-		// FORCE le chargement complet de l'image pour obtenir les vraies dimensions
-		if (icon.getImageLoadStatus() == java.awt.MediaTracker.LOADING || icon.getIconWidth() == -1) {
-			// Déclencher la lecture des pixels si ce n'est pas déjà fait
+		if (icon.getImageLoadStatus() == MediaTracker.LOADING
+				|| icon.getIconWidth() == -1) {
 			icon.setImage(icon.getImage());
 		}
-
-		int originalWidth = icon.getIconWidth();
-		int originalHeight = icon.getIconHeight();
-
-		// Si les dimensions restent invalides, on abandonne le redimensionnement
-		if (originalWidth <= 0 || originalHeight <= 0) {
+		int oWidth = icon.getIconWidth();
+		int oHeight = icon.getIconHeight();
+		if (oWidth <= 0 || oHeight <= 0) {
 			return icon;
 		}
-
-		// Si l'image est déjà plus petite ou égale à la zone cible, on la retourne telle quelle
-		if (originalWidth <= targetSize.width && originalHeight <= targetSize.height) {
-			return icon;
+		double wRatio = (double) target.width / oWidth;
+		double hRatio = (double) target.height / oHeight;
+		double ratio = Math.max(wRatio, hRatio);
+		int drawW = (int) Math.round(oWidth * ratio);
+		int drawH = (int) Math.round(oHeight * ratio);
+		int drawX = (target.width - drawW) / 2;
+		int drawY = (target.height - drawH) / 2;
+		BufferedImage resultImage = new BufferedImage(target.width,
+				target.height, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g2 = resultImage.createGraphics();
+		try {
+			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+					RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+					RenderingHints.VALUE_RENDER_QUALITY);
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+					RenderingHints.VALUE_ANTIALIAS_ON);
+			g2.drawImage(icon.getImage(), drawX, drawY, drawW, drawH, null);
+		} finally {
+			g2.dispose();
 		}
-
-		// Calcul des ratios d'échelle pour la largeur et la hauteur
-		double widthRatio = (double) targetSize.width / originalWidth;
-		double heightRatio = (double) targetSize.height / originalHeight;
-
-		// On conserve le ratio le plus petit pour éviter de dépasser la zone cible et empêcher la distorsion
-		double bestRatio = Math.min(widthRatio, heightRatio);
-
-		int newWidth = (int) (originalWidth * bestRatio);
-		int newHeight = (int) (originalHeight * bestRatio);
-
-		// Sécurité pour éviter des dimensions à 0 pixel
-		if (newWidth <= 0) {
-			newWidth = 1;
-		}
-		if (newHeight <= 0) {
-			newHeight = 1;
-		}
-
-		Image scaledImage = icon.getImage().getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
-		return new ImageIcon(scaledImage);
+		return new ImageIcon(resultImage);
 	}
 
 	public static void showPhoto(Window parent, String fichier) {
 		try {
-			File fichierImage = new File(App.preferences.photosDirGet(), fichier);
-			ImageIcon img = getImage(fichier, 1024);
-
-			// Construction du JDialog
-			JDialog dialog = new JDialog(parent, "Aperçu de la photo " + fichierImage.getAbsolutePath());
-			dialog.setModal(true);
-			dialog.add(new JLabel(img));
-
-			dialog.pack();
-			dialog.setLocationRelativeTo(parent);
-			dialog.setVisible(true);
-
+			File fImg = new File(App.preferences.photosDirGet(), fichier);
+			ImageIcon img = getImage(fichier, App.mainFrame.getSize());
+			JDialog dlg = new JDialog(parent,
+					"Aperçu de la photo " + fImg.getAbsolutePath());
+			dlg.setModal(true);
+			dlg.add(new JLabel(img));
+			dlg.pack();
+			dlg.setLocationRelativeTo(parent);
+			dlg.setVisible(true);
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
 		}
