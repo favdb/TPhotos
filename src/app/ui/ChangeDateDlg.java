@@ -17,6 +17,7 @@
  */
 package app.ui;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
 import app.album.Album;
@@ -39,7 +40,6 @@ import javax.swing.SwingUtilities;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
 import tools.DateUtil;
-import api.mig.MIG;
 import tools.Ui;
 import tools.file.FileUtil;
 import tools.jpeg.Jpeg;
@@ -79,12 +79,12 @@ public class ChangeDateDlg extends JDialog {
 		} catch (ParseException ex) {
 			//empty
 		}
-		add(new JLabel(I18N.getColonMsg("organise.by")), MIG.RIGHT);
+		add(new JLabel(I18N.getColonMsg("organize.by")), MIG.RIGHT);
 		add(cbMode = new JComboBox(new String[]{
-			I18N.getMsg("organise.by_year"),
-			I18N.getMsg("organise.by_month"),
-			I18N.getMsg("organise.by_day"),
-			I18N.getMsg("organise.by_none")
+			I18N.getMsg("organize.by_year"),
+			I18N.getMsg("organize.by_month"),
+			I18N.getMsg("organize.by_day"),
+			I18N.getMsg("organize.by_none")
 		}));
 		cbMode.setSelectedIndex(App.preferences.organizeTypeGet());
 

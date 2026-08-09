@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.gallery;
+package app.album;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -36,7 +36,7 @@ import tools.file.FileUtil;
  *
  * @author favdb
  */
-public class ImageLabel extends JLabel implements MouseListener {
+public class AlbumGalleryCell extends JLabel implements MouseListener {
 
 	private static final String TT = "ImageLabel.";
 
@@ -47,15 +47,15 @@ public class ImageLabel extends JLabel implements MouseListener {
 	private File file;
 	private String comment;
 	private char sel = '0';
-	private boolean allowedSel;
-	private Gallery gallery;
+	private boolean allowSel;
+	private AlbumGallery gallery;
 	private Timer clickTimer;
 
-	public ImageLabel(Gallery gallery, File file, String comment, boolean allowed) {
+	public AlbumGalleryCell(AlbumGallery gallery, File file, String comment, boolean allowed) {
 		this.gallery = gallery;
 		this.file = file;
 		this.comment = comment;
-		this.allowedSel = allowed;
+		this.allowSel = allowed;
 		this.sel = SEL_NO;
 		initialize();
 	}
@@ -69,21 +69,19 @@ public class ImageLabel extends JLabel implements MouseListener {
 		fileSet(file);
 		setComment(comment);
 		setSel(sel);
-		this.addMouseListener(this);
+		addMouseListener(this);
 		int height = (int) (IMG_SZ * 1.5);
 		setMinimumSize(new Dimension(IMG_SZ, height));
 		setPreferredSize(new Dimension(IMG_SZ, height));
-		clickTimer = new javax.swing.Timer(250, javaEvent -> {
-			executeSimpleClickAction();
-		});
+		clickTimer = new Timer(250, e -> actionSimpleClick());
 		clickTimer.setRepeats(false);
 	}
 
 	/**
 	 * simple click action
 	 */
-	private void executeSimpleClickAction() {
-		if (allowedSel) {
+	private void actionSimpleClick() {
+		if (allowSel) {
 			switch (sel) {
 				case 'R':
 					setSel('0');
@@ -96,7 +94,7 @@ public class ImageLabel extends JLabel implements MouseListener {
 					setSel('R');
 					break;
 			}
-			gallery.updateBtAdd();
+			gallery.btAddUpdate();
 		}
 	}
 
@@ -197,7 +195,7 @@ public class ImageLabel extends JLabel implements MouseListener {
 	 * @param b
 	 */
 	public void setAllowedSel(boolean b) {
-		this.allowedSel = b;
+		this.allowSel = b;
 	}
 
 	/**
@@ -210,7 +208,7 @@ public class ImageLabel extends JLabel implements MouseListener {
 			if (clickTimer != null && clickTimer.isRunning()) {
 				clickTimer.stop();
 			}
-			gallery.showPopup(e, this);
+			gallery.popupShow(e, this);
 			e.consume();
 		}
 	}
@@ -227,7 +225,7 @@ public class ImageLabel extends JLabel implements MouseListener {
 					clickTimer.stop();
 				}
 				try {
-					gallery.getMainFrame().showPhoto(file.getAbsolutePath());
+					gallery.mainFrameGet().showPhoto(file);
 				} catch (Exception ex) {
 					LOG.err(TT + "show photo error", ex);
 				}

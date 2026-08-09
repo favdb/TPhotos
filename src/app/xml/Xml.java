@@ -61,7 +61,6 @@ public class Xml {
 	private void open() {
 		if (file == null || !file.exists()) {
 			create();
-			return;
 		}
 		try (InputStream in = new FileInputStream(file)) {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -85,15 +84,17 @@ public class Xml {
 	}
 
 	private void create() {
-		try {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			document = builder.newDocument();
-			rootNode = document.createElement("album");
-			document.appendChild(rootNode);
-		} catch (ParserConfigurationException ex) {
-			LOG.err(TT + "create() error", ex);
+		StringBuilder b = new StringBuilder();
+		b.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+		b.append("<album title=\"Album\">\n")
+				.append("<pref comment=\"\" mode=\"0\" tempo=\"0\" />\n")
+				.append("<list />\n")
+				.append("</album>\n");
+		File dir = file.getParentFile();
+		if (!dir.exists()) {
+			dir.mkdirs();
 		}
+		FileUtil.fileWriteString(file, b.toString());
 	}
 
 	public void close() {
@@ -113,9 +114,11 @@ public class Xml {
 	}
 
 	public Node nodeGet(String tagName) {
-		NodeList list = document.getElementsByTagName(tagName);
-		if (list.getLength() > 0) {
-			return list.item(0);
+		if (document != null) {
+			NodeList list = document.getElementsByTagName(tagName);
+			if (list.getLength() > 0) {
+				return list.item(0);
+			}
 		}
 		return null;
 	}
@@ -158,12 +161,13 @@ public class Xml {
 	}
 
 	public Element childCreate(Document doc, Node parent, String tag, String... attribs) {
-		/*LOG.trace("XmlUtil" + ".createChild("
+		LOG.trace(TT + "createChild("
+				+ "doc=" + doc.toString()
 				+ "parent=" + parent.getNodeName()
 				+ ", tag=" + tag
 				+ ", attribs nb="
 				+ (attribs == null ? "0" : attribs.length)
-				+ ")");*/
+				+ ")");
 		Element child = doc.createElement(tag);
 		if (attribs != null && attribs.length > 0) {
 			for (String a : attribs) {
@@ -181,7 +185,7 @@ public class Xml {
 	 * save with text method
 	 */
 	public void save() {
-		//LOG.trace(TT + "save()");
+		LOG.trace(TT + "save()");
 		if (document == null || file == null) {
 			return;
 		}
@@ -192,8 +196,6 @@ public class Xml {
 		b.append(xmlLibs.toXml());
 		b.append(printGet().toXml());
 		b.append("</album>\n");
-
-		//String nf = FileUtil.changeExt(file.getAbsolutePath(), "2.xml");
 		FileUtil.fileWriteString(file, b.toString());
 	}
 

@@ -267,4 +267,45 @@ public class XmlUtil {
 		}
 		return "err";
 	}
+
+	/**
+	 * Échappe les caractères spéciaux XML dans une chaîne de caractères.
+	 *
+	 * @param input La chaîne à échapper
+	 * @return La chaîne échappée, ou une chaîne vide si l'entrée est null
+	 */
+	public static String escapeXml(String input) {
+		if (input == null || input.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder(input.length());
+		for (int i = 0; i < input.length(); i++) {
+			char c = input.charAt(i);
+			switch (c) {
+				case '<':
+					sb.append("&lt;");
+					break;
+				case '>':
+					sb.append("&gt;");
+					break;
+				case '&':
+					sb.append("&amp;");
+					break;
+				case '"':
+					sb.append("&quot;");
+					break;
+				case '\'':
+					sb.append("&apos;");
+					break;
+				default:
+					// Exclut les caractères de contrôle non valides en XML 1.0
+					if (c >= 0x20 || c == 0x9 || c == 0xA || c == 0xD) {
+						sb.append(c);
+					}
+					break;
+			}
+		}
+		return sb.toString();
+	}
+
 }

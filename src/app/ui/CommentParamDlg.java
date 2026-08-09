@@ -15,11 +15,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.diapo;
+package app.ui;
 
-import app.album.Album;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.album.Album;
+import app.diapo.DiapoParam;
 import i18n.I18N;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -28,34 +29,35 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import resources.icons.ICONS;
+import tools.LOG;
 import tools.Ui;
 
 /**
  *
  * @author favdb
  */
-public class DiapoParamDlg extends JDialog {
+public class CommentParamDlg extends JDialog {
 
-	private static final String TT = "AlbumParamDlg.";
+	private static final String TT = "CommentParamDlg.";
 
 	public static boolean showing(Album panel, boolean b) {
-		DiapoParamDlg dlg = new DiapoParamDlg(panel, b);
+		CommentParamDlg dlg = new CommentParamDlg(panel, b);
 		dlg.setVisible(true);
 		return !dlg.isCanceled();
 	}
-	private final Album albumPanel;
+	private final Album album;
 	private JTextField tfComment;
 	private DiapoParam param;
 	private JComboBox cbDate;
 	private JButton btAdd;
 	private boolean canceled = true, saveComment = true;
 
-	public DiapoParamDlg(Album mainFrame, boolean b) {
+	public CommentParamDlg(Album album, boolean b) {
 		super();
 		this.saveComment = b;
 		this.setModal(true);
-		this.albumPanel = mainFrame;
-		param = mainFrame.diapoParamGet();
+		this.album = album;
+		param = album.diapoParamGet();
 		initialize();
 	}
 
@@ -63,7 +65,6 @@ public class DiapoParamDlg extends JDialog {
 	private void initialize() {
 		setLayout(new MigLayout());
 		this.setTitle(I18N.getMsg("album.param.comment_tips"));
-		// param for mode and tempo
 		String[] ls = {
 			I18N.getMsg("album.param.comment.year"),
 			I18N.getMsg("album.param.comment.month"),
@@ -90,7 +91,7 @@ public class DiapoParamDlg extends JDialog {
 		p.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
 		add(p, MIG.get(MIG.SPAN, MIG.RIGHT));
 		pack();
-		setLocationRelativeTo(albumPanel);
+		setLocationRelativeTo(album);
 	}
 
 	private void addDate(String fmt) {
@@ -103,10 +104,13 @@ public class DiapoParamDlg extends JDialog {
 	}
 
 	private void doOK() {
+		LOG.trace(TT + "doOK()");
 		// set param mode and tempo
 		if (saveComment) {
 			param.setComment(tfComment.getText());
-			albumPanel.getTable().setModified();
+			album.xmlGet().albumGet().setPrefComment(tfComment.getText());
+			//album.xmlGet().save();
+			album.getTable().setModified();
 		}
 		canceled = false;
 		dispose();

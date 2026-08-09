@@ -43,9 +43,8 @@ import tools.Ui;
 public class MainMenu {
 
 	private JMenuBar menuBar;
-	public JToggleButton btSorter, btAlbum, btExport, btShow;
+	public JToggleButton btSorter, btAlbum, btExport, btShow, btPrint;
 	public JButton btDiapo, btPhotos, btAbout;
-	private JButton btPrint;
 
 	public MainMenu() {
 		initialize();
@@ -63,13 +62,14 @@ public class MainMenu {
 	 * @return
 	 */
 	public JPanel getToolBar() {
-		JPanel p = new JPanel(new MigLayout(MIG.get("inset 0 0 0 10", MIG.FILL), "[grow][]"));
+		JPanel p = new JPanel(new MigLayout(MIG.get("inset 0 0 0 10", MIG.FILL),
+				"[grow][]"));
 		p.setBorder(BorderFactory.createRaisedBevelBorder());
 		JToolBar tb = new JToolBar();
-		//tb.setLayout(new MigLayout(MIG.FILLX));
 		tb.setFloatable(false);
 		p.add(initActions());
-		p.add(btAbout = Ui.initIconButton(" menu.help_about", ICONS.K.HELP, e -> App.aboutDo()), MIG.RIGHT);
+		p.add(btAbout = Ui.initIconButton(" menu.help_about",
+				ICONS.K.HELP, e -> App.aboutDo()), MIG.RIGHT);
 		return p;
 	}
 
@@ -89,11 +89,12 @@ public class MainMenu {
 				filePopup().show(e.getComponent(), e.getX(), e.getY());
 			}
 		});
-		p.add(btSorter = Ui.initToggleButton("app.organiser", true, e -> App.sorterDo()));
+		p.add(btSorter = Ui.initToggleButton("app.organizer", true, e -> App.sorterDo()));
 		p.add(btAlbum = Ui.initToggleButton("app.album", false, e -> App.albumDo()));
 		p.add(btDiapo = Ui.initButton("app.diapo", ICONS.K.PIC, e -> App.diapoDo()));
 		btDiapo.setVisible(false);
-		p.add(btPrint = Ui.initButton("print", ICONS.K.F_PRINT, e -> App.printDo()));
+		p.add(btPrint = Ui.initToggleButton("print", ICONS.K.F_PRINT, false, e -> App.printDo()));
+		btPrint.setVisible(false);
 		p.add(btExport = Ui.initToggleButton("export", ICONS.K.F_EXPORT, false, e -> App.exportDo()));
 		btExport.setVisible(false);
 		return p;
@@ -107,17 +108,21 @@ public class MainMenu {
 	private static JPopupMenu filePopup() {
 		JPopupMenu filePopup = new JPopupMenu();
 		//---------------------Photos directory
-		JMenuItem openPhotoDir = Ui.initMenuItem(K.FOLDER, "menu.file_photo", evt -> App.photosDirSelect());
+		JMenuItem openPhotoDir = Ui.initMenuItem(K.FOLDER,
+				"menu.file_photo", evt -> App.photosDirSelect());
 		filePopup.add(openPhotoDir);
 		//---------------------Album file
 		JMenu menuAlbum = Ui.initMenu("menu.file_album");
-		JMenuItem newAlbum = Ui.initMenuItem(K.F_NEW, "menu.file_album_new", evt -> App.albumFileNew());
+		JMenuItem newAlbum = Ui.initMenuItem(K.F_NEW,
+				"menu.file_album_new", evt -> App.albumFileNew());
 		menuAlbum.add(newAlbum);
-		JMenuItem openAlbum = Ui.initMenuItem(K.F_OPEN, "menu.file_album_open", evt -> App.albumFileOpen());
+		JMenuItem openAlbum = Ui.initMenuItem(K.F_OPEN,
+				"menu.file_album_open", evt -> App.albumFileOpen());
 		menuAlbum.add(openAlbum);
 		filePopup.add(menuAlbum);
 		//---------------------Zoom option
-		JMenuItem zoom = Ui.initMenuItem(K.COGS, "pref.zoom", evt -> App.zoom());
+		JMenuItem zoom = Ui.initMenuItem(K.COGS,
+				"pref.zoom", evt -> App.zoom());
 		filePopup.add(zoom);
 		return filePopup;
 	}

@@ -18,6 +18,8 @@
 package app.ui;
 
 import i18n.I18N;
+import java.awt.Color;
+import java.awt.Cursor;
 import javax.swing.JFrame;
 import javax.swing.JTextPane;
 import tools.Html;
@@ -54,6 +56,10 @@ public abstract class AbstractFrame extends JFrame {
 		taInfos.repaint();
 	}
 
+	public JTextPane getInfosField() {
+		return taInfos;
+	}
+
 	/**
 	 * get only body part of infos
 	 *
@@ -66,6 +72,7 @@ public abstract class AbstractFrame extends JFrame {
 
 	public void taInfosInit(String msg) {
 		taInfos = new JTextPane();
+		taInfos.setEditable(false);
 		taInfos.setContentType("text/html");
 		taInfoSet(I18N.getMsg(msg));
 	}
@@ -79,7 +86,18 @@ public abstract class AbstractFrame extends JFrame {
 		//LOG.trace(TT + "setInfos(txt=" + txt + ")");
 		taInfos.setText(Html.intoHtml(txt));
 		taInfos.setCaretPosition(taInfos.getDocument().getLength());
+		taInfos.setEditable(false);
 		taInfos.repaint();
+	}
+
+	public void setNormalCursor() {
+		taInfos.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+		taInfos.setBackground(Color.white);
+	}
+
+	public void setWaitingCursor() {
+		taInfos.setCursor(new Cursor(Cursor.WAIT_CURSOR));
+		taInfos.setBackground(Color.LIGHT_GRAY);
 	}
 
 }

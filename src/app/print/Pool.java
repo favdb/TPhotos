@@ -18,18 +18,9 @@
 package app.print;
 
 import i18n.I18N;
-import java.awt.BorderLayout;
-import java.awt.Image;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.io.File;
-import java.util.List;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
@@ -39,7 +30,6 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
-import tools.LOG;
 
 public class Pool extends JScrollPane {
 
@@ -87,12 +77,11 @@ public class Pool extends JScrollPane {
 	}
 
 	public void refresh() {
+		//LOG.trace(TT + "refresh()");
 		photosBranch.removeAllChildren();
 		textsBranch.removeAllChildren();
-		List<PrintCell> cells = print.getCells();
-		PrintCell.sortById(cells);
-		for (int i = 0; i < cells.size(); i++) {
-			PrintCell p = cells.get(i);
+		PrintCell.sortById(print.xmlPrintGet().getCells());
+		for (PrintCell p : print.getCells()) {
 			if (p.isPhoto()) {
 				photosBranch.add(new PoolCell(p));
 			} else {
@@ -110,7 +99,7 @@ public class Pool extends JScrollPane {
 	 * @return
 	 */
 	public Object getSelectedResource() {
-		LOG.trace(TT + "getSelectedResource()");
+		//LOG.trace(TT + "getSelectedResource()");
 		TreePath path = tree.getSelectionPath();
 		if (path == null) {
 			return null;
@@ -122,12 +111,12 @@ public class Pool extends JScrollPane {
 	 * Contextual Menu
 	 */
 	private void showContextMenu(MouseEvent e, Object userObject) {
-		LOG.trace(TT + "showContextMenu(...");
-		if (userObject == null || userObject instanceof String) {
+		//LOG.trace(TT + "showContextMenu(...");
+		if (userObject == null) {
 			return;
 		}
+		JPopupMenu menu = new JPopupMenu();
 		if (userObject instanceof PoolCell) {
-			JPopupMenu menu = new JPopupMenu();
 			PrintCell cell = ((PoolCell) userObject).printCellGet();
 			if (cell.isPhoto()) {
 				JMenuItem openItem = new JMenuItem(I18N.getMsg("print.pool.open_photo"));
@@ -135,29 +124,29 @@ public class Pool extends JScrollPane {
 				menu.add(openItem);
 			} else {
 				JMenuItem editItem = new JMenuItem(I18N.getMsg("print.text_edit"));
-				editItem.addActionListener(al -> print.shefEdit(cell));
+				editItem.addActionListener(al -> print.textEdit(cell));
 				menu.add(editItem);
 			}
-			JMenuItem createtext = new JMenuItem(I18N.getMsg("print.text_create"));
-			createtext.addActionListener(l -> {
-				PrintCell ncell = new PrintCell();
-				print.textCreate(ncell);
-			});
-			menu.add(createtext);
-			menu.show(e.getComponent(), e.getX(), e.getY());
 		}
+		JMenuItem createtext = new JMenuItem(I18N.getMsg("print.text_create"));
+		createtext.addActionListener(l -> {
+			PrintCell ncell = new PrintCell();
+			print.textCreate(ncell);
+		});
+		menu.add(createtext);
+		menu.show(e.getComponent(), e.getX(), e.getY());
 	}
 
 	/**
 	 * show Photo as a dialog
 	 */
 	private void openPreviewAction(PrintCell photo) {
-		try {
-			String fullPath = app.App.preferences.photosDirGet()
-					+ File.separator + photo.photoFileGet();
-			File imageFile = new File(fullPath);
-			if (!imageFile.exists()) {
-				imageFile = new File(photo.photoFileGet());
+		print.getMainFrame().showPhoto(photo.photoFileGet());
+		/*try {
+			File imageFile = photo.photoFileGet();
+
+			if (imageFile.exists()) {
+				imageFile = new File(App.preferences.photosDirGet(), photo.photoNameGet());
 			}
 			if (imageFile.exists()) {
 				ImageIcon originalIcon = new ImageIcon(imageFile.getAbsolutePath());
@@ -168,14 +157,16 @@ public class Pool extends JScrollPane {
 				if (imgWidth > targetWidth) {
 					double ratio = (double) imgHeight / (double) imgWidth;
 					int targetHeight = (int) (targetWidth * ratio);
-					img = img.getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_SMOOTH);
+					img = img.getScaledInstance(targetWidth,
+							targetHeight, java.awt.Image.SCALE_SMOOTH);
 				}
 				ImageIcon scaledIcon = new ImageIcon(img);
 				JLabel labelImage = new JLabel(scaledIcon);
 				labelImage.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
 				JScrollPane scrollPane = new JScrollPane(labelImage);
 				scrollPane.setBorder(BorderFactory.createEmptyBorder());
-				JDialog previewDialog = new JDialog((java.awt.Frame) null, photo.photoFileGet(), true);
+				JDialog previewDialog = new JDialog((Frame) null,
+						photo.photoNameGet(), true);
 				previewDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 				previewDialog.setLayout(new BorderLayout());
 				previewDialog.add(scrollPane, BorderLayout.CENTER);
@@ -184,16 +175,17 @@ public class Pool extends JScrollPane {
 				previewDialog.setVisible(true);
 			} else {
 				JOptionPane.showMessageDialog(this,
-						fullPath + " " + I18N.getMsg("print.error.notfound"),
+						imageFile.getAbsolutePath() + " "
+						+ I18N.getMsg("print.error.notfound"),
 						"Error", JOptionPane.ERROR_MESSAGE);
 			}
 		} catch (Exception ex) {
 			tools.LOG.err("PrintPool.openPreviewAction error", ex);
-		}
+		}*/
 	}
 
 	public void updatePoolNode(PrintCell cell) {
-		LOG.trace(TT + "updatePoolNode(cell=" + cell.toString() + ")");
+		//LOG.trace(TT + "updatePoolNode(cell=" + cell.toString() + ")");
 		DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
 		DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
 		for (int i = 0; i < root.getChildCount(); i++) {
@@ -240,13 +232,10 @@ public class Pool extends JScrollPane {
 		if (cell.pageGet() > 0) {
 			return;
 		}
-
-		// Si l'élément cliqué est déjà sélectionné -> Désélection
 		if (poolCellSelected == cellClicked) {
 			poolCellUnselect();
 			print.pendingCellClear();
 		} else {
-			// Sinon -> Sélection de l'élément
 			poolCellSelect(cellClicked);
 			print.pendingCellToPlaceSet(cell);
 		}
@@ -255,23 +244,17 @@ public class Pool extends JScrollPane {
 
 	private void handleDoubleClick(Object userObject) {
 		//LOG.trace(TT + "handleDoubleClick()");
-		// Forcer la désélection de tout élément
 		poolCellUnselect();
 		print.pendingCellClear();
 		tree.repaint();
-
 		if (userObject instanceof PoolCell) {
 			PrintCell cell = ((PoolCell) userObject).printCellGet();
 			if (cell.isPhoto()) {
 				print.getMainFrame().showPhoto(cell.photoFileGet());
 			} else if (cell.isText()) {
-				print.shefEdit(cell);
+				print.textEdit(cell);
 			}
 		}
-	}
-
-	public void refreshCell(PrintCell item) {
-		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
 	}
 
 	private class PoolMouseListener implements MouseListener {
@@ -285,9 +268,7 @@ public class Pool extends JScrollPane {
 				tree.repaint();
 				return;
 			}
-
 			Object userObject = path.getLastPathComponent();
-
 			if (SwingUtilities.isLeftMouseButton(e)) {
 				switch (e.getClickCount()) {
 					case 1:

@@ -15,20 +15,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.gallery;
+package app.album;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
-import app.album.Album;
-import app.album.AlbumTable;
 import app.ui.MainFrame;
 import java.awt.Desktop;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -44,11 +44,11 @@ import tools.LOG;
 import tools.Ui;
 
 /**
- * gallery panel with asynchroneus load
+ * gallery panel with asynchronous load
  *
  * @author favdb
  */
-public class Gallery extends JPanel {
+public class AlbumGallery extends JPanel {
 
 	private static final String TT = "Gallery.";
 
@@ -59,43 +59,46 @@ public class Gallery extends JPanel {
 	private AlbumTable table = null;
 	private JPanel pGallery;
 	private JScrollPane scroller;
-	private List<ImageLabel> imgList = new ArrayList<>();
-	private java.awt.event.ComponentAdapter resizeListener = null;
+	private final List<AlbumGalleryCell> galleryCells = new ArrayList<>();
+	private ComponentAdapter resizeListener = null;
 	private SwingWorker<Void, Integer> currentWorker = null;
 
-	public Gallery() {
+	public AlbumGallery() {
 		super();
 	}
 
-	public Gallery(Album album, File rootdir) {
+	public AlbumGallery(Album album, File rootdir) {
 		super();
 		this.album = album;
+		this.table = null;
 		this.rootdir = rootdir;
 		this.type = T_ALBUM;
 		initialize();
 	}
 
-	public Gallery(AlbumTable table) {
+	public AlbumGallery(AlbumTable table) {
 		super();
+		this.album = null;
 		this.table = table;
 		this.type = T_TABLE;
 		initialize();
 	}
 
-	public MainFrame getMainFrame() {
+	public MainFrame mainFrameGet() {
 		return App.mainFrame;
 	}
 
 	private void initialize() {
 		//LOG.trace(TT+"initialize()");
-		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.INS0, MIG.GAP1)));
-		int nbcols = computeNB_COLS();
+		setLayout(new MigLayout(MIG.get(/*MIG.FILL, */MIG.INS0, MIG.GAP1)));
+		int nbcols = nbColsGet();
 
 		if (pGallery == null) {
 			pGallery = new JPanel();
 		}
 		pGallery.removeAll();
-		pGallery.setLayout(new MigLayout(MIG.get("al left top", MIG.INS0, MIG.GAP + " 6", MIG.WRAP + " " + nbcols)));
+		pGallery.setLayout(new MigLayout(MIG.get("al left top", /*MIG.FILL,*/
+				MIG.INS0, MIG.GAP + " 6", MIG.WRAP + " " + nbcols)));
 		if (scroller == null) {
 			scroller = new JScrollPane(pGallery);
 			scroller.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -103,23 +106,28 @@ public class Gallery extends JPanel {
 			scroller.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
 			scroller.setBorder(BorderFactory.createEmptyBorder());
 		} else {
-			this.remove(scroller);
+			remove(scroller);
 		}
-		this.add(scroller, MIG.get(MIG.GROW, MIG.PUSH, "top, left"));
-		imagesLoad();
+		add(scroller, MIG.get(MIG.GROW, MIG.PUSH, "top, left"));
+		photosLoad();
 		if (resizeListener != null) {
-			this.removeComponentListener(resizeListener);
+			removeComponentListener(resizeListener);
 		}
-		resizeListener = new java.awt.event.ComponentAdapter() {
+		resizeListener = new ComponentAdapter() {
 			@Override
-			public void componentResized(java.awt.event.ComponentEvent e) {
-				updateLayout();
+			public void componentResized(ComponentEvent e) {
+				layoutUpdate();
 			}
 		};
-		this.addComponentListener(resizeListener);
+		addComponentListener(resizeListener);
 	}
 
-	private int computeNB_COLS() {
+	/**
+	 * get size of columns
+	 *
+	 * @return
+	 */
+	private int nbColsGet() {
 		int textwidth = Ui.getTextWidth(" 99/99/9999 ", this.getFont());
 		int currentWidth = this.getWidth();
 		if (currentWidth <= 0) {
@@ -128,14 +136,20 @@ public class Gallery extends JPanel {
 		return Math.max(1, currentWidth / (textwidth + 10));
 	}
 
-	private void updateLayout() {
+	/**
+	 * update layout
+	 */
+	private void layoutUpdate() {
 		if (pGallery == null || scroller == null) {
 			return;
 		}
 		initialize();
 	}
 
-	private void imagesLoad() {
+	/**
+	 * load photos
+	 */
+	private void photosLoad() {
 		if (rootdir != null && rootdir.exists()) {
 			ImageUtil.cleanCache(rootdir);
 		}
@@ -143,7 +157,12 @@ public class Gallery extends JPanel {
 			currentWorker.cancel(true);
 		}
 		pGallery.removeAll();
-		imgList.clear();
+		galleryCells.clear();
+		if (rootdir == null && !type.equals(T_TABLE)) {
+			pGallery.revalidate();
+			pGallery.repaint();
+			return;
+		}
 		List<File> filesToLoad = new ArrayList<>();
 		if (type.equals(T_TABLE)) {
 			for (int row = 0; row < table.getRowCount(); row++) {
@@ -153,19 +172,13 @@ public class Gallery extends JPanel {
 				}
 			}
 		} else if (rootdir != null && rootdir.exists()) {
-			File[] fls = rootdir.listFiles();
-			if (fls != null) {
-				Arrays.sort(fls, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
-				for (File f : fls) {
-					if (App.jpegIs(f)) {
-						filesToLoad.add(f);
-					}
-				}
-			}
+			// On charge le dossier sélectionné et l'ensemble de son arborescence
+			collectPhotos(rootdir, filesToLoad);
+			Collections.sort(filesToLoad, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
 		}
 		for (File f : filesToLoad) {
-			ImageLabel il = new ImageLabel(this, f, "", table == null);
-			imgList.add(il);
+			AlbumGalleryCell il = new AlbumGalleryCell(this, f, "", table == null);
+			galleryCells.add(il);
 			pGallery.add(il);
 		}
 		pGallery.revalidate();
@@ -173,12 +186,11 @@ public class Gallery extends JPanel {
 		currentWorker = new SwingWorker<Void, Integer>() {
 			@Override
 			protected Void doInBackground() throws Exception {
-				for (int i = 0; i < imgList.size(); i++) {
+				for (int i = 0; i < galleryCells.size(); i++) {
 					if (isCancelled()) {
 						return null;
 					}
-
-					imgList.get(i).loadThumbnail();
+					galleryCells.get(i).loadThumbnail();
 					publish(i);
 				}
 				return null;
@@ -186,13 +198,72 @@ public class Gallery extends JPanel {
 
 			@Override
 			protected void process(List<Integer> chunks) {
-				for (Integer index : chunks) {
-					imgList.get(index).repaint();
+				try {
+					for (Integer index : chunks) {
+						galleryCells.get(index).repaint();
+					}
+					inDiapoSet();
+				} catch (Exception ex) {
 				}
-				imagesDiapoSet();
 			}
 		};
 		currentWorker.execute();
+	}
+
+	/**
+	 * Parcours récursif pour collecter tous les fichiers JPEG sous le dossier sélectionné
+	 *
+	 * @param dir dossier à explorer
+	 * @param result liste cible des fichiers images trouvés
+	 */
+	private void collectPhotos(File dir, List<File> result) {
+		File[] files = dir.listFiles();
+		if (files == null) {
+			return;
+		}
+		for (File f : files) {
+			if (f.isDirectory()) {
+				// Explore tous les sous-dossiers (normés ou non) situés sous le dossier sélectionné
+				collectPhotos(f, result);
+			} else if (App.jpegIs(f)) {
+				result.add(f);
+			}
+		}
+	}
+
+	/**
+	 * parse to find JPEG files
+	 *
+	 * @param dir folder to parse
+	 * @param result target List
+	 * @param isRoot true si c'est le dossier sélectionné dans l'arbre
+	 */
+	private void collectPhotos(File dir, List<File> result, boolean isRoot) {
+		File[] files = dir.listFiles();
+		if (files == null) {
+			return;
+		}
+		for (File f : files) {
+			if (f.isDirectory()) {
+				// Si c'est un sous-dossier hors-norme, on explore toujours.
+				// Si c'est un dossier normé (ex: jour), on explore seulement si on est en train
+				// d'explorer sous le dossier racine sélectionné (isRoot = true).
+				if (!isNormedDir(f) || isRoot) {
+					collectPhotos(f, result, false);
+				}
+			} else if (App.jpegIs(f)) {
+				result.add(f);
+			}
+		}
+	}
+
+	/**
+	 * Vérifie si le dossier suit la norme numérique (Année / Mois / Jour)
+	 */
+	private boolean isNormedDir(File dir) {
+		String name = dir.getName();
+		// Vérifie si le nom du dossier est purement numérique (ex: 2026, 08, 25)
+		return name.matches("\\d+");
 	}
 
 	/**
@@ -200,7 +271,7 @@ public class Gallery extends JPanel {
 	 *
 	 * @param rootdir
 	 */
-	public void setRootdir(File rootdir) {
+	public void rootdirSet(File rootdir) {
 		this.rootdir = rootdir;
 		this.table = null;
 		initialize();
@@ -211,17 +282,17 @@ public class Gallery extends JPanel {
 	 *
 	 * @param table
 	 */
-	public void setTable(AlbumTable table) {
+	public void tableSet(AlbumTable table) {
 		this.table = table;
 		this.rootdir = null;
 		initialize();
 	}
 
 	/**
-	 * set the ImageLabel to SEL_ALBUM when file is in diapo
+	 * set the AlbumGalleryCell to SEL_ALBUM when file is in diapo
 	 */
-	public void imagesDiapoSet() {
-		//LOG.trace(TT + "imagesDiapoSet()");
+	public void inDiapoSet() {
+		//LOG.trace(TT + "inDiapoSet()");
 		if (rootdir != null && rootdir.isDirectory()) {
 			List<File> falbum = new ArrayList<>();
 			TableModel model = album.getTable().getModel();
@@ -230,9 +301,9 @@ public class Gallery extends JPanel {
 				falbum.add(file);
 			}
 			for (File f : falbum) {
-				for (ImageLabel lb : imgList) {
+				for (AlbumGalleryCell lb : galleryCells) {
 					if (f.getName().equals(lb.fileGet().getName())) {
-						lb.setSel(ImageLabel.SEL_ALBUM);
+						lb.setSel(AlbumGalleryCell.SEL_ALBUM);
 					}
 				}
 			}
@@ -244,16 +315,17 @@ public class Gallery extends JPanel {
 	 */
 	public void refresh() {
 		initialize();
-		updateBtAdd();
+		btAddUpdate();
 	}
 
 	/**
 	 * update the add button
 	 */
-	public void updateBtAdd() {
+	public void btAddUpdate() {
 		album.updateBtAdd(false);
-		for (ImageLabel il : imgList) {
-			if (il.getSel() == ImageLabel.SEL) {
+		//album.updateBtAdd(album.xmlGet().albumGet().photosAllGet().size() > 0);
+		for (AlbumGalleryCell il : galleryCells) {
+			if (il.getSel() == AlbumGalleryCell.SEL) {
 				album.updateBtAdd(true);
 				break;
 			}
@@ -266,8 +338,8 @@ public class Gallery extends JPanel {
 	 * @param e
 	 * @param il
 	 */
-	public void showPopup(MouseEvent e, ImageLabel il) {
-		//LOG.trace(TT + "showPopup(il=" + il.toString() + ")");
+	public void popupShow(MouseEvent e, AlbumGalleryCell il) {
+		//LOG.trace(TT + "popupShow(il=" + il.toString() + ")");
 		JPopupMenu popupMenu = new JPopupMenu();
 		popupMenu.add(Ui.initMenuItem(ICONS.K.PHOTO, "menu.file_album_open",
 				act -> {
@@ -278,17 +350,16 @@ public class Gallery extends JPanel {
 					}
 				}));
 		if (table == null) {
-			if (il.getSel() != ImageLabel.SEL_ALBUM) {
+			if (il.getSel() != AlbumGalleryCell.SEL_ALBUM) {
 				popupMenu.add(Ui.initMenuItem(ICONS.K.PLUS, "album.add",
 						act -> album.photoAdd(il)));
 				popupMenu.add(new JSeparator());
 				popupMenu.add(Ui.initMenuItem(ICONS.K.CALENDAR, "date.change",
 						act -> album.changeDate(il.fileGet())));
 				popupMenu.add(Ui.initMenuItem(ICONS.K.CANCEL, "action.delete",
-						al -> {
-							LOG.trace("delete: " + il.fileGet().getAbsolutePath());
+						act -> {
 							il.fileGet().delete();
-							album.refreshAll();
+							refresh();
 						}));
 			} else {
 				popupMenu.add(Ui.initMenuItem(ICONS.K.MINUS, "album.remove",
@@ -299,12 +370,12 @@ public class Gallery extends JPanel {
 	}
 
 	/**
-	 * get the images list
+	 * get the AlbumGalleryCell list
 	 *
 	 * @return
 	 */
-	public List<ImageLabel> getImgList() {
-		return imgList;
+	public List<AlbumGalleryCell> cellListGet() {
+		return galleryCells;
 	}
 
 	/**
@@ -312,7 +383,7 @@ public class Gallery extends JPanel {
 	 *
 	 * @param lb
 	 */
-	public void imageAdd(ImageLabel lb) {
+	public void cellAdd(AlbumGalleryCell lb) {
 		if (table != null) {
 			return;
 		}
@@ -324,7 +395,7 @@ public class Gallery extends JPanel {
 	 *
 	 * @param lb
 	 */
-	public void imageRemove(ImageLabel lb) {
+	public void cellRemove(AlbumGalleryCell lb) {
 		if (table != null) {
 			return;
 		}

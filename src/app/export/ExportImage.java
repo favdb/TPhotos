@@ -60,21 +60,41 @@ public class ExportImage {
 			File dirDest,
 			String outName,
 			float compression) throws Exception {
-		BufferedImage originalImage = ImageIO.read(src);
-		Dimension newDim = new Dimension(originalImage.getWidth(), originalImage.getHeight());
+		BufferedImage srcImage = ImageIO.read(src);
+		Dimension imgDim = new Dimension(srcImage.getWidth(), srcImage.getHeight());
+		Dimension scaledDim = (text != null && !text.isEmpty())
+				? getNewDim(imgDim, new Dimension(1280, 720))
+				: imgDim;
+		Image scaledImage = srcImage.getScaledInstance(scaledDim.width,
+				scaledDim.height, Image.SCALE_SMOOTH);
+		int textZoneHeight = 0;
+		int fontSize = 20;
+		int padding = 10;
 		if (text != null && !text.isEmpty()) {
-			// redimension standard en 1280x720
-			newDim = getNewDim(newDim, new Dimension(1280, 720));
+			textZoneHeight = fontSize + (padding * 2);
 		}
-		Image scaledImage = originalImage.getScaledInstance(newDim.width, newDim.height, Image.SCALE_SMOOTH);
-		BufferedImage resizedImage = new BufferedImage(newDim.width, newDim.height, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g2d = resizedImage.createGraphics();
+		BufferedImage finalImage = new BufferedImage(
+				scaledDim.width,
+				scaledDim.height + textZoneHeight,
+				BufferedImage.TYPE_INT_RGB);
+		Graphics2D g2d = finalImage.createGraphics();
 		g2d.drawImage(scaledImage, 0, 0, null);
-		insertText(text, g2d, newDim);
+		if (text != null && !text.isEmpty()) {
+			g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g2d.setFont(new Font("Arial", Font.PLAIN, fontSize));
+			FontMetrics fm = g2d.getFontMetrics();
+			g2d.setColor(Color.BLACK);
+			g2d.fillRect(0, scaledDim.height, scaledDim.width, textZoneHeight);
+			g2d.setColor(Color.WHITE);
+			int x = (scaledDim.width - fm.stringWidth(text)) / 2;
+			int y = scaledDim.height + padding + fm.getAscent();
+			g2d.drawString(text, x, y);
+		}
 		g2d.dispose();
 		File outputFile = new File(dirDest, outName);
 		outputFile.delete();
-		compressImage(resizedImage, outputFile, compression);
+		compressImage(finalImage, outputFile, compression);
 		return outputFile;
 	}
 

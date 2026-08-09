@@ -43,9 +43,12 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
@@ -203,7 +206,7 @@ public class FileUtil {
 			}
 			return true;
 		} catch (IOException e) {
-			LOG.err(TT + ".fileWriteString(" + file.getAbsolutePath()
+			LOG.err(TT + "fileWriteString(" + file.getAbsolutePath()
 					+ ",str len=" + str.length() + ")", e);
 		}
 		return false;
@@ -439,10 +442,50 @@ public class FileUtil {
 		}
 	}
 
+	/**
+	 * get the real file
+	 *
+	 * @param file
+	 * @return
+	 */
+	public static File getPhotoFile(File file) {
+		if (file == null) {
+			return null;
+		}
+		String fileName = FileUtil.removeExtension(file.getName());
+		Date date = parseDateFromFilename(fileName);
+		if (date != null) {
+			// Construit le sous-dossier yyyy/MM/dd/ (adapté à l'OS courant)
+			SimpleDateFormat parser = new SimpleDateFormat("yyyy" + File.separator
+					+ "MM" + File.separator + "dd");
+			String subDir = parser.format(date);
+
+			return new File(App.preferences.photosDirGet()
+					+ File.separator
+					+ subDir
+					+ File.separator
+					+ file.getName());
+		}
+		return file;
+	}
+
+	/**
+	 * Extraire le nom de fichier sans son extension.
+	 */
+	public static String getFileNameWithoutExt(File file) {
+		String name = file.getName();
+		int lastDot = name.lastIndexOf('.');
+		if (lastDot > 0) {
+			return name.substring(0, lastDot);
+		}
+		return name;
+	}
+
 	public boolean fileMove(String sourcePath, String targetPath) {
 		boolean rc = true;
 		try {
-			Files.move(Paths.get(sourcePath), Paths.get(targetPath), StandardCopyOption.REPLACE_EXISTING);
+			Files.move(Paths.get(sourcePath),
+					Paths.get(targetPath), StandardCopyOption.REPLACE_EXISTING);
 		} catch (IOException ex) {
 			rc = false;
 			LOG.err(TT + "fileMove(...)", ex);
@@ -551,7 +594,8 @@ public class FileUtil {
 	 * @param destination
 	 * @throws IOException
 	 */
-	public static void dirCopyCompatibityMode(File source, File destination) throws IOException {
+	public static void dirCopyCompatibityMode(File source,
+			File destination) throws IOException {
 		if (source.isDirectory()) {
 			dirCopy(source, destination);
 		} else {
@@ -588,10 +632,12 @@ public class FileUtil {
 				f.mkdir();
 			}
 		} catch (Exception e) {
-			LOG.err(I18N.getMsg("directory.creation_failed", f.getAbsolutePath()), e);
+			LOG.err(I18N.getMsg("directory.creation_failed",
+					f.getAbsolutePath()), e);
 			return false;
 		}
-		LOG.log(I18N.getMsg("directory.creation", f.getAbsolutePath()));
+		LOG.log(I18N.getMsg("directory.creation",
+				f.getAbsolutePath()));
 		return true;
 	}
 
@@ -607,6 +653,24 @@ public class FileUtil {
 			return name.replace(path, ".");
 		} else {
 			return name;
+		}
+	}
+
+	/**
+	 * Extrait la date à partir du nom du fichier (ex: 20260730_175800 ou 20260730)
+	 */
+	public static Date parseDateFromFilename(String fileName) {
+		String digits = fileName.replaceAll("[^0-9]", "");
+		if (digits.length() < 8) {
+			return null;
+		}
+		try {
+			String dateStr = digits.substring(0, Math.min(14, digits.length()));
+			String parsePattern = dateStr.length() >= 14 ? "yyyyMMddHHmmss" : "yyyyMMdd";
+			SimpleDateFormat parser = new SimpleDateFormat(parsePattern);
+			return parser.parse(dateStr);
+		} catch (ParseException e) {
+			return null;
 		}
 	}
 

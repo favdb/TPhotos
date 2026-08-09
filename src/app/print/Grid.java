@@ -59,6 +59,7 @@ public class Grid extends JPanel {
 		cellDim = new Dimension(size, size);
 		imgWidth = size;
 		imgHeight = size;
+		//LOG.trace(TT + "setDim() size=" + size + ", dim=" + cellDim);
 	}
 
 	/**
@@ -66,9 +67,6 @@ public class Grid extends JPanel {
 	 */
 	public void initialize() {
 		setDim("A4", print.paperOrientationGet());
-
-		// Suppression de l'aspect "Page blanche papier" (Border, Background opaque)
-		// Le JPanel s'adapte naturellement à ses enfants ou au conteneur parent
 		StringBuilder rowC = new StringBuilder();
 		for (int i = 0; i < rows; i++) {
 			rowC.append("[]");
@@ -77,7 +75,7 @@ public class Grid extends JPanel {
 		for (int j = 0; j < cols; j++) {
 			colC.append("[]");
 		}
-		this.setLayout(new MigLayout(MIG.get("gap 0, ins 0"), colC.toString(), rowC.toString()));
+		setLayout(new MigLayout(MIG.get("gap 0, ins 0"), colC.toString(), rowC.toString()));
 	}
 
 	/**
@@ -242,7 +240,7 @@ public class Grid extends JPanel {
 					PrintCell emptyCell = new PrintCell();
 					emptyCell.cellNumSet(targetCellNum);
 					emptyCell.pageSet(currentPage);
-					emptyCell.posSet((r + 1) + "," + (c + 1));
+					emptyCell.posSet(targetCellNum + ",1,1");
 
 					GridCell emptyImg = new GridCell(this, emptyCell);
 					String constraint = String.format("cell %d %d 1 1", c, r);

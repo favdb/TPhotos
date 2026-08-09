@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 favdb
+ * Copyright (C) 2024-2026 favdb
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,6 +19,8 @@ package app.album;
 
 import app.App;
 import app.xml.Xml;
+import app.xml.XmlAlbum;
+import app.xml.XmlAlbumItem;
 import i18n.I18N;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
@@ -26,6 +28,8 @@ import static java.awt.event.KeyEvent.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -35,15 +39,12 @@ import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
-import tools.LOG;
 import tools.TableColumnAdjuster;
-import tools.file.FileUtil;
 
 /**
+ * Table for items in photo album.
  *
  * @author favdb
  */
@@ -53,6 +54,7 @@ public class AlbumTable extends JTable {
 	public Xml xml;
 	private final Album album;
 	private boolean modified = false;
+	private List<XmlAlbumItem> photos;
 
 	public AlbumTable(Album album) {
 		super();
@@ -68,13 +70,16 @@ public class AlbumTable extends JTable {
 		return album;
 	}
 
+	/**
+	 * initialize
+	 */
 	private void initialize() {
 		this.setFont(App.fontGet());
 		setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
 		CellEditorListener notif = new CellEditorListener() {
 			@Override
 			public void editingCanceled(ChangeEvent e) {
-				//empty
+				// empty
 			}
 
 			@Override
@@ -111,25 +116,25 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * load the table from the given XML file
+	 * load table from Xml / XmlAlbum
 	 *
 	 * @param xml
 	 */
 	public void load(Xml xml) {
-		//LOG.trace(TT + "load(xml)");
 		this.xml = xml;
 		DefaultTableModel model = (DefaultTableModel) getModel();
 		model.setRowCount(0);
-		NodeList nodes = xml.rootGet().getElementsByTagName("item");
-		if (nodes != null) {
-			for (int i = 0; i < nodes.getLength(); i++) {
-				Element child = (Element) nodes.item(i);
+
+		if (xml != null && xml.albumGet() != null) {
+			XmlAlbum xmlAlbum = xml.albumGet();
+			photos = xmlAlbum.itemsGet();
+			for (XmlAlbumItem item : photos) {
 				Object[] objs = {
-					i + 1,
-					new File(App.preferences.photosDirGet() + File.separator + child.getAttribute("file")),
-					child.getAttribute("comment")
+					item.idGet(),
+					item,
+					item.commentGet()
 				};
-				addRow(objs);
+				model.addRow(objs);
 			}
 		}
 		modified = false;
@@ -137,7 +142,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * remove the selected rows
+	 * delete selected lines
 	 */
 	void removeSelectedRows() {
 		if (isEditing()) {
@@ -150,38 +155,33 @@ public class AlbumTable extends JTable {
 		}
 		renumber();
 		this.clearSelection();
-		album.refreshAll();
+		album.getGallery().refresh();
 	}
 
 	/**
-	 * add given objs as a row in the table
-	 *
-	 * @param objs
-	 */
-	void addRow(Object[] objs) {
-		//LOG.trace(TT + "addRow(objs=" + objs.toString() + ")");
-		DefaultTableModel model = (DefaultTableModel) this.getModel();
-		model.addRow(objs);
-		renumber();
-	}
-
-	/**
-	 * add the given AlbumItem into the table
+	 * add an AlbumItem in table
 	 *
 	 * @param item
 	 */
-	void addRow(AlbumItem item) {
-		Object[] objs = {item.id, item.file, item.text};
+	void rowAdd(XmlAlbumItem item) {
+		Object[] objs = {item.idGet(), item, item.commentGet()};
 		DefaultTableModel model = (DefaultTableModel) this.getModel();
 		model.addRow(objs);
 		renumber();
 	}
 
+	public void rowRemove(int row) {
+		DefaultTableModel model = (DefaultTableModel) this.getModel();
+		if (row >= 0 && row < model.getRowCount()) {
+			model.removeRow(row);
+			renumber();
+		}
+	}
+
 	/**
-	 * move the current selected row up by one
+	 * move given line to up
 	 */
 	private void mouveUp() {
-		//LOG.trace(TT + "moveUp()");
 		int row = getSelectedRow();
 		if (row < 1) {
 			return;
@@ -193,12 +193,11 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * move the current selected row down by one
+	 * move given line down
 	 */
 	private void moveDown() {
-		//LOG.trace(TT + "moveDown()");
 		int row = getSelectedRow();
-		if (row >= getRowCount()) {
+		if (row >= getRowCount() - 1) {
 			return;
 		}
 		DefaultTableModel model = (DefaultTableModel) getModel();
@@ -208,21 +207,24 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * update the comment
+	 * update comment for the given line
 	 *
 	 * @param row
 	 * @param comment
 	 */
 	public void updateComment(int row, String comment) {
+		File file = (File) getValueAt(row, 1);
+		String nc = album.diapoParamGet().getComment(file, comment);
 		DefaultTableModel model = (DefaultTableModel) getModel();
-		model.setValueAt(comment, row, 2);
+		model.setValueAt(nc, row, 2);
+		setModified();
 	}
 
 	/**
-	 * renumber the row
+	 * Re-number lines
 	 */
 	private void renumber() {
-		for (int i = 1; i < getRowCount(); i++) {
+		for (int i = 0; i < getRowCount(); i++) {
 			this.setValueAt(i + 1, i, 0);
 		}
 		modified = true;
@@ -230,7 +232,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * get the XML file
+	 * get the Xml
 	 *
 	 * @return
 	 */
@@ -239,80 +241,63 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * save the table into an album XML file
+	 * save table content in XmlAlbum and save to wml file
 	 *
-	 * @param title
+	 * @param title Le titre courant de l'album
 	 */
 	public void save(String title) {
 		//LOG.trace(TT + "save()");
 		if (modified && xml != null) {
-			String existingPrint = "";
-			File outfile = xml.fileGet();
-			if (outfile != null && outfile.exists()) {
-				try {
-					String content = FileUtil.fileReadAsString(outfile);
-					int start = content.indexOf("<print>");
-					int end = content.indexOf("</print>");
-					if (start != -1 && end != -1) {
-						existingPrint = content.substring(start, end + 9) + "\n";
+			XmlAlbum xmlAlbum = xml.albumGet();
+			if (xmlAlbum != null) {
+				xmlAlbum.titleSet(title);
+
+				// Reconstruit la liste des items à partir du tableau Swing
+				List<XmlAlbumItem> newItems = new ArrayList<>();
+				DefaultTableModel model = (DefaultTableModel) getModel();
+				for (int i = 0; i < model.getRowCount(); i++) {
+					Object val = model.getValueAt(i, 1);
+					XmlAlbumItem item;
+					if (val instanceof XmlAlbumItem) {
+						item = (XmlAlbumItem) val;
+					} else if (val instanceof File) {
+						item = new XmlAlbumItem("" + (i + 1),
+								((File) val).getAbsolutePath(),
+								(String) model.getValueAt(i, 2));
+					} else {
+						continue;
 					}
-				} catch (Exception e) {
-					LOG.err(TT + "save() Erreur lecture sauvegarde <prints>", e);
+					item.idSet("" + (i + 1));
+					item.commentSet((String) model.getValueAt(i, 2));
+					newItems.add(item);
 				}
+				xmlAlbum.itemsSet(newItems);
 			}
-			StringBuilder b = new StringBuilder(Xml.getHeader())
-					.append("<album title=\"").append(title).append("\">\n")
-					.append(album.diapoParamGet().toXml())
-					.append("   <list>\n");
-			for (int i = 0; i < this.getRowCount(); i++) {
-				b.append(rowToXml(i));
-			}
-			b.append("   </list>\n");
-			if (!existingPrint.isEmpty()) {
-				b.append("   ").append(existingPrint);
-			}
-			b.append("</album>");
-			xml.close();
-			FileUtil.fileWriteString(xml.fileGet(), b.toString());
+			xml.save();
+			modified = false;
+			album.xmlGet().printGet().updateAll();
+			App.updateTitle();
 		}
 	}
 
 	/**
-	 * set the row into String
+	 * get AlbumItem for given row
 	 *
-	 * @param i
-	 * @return
+	 * @param row : line index
+	 * @return AlbumItem
 	 */
-	private String rowToXml(int i) {
-		Integer id = (Integer) getValueAt(i, 0);
-		String file = ((File) getValueAt(i, 1)).getAbsolutePath()
-				.replace(App.preferences.photosDirGet() + File.separator, "");
-		String comment = (String) getValueAt(i, 2);
-		return "      <item "
-				+ "id=\"" + id + "\" "
-				+ "file=\"" + file + "\" "
-				+ "comment=\"" + comment + "\" "
-				+ " />\n";
-	}
-
-	/**
-	 * Récupère l'AlbumItem correspondant à la ligne spécifiée
-	 *
-	 * @param row : l'index de la ligne
-	 * @return l'objet AlbumItem associé
-	 */
-	public AlbumItem getRow(int row) {
+	public XmlAlbumItem getRow(int row) {
 		if (row >= 0 && row < getRowCount()) {
 			int id = (Integer) getValueAt(row, 0);
 			File file = (File) getValueAt(row, 1);
 			String text = (String) getValueAt(row, 2);
-			return new AlbumItem(id, text, file);
+			return new XmlAlbumItem("" + id, text, file.getAbsolutePath());
 		}
 		return null;
 	}
 
 	/**
-	 * set the modified tag
+	 * Tag table modified
 	 */
 	public void setModified() {
 		modified = true;
@@ -320,7 +305,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * KeyListener for the album table
+	 * KeyListener for table
 	 */
 	private static class KeyListener implements java.awt.event.KeyListener {
 
@@ -332,12 +317,10 @@ public class AlbumTable extends JTable {
 
 		@Override
 		public void keyTyped(KeyEvent e) {
-			//LOG.trace("KeyActions.keyTyped(e=" + e.toString() + ")");
 			int key = e.getKeyCode();
 			char keychar = e.getKeyChar();
 			if (key == VK_DELETE || keychar == 0x007F) {
-				table.removeSelectedRows();
-				table.clearSelection();
+				table.rowRemove(table.getSelectedRow());
 			}
 			if (keychar == '-' && e.isControlDown()) {
 				table.mouveUp();
@@ -345,22 +328,22 @@ public class AlbumTable extends JTable {
 			if (keychar == '+' && e.isControlDown()) {
 				table.moveDown();
 			}
-
 		}
 
 		@Override
 		public void keyPressed(KeyEvent e) {
-			//empty
+			// empty
 		}
 
 		@Override
 		public void keyReleased(KeyEvent e) {
-			//empty
+			// empty
 		}
+
 	}
 
 	/**
-	 * Mouse listener for the album table
+	 * Mouse listener for contextual menu
 	 */
 	private static class TableMouse implements MouseListener {
 
@@ -381,43 +364,42 @@ public class AlbumTable extends JTable {
 					popupMenu.show(e.getComponent(), e.getX(), e.getY());
 				}
 			}
-
 		}
 
 		@Override
 		public void mousePressed(MouseEvent e) {
-			//empty
+			// empty
 		}
 
 		@Override
 		public void mouseReleased(MouseEvent e) {
-			//empty
+			// empty
 		}
 
 		@Override
 		public void mouseEntered(MouseEvent e) {
-			//empty
+			// empty
 		}
 
 		@Override
 		public void mouseExited(MouseEvent e) {
-			//empty
+			// empty
 		}
-
 	}
 
 	/**
-	 * renderer for the table
+	 * renderer File/Photo
 	 */
 	public class FileRenderer extends JLabel implements TableCellRenderer {
 
 		@Override
 		public Component getTableCellRendererComponent(JTable table, Object value,
 				boolean isSelected, boolean hasFocus, int row, int column) {
-			if (value instanceof File) {
+			if (value instanceof XmlAlbumItem) {
+				XmlAlbumItem x = (XmlAlbumItem) value;
 				JLabel lb = new JLabel(IconUtil.getIconSmall(ICONS.K.PHOTO));
 				lb.setText("");
-				lb.setToolTipText(((File) value).getName());
+				lb.setToolTipText(x.photoGet());
 				table.setRowHeight(row, IconUtil.getDefSize());
 				if (isSelected || hasFocus) {
 					lb.setBackground(table.getSelectionBackground());
@@ -427,7 +409,6 @@ public class AlbumTable extends JTable {
 			}
 			return this;
 		}
-
 	}
 
 }

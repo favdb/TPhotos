@@ -1,46 +1,25 @@
-/*
- * Copyright (C) 2024 favdb
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
 package app.diapo;
 
 import app.xml.Xml;
 import app.xml.XmlUtil;
 import i18n.I18N;
 import java.io.File;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import tools.LOG;
 import tools.file.FileUtil;
 
-/**
- *
- * @author favdb
- */
 public class DiapoParam {
 
 	private String name = "Album", comment = "{JJ/MM/AAAA}";
 	private Integer mode = 0, tempo = 0;
 
 	public DiapoParam() {
-
 	}
 
 	public DiapoParam(Xml xml) {
@@ -85,32 +64,74 @@ public class DiapoParam {
 	}
 
 	public String getComment(File file) {
-		String dt = FileUtil.removeExtension(file.getName());
-		String str = comment;
-		if (comment.contains("{") && comment.contains("}")) {
-			try {
-				SimpleDateFormat fm1 = new SimpleDateFormat("yyyyMMdd_HHmmss");
-				Date date = fm1.parse(dt);
-				Map<String, String> df = new HashMap<>();
-				df.put("album.param.comment.day", "dd/MM/yyyy");
-				df.put("album.param.comment.month", "MM/yyyy");
-				df.put("album.param.comment.year", "yyyy");
-				df.put("album.param.comment.month_long", "MMM yyyy");
-				df.put("album.param.comment.full", "dd MMM yyyy");
-				df.put("album.param.comment.full_hour", "dd MMM yyyy HH:mm:ss");
-				for (Map.Entry<String, String> entry : df.entrySet()) {
-					String key = entry.getKey();
-					String motif = "{" + I18N.getMsg(key) + "}";
-					if (str.contains(motif)) {
-						SimpleDateFormat fm2 = new SimpleDateFormat(entry.getValue());
-						str = str.replace(motif, fm2.format(date));
-						break;
-					}
-				}
-			} catch (ParseException ex) {
-				return "";
+		return getComment(file, this.comment);
+	}
+
+	/**
+	 * Formate un modèle de commentaire pour un fichier donné
+	 *
+	 * @param file Fichier photo
+	 * @param template Modèle de texte contenant des balises entre accolades
+	 * @return Commentaire transformé
+	 */
+	public String getComment(File file, String template) {
+		if (file == null
+				|| template == null
+				|| !template.contains("{")
+				|| !template.contains("}")) {
+			return template;
+		}
+
+		String fileName = FileUtil.removeExtension(file.getName());
+		Date date = FileUtil.parseDateFromFilename(fileName);
+		if (date == null) {
+			return template;
+		}
+
+		String str = template;
+
+		// 1. Remplacement des clés I18N insérées via la liste déroulante
+		Map<String, String> df = new HashMap<>();
+		df.put("album.param.comment.day", "dd/MM/yyyy");
+		df.put("album.param.comment.month", "MM/yyyy");
+		df.put("album.param.comment.year", "yyyy");
+		df.put("album.param.comment.month_long", "MMMM yyyy");
+		df.put("album.param.comment.full", "dd MMMM yyyy");
+		df.put("album.param.comment.full_hour", "dd MMMM yyyy HH:mm:ss");
+
+		for (Map.Entry<String, String> entry : df.entrySet()) {
+			String motif = "{" + I18N.getMsg(entry.getKey()) + "}";
+			if (str.contains(motif)) {
+				SimpleDateFormat sdf = new SimpleDateFormat(entry.getValue(), Locale.getDefault());
+				str = str.replace(motif, sdf.format(date));
 			}
 		}
+
+		// 2. Traitement dynamique des motifs anglais personnalisés entre accolades { ... }
+		while (str.contains("{") && str.contains("}")) {
+			int start = str.indexOf("{");
+			int end = str.indexOf("}", start);
+			if (start == -1 || end == -1) {
+				break;
+			}
+
+			String rawPattern = str.substring(start + 1, end);
+			// Harmonisation vers la syntaxe exacte de SimpleDateFormat (ex: DD -> dd, YYYY -> yyyy)
+			String javaPattern = rawPattern.replace("DD", "dd")
+					.replace("dd", "dd")
+					.replace("YYYY", "yyyy")
+					.replace("yyyy", "yyyy");
+
+			try {
+				SimpleDateFormat sdf = new SimpleDateFormat(javaPattern, Locale.getDefault());
+				String formatted = sdf.format(date);
+				str = str.substring(0, start) + formatted + str.substring(end + 1);
+			} catch (Exception e) {
+				LOG.err("DiapoParam.getComment() - Format invalide : " + rawPattern, e);
+				str = str.substring(0, start) + rawPattern + str.substring(end + 1);
+			}
+		}
+
 		return str;
 	}
 

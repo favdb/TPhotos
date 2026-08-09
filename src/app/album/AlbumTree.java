@@ -17,7 +17,6 @@
  */
 package app.album;
 
-import app.album.Album;
 import app.App;
 import app.Pref;
 import i18n.I18N;
@@ -35,6 +34,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
+import javax.swing.ToolTipManager;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -52,30 +52,29 @@ import tools.file.FileUtil;
 public class AlbumTree extends JTree {
 
 	private static final String TT = "AlbumTree.";
-	public final Album albumPanel;
+	public final Album album;
 	private File rootDir;
 	private DefaultMutableTreeNode rootNode;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public AlbumTree(Album albumPanel) {
+	public AlbumTree(Album album) {
 		super();
-		this.albumPanel = albumPanel;
+		this.album = album;
 		initialize();
 	}
 
 	public void initialize() {
 		rootDir = new File(App.preferences.photosDirGet());
 		rootNode = new DefaultMutableTreeNode(rootDir);
-		createChildren(rootDir, rootNode);
 		DefaultTreeModel model = (DefaultTreeModel) getModel();
 		model.setRoot(rootNode);
-		this.expandRow(0);
+		reload(album.currentViewModeGet());
 		setCellRenderer(new CellRenderer());
 		addKeyListener(new KeyActions(this));
 		MouseActions mouseActions = new MouseActions(this);
 		addMouseListener(mouseActions);
 		addMouseMotionListener(mouseActions);
-		javax.swing.ToolTipManager.sharedInstance().registerComponent(this);
+		ToolTipManager.sharedInstance().registerComponent(this);
 	}
 
 	/**
@@ -88,12 +87,12 @@ public class AlbumTree extends JTree {
 	public static String getSubdir(String date, int mode) {
 		StringBuilder subdir = new StringBuilder();
 		if (mode < 3) {
-			//allways add year
+			// always add year
 			subdir.append(date.substring(0, 4)).append(File.separator);
-			if (mode > 0) {//add month
+			if (mode > 0) {// add month
 				subdir.append(date.substring(4, 6)).append(File.separator);
 			}
-			if (mode > 1) {//add day
+			if (mode > 1) {// add day
 				subdir.append(date.substring(6, 8)).append(File.separator);
 			}
 		}
@@ -133,27 +132,22 @@ public class AlbumTree extends JTree {
 			if (i > 0) {
 				sb.append("\n");
 			}
-			File file = (File) ((DefaultMutableTreeNode) paths[i].getLastPathComponent()).getUserObject();
+			File file = (File) ((DefaultMutableTreeNode) paths[i]
+					.getLastPathComponent()).getUserObject();
 			sb.append(file.getAbsolutePath());
 			filesToDelete.add(file);
 		}
-
-		// Confirmation si l'option est activée dans les préférences
 		if (App.preferences.getBoolean(Pref.KEY.ASK_DELETE)) {
 			Object[] options = {I18N.getMsg("ask.yes"), I18N.getMsg("ask.no")};
 			int choice = JOptionPane.showOptionDialog(this,
 					I18N.getMsg("ask.delete", sb.toString()), I18N.getMsg("ask.confirm"),
 					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
 					null, options, options[1]);
-
 			if (choice != JOptionPane.YES_OPTION) {
 				return;
 			}
 		}
-
-		// Suppression physique et mise à jour visuelle
 		int deleted = 0;
-		DefaultTreeModel model = (DefaultTreeModel) getModel();
 		for (int i = 0; i < paths.length; i++) {
 			File f = filesToDelete.get(i);
 			if (f.isDirectory()) {
@@ -165,21 +159,73 @@ public class AlbumTree extends JTree {
 			}
 		}
 		if (deleted > 0) {
-			albumPanel.refreshAll();
+			album.getGallery().refresh();
 		}
 	}
 
 	/**
-	 * reload the tree
+	 * reload the tree according to VIEW_MODE
 	 */
-	public void reload() {
+	public void reload(Album.VIEW_MODE mode) {
 		rootNode.removeAllChildren();
 		DefaultTreeModel model = (DefaultTreeModel) getModel();
-		model.reload();
 		rootDir = new File(App.preferences.photosDirGet());
 		rootNode.setUserObject(rootDir);
-		createChildren(rootDir, rootNode);
+
+		if (mode != Album.VIEW_MODE.NONE) {
+			buildVirtualTree(rootDir, rootNode, mode, 0);
+		}
+
+		model.reload();
 		expandPath(new TreePath(model.getRoot()));
+	}
+
+	/**
+	 * Construit l'arbre composé des dossiers normaux (limités par le mode) et des
+	 * sous-dossiers personnalisés.
+	 *
+	 * @param fileRoot Le dossier courant
+	 * @param node Le nœud parent
+	 * @param mode Le mode d'affichage courant
+	 * @param depth La profondeur actuelle (0 = Racine, 1 = Année, 2 = Mois, 3 = Jour)
+	 */
+	private void buildVirtualTree(File fileRoot, DefaultMutableTreeNode node,
+			Album.VIEW_MODE mode, int depth) {
+		File[] files = fileRoot.listFiles();
+		if (files == null) {
+			return;
+		}
+
+		Arrays.sort(files);
+		// depth 0: Racine (photosDir)
+		// depth 1: Années (ex: 2026) -> mode YEAR
+		// depth 2: Mois (ex: 08)     -> mode MONTH
+		// depth 3: Jours (ex: 25)    -> mode DAY
+		int maxDepth = mode.getLevel() + 1;
+
+		for (File file : files) {
+			if (file.isDirectory()) {
+				boolean normed = isNormedDir(file);
+
+				// Si c'est un dossier normé et qu'on a atteint la limite du mode d'affichage, on ne l'ajoute pas
+				if (normed && depth >= maxDepth) {
+					continue;
+				}
+
+				DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(file);
+				node.add(childNode);
+
+				// Exploration récursive
+				buildVirtualTree(file, childNode, mode, depth + 1);
+			}
+		}
+	}
+
+	/**
+	 * Vérifie si le dossier suit la norme numérique (Année / Mois / Jour)
+	 */
+	private boolean isNormedDir(File dir) {
+		return dir.getName().matches("\\d+");
 	}
 
 	/**
@@ -207,30 +253,6 @@ public class AlbumTree extends JTree {
 	}
 
 	/**
-	 * create a children node
-	 *
-	 * @param fileRoot
-	 * @param node
-	 */
-	public void createChildren(File fileRoot, DefaultMutableTreeNode node) {
-		//LOG.trace(TT + "createChildren(root=" + fileRoot.getName() + ", node=" + node.getPath() + ")");
-		File[] files = fileRoot.listFiles();
-		if (files == null) {
-			return;
-		}
-		Arrays.sort(files);
-		for (File file : files) {
-			DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(file);
-			if (/*App.jpegIs(file) || */file.isDirectory()) {
-				node.add(childNode);
-			}
-			if (file.isDirectory()) {
-				createChildren(file, childNode);
-			}
-		}
-	}
-
-	/**
 	 * cell renderer
 	 */
 	private static class CellRenderer extends DefaultTreeCellRenderer {
@@ -238,7 +260,7 @@ public class AlbumTree extends JTree {
 		public CellRenderer() {
 			setClosedIcon(IconUtil.getIconSmall(ICONS.K.FOLDER));
 			setOpenIcon(IconUtil.getIconSmall(ICONS.K.FOLDER_OPEN));
-			setLeafIcon(IconUtil.getIconSmall(ICONS.K.PIC));
+			setLeafIcon(IconUtil.getIconSmall(ICONS.K.FOLDER));
 		}
 
 		@Override
@@ -250,9 +272,7 @@ public class AlbumTree extends JTree {
 			if (userObject instanceof File) {
 				File file = (File) userObject;
 				setText(file.getName());
-				setIcon(file.isDirectory()
-						? IconUtil.getIconSmall(ICONS.K.FOLDER)
-						: IconUtil.getIconSmall(ICONS.K.PHOTO));
+				setIcon(IconUtil.getIconSmall(expanded ? ICONS.K.FOLDER_OPEN : ICONS.K.FOLDER));
 			}
 			return this;
 		}
@@ -272,8 +292,6 @@ public class AlbumTree extends JTree {
 
 		@Override
 		public void keyTyped(KeyEvent e) {
-			//LOG.trace("KeyActions.keyTyped(e=" + e.toString() + ")");
-			int key = e.getKeyCode();
 			char keychar = e.getKeyChar();
 			if (keychar == 0x007F) {
 				tree.deleteSelection();
@@ -282,12 +300,12 @@ public class AlbumTree extends JTree {
 
 		@Override
 		public void keyPressed(KeyEvent e) {
-			//empty
+			// empty
 		}
 
 		@Override
 		public void keyReleased(KeyEvent e) {
-			//empty
+			// empty
 		}
 	}
 
@@ -301,12 +319,10 @@ public class AlbumTree extends JTree {
 
 		@Override
 		public void mouseMoved(MouseEvent e) {
-			// --- SURVOL : Informations sur l'élément ---
 			TreePath path = tree.getPathForLocation(e.getX(), e.getY());
 			if (path != null) {
 				DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
 				File file = (File) node.getUserObject();
-				// On affiche le chemin absolu en ToolTip
 				if (file.isDirectory()) {
 					int nb = FileUtil.getNbElement(file);
 					tree.setToolTipText(file.getAbsolutePath() + " (" + nb + ")");
@@ -337,17 +353,14 @@ public class AlbumTree extends JTree {
 			if (path != null) {
 				tree.setSelectionPath(path);
 				JPopupMenu popup = new JPopupMenu();
-				JMenuItem itemAdd = new JMenuItem(I18N.getMsg("album.add"));//add to album
-				itemAdd.addActionListener(al -> {
-					albumPanel.btAddAction();
-				});
+				JMenuItem itemAdd = new JMenuItem(I18N.getMsg("album.add"));
+				itemAdd.addActionListener(al -> album.btAddAction());
 				popup.add(itemAdd);
 				popup.addSeparator();
 				JMenuItem itemDelete = new JMenuItem(I18N.getMsg("action.delete"));
-				itemDelete.setIcon(IconUtil.getIconSmall(ICONS.K.CANCEL)); // Si tu as une icône delete
+				itemDelete.setIcon(IconUtil.getIconSmall(ICONS.K.CANCEL));
 				itemDelete.addActionListener(al -> tree.deleteSelection());
 				popup.add(itemDelete);
-
 				popup.show(tree, e.getX(), e.getY());
 			}
 		}

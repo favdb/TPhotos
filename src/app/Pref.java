@@ -41,10 +41,10 @@ public class Pref {
 
 	private static final String TT = "Pref.";
 
-	private Integer exportType;
-
 	public enum KEY {
 		ALBUM_LAST("AlbumLast", "Album.xml"),
+		ALBUM_LASTVIEW("AlbumLastView", "1"),
+		ALBUM_LASTNODE("AlbumLastNode", ""),
 		ASK_DELETE("AskDelete", "1"),
 		EXPORT_COMPRESS("ExposrtCompress", "0"),
 		EXPORT_FORMAT("ExportFormat", "0"),
@@ -88,6 +88,11 @@ public class Pref {
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public Pref() {
+		//check for internal medias folder
+		File f = new File(EnvUtil.getPrefDir(), "medias");
+		if (!f.exists()) {
+			f.mkdirs();
+		}
 		load();
 		String av = get(KEY.VERSION.toString(), KEY.VERSION.getValue());
 		String cv = KEY.VERSION.getValue();
@@ -140,6 +145,12 @@ public class Pref {
 						}
 					}
 				}
+				/*if (App.isDev()) {
+					for (PrefValue pf : preferences) {
+						LOG.trace(pf.toString());
+					}
+					LOG.trace("photosDir=" + photosDirGet());
+				}*/
 				br.close();
 			} catch (Exception e) {
 				LOG.err(TT + "load() err", e);
@@ -168,13 +179,21 @@ public class Pref {
 		return getString(KEY.ALBUM_LAST);
 	}
 
+	public void albumViewLastSet(int value) {
+		this.setInteger(KEY.ALBUM_LASTVIEW, value);
+	}
+
+	public int albumViewLastGet() {
+		return this.getInteger(KEY.ALBUM_LASTVIEW);
+	}
+
 	/**
 	 * get the Photos directory
 	 *
 	 * @return
 	 */
 	public String photosDirGet() {
-		return getString(KEY.PHOTOS_DIR);
+		return this.getString(KEY.PHOTOS_DIR);
 	}
 
 	/**
@@ -188,11 +207,21 @@ public class Pref {
 		save();
 	}
 
+	/**
+	 * set last export directory
+	 *
+	 * @param value
+	 */
 	public void exportLastSet(String value) {
 		setString(KEY.EXPORT_LAST, value);
 		save();
 	}
 
+	/**
+	 * get last export directory
+	 *
+	 * @return
+	 */
 	public String exportLastGet() {
 		return getString(KEY.EXPORT_LAST);
 	}
@@ -373,6 +402,10 @@ public class Pref {
 		try {
 			EnvUtil.getPrefDir().mkdir();
 			file.createNewFile();
+			File f = new File(EnvUtil.getPrefDir(), "medias");
+			if (!f.exists()) {
+				f.mkdirs();
+			}
 		} catch (IOException e) {
 			LOG.log("Unable to create new file " + file.getAbsolutePath());
 		}

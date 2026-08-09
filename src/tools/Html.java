@@ -272,7 +272,6 @@ public class Html {
 			@Override
 			public void handleStartTag(HTML.Tag t, javax.swing.text.MutableAttributeSet a, int pos) {
 				if (preserveNewLines && isBlockTag(t)) {
-					// Évite de multiplier les saut de lignes inutiles si plusieurs balises bloc s'enchaînent
 					if (sb.length() > 0 && !inBlockTag && sb.charAt(sb.length() - 1) != '\n') {
 						sb.append("\n");
 					}

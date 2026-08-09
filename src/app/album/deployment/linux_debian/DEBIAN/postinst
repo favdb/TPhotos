@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e 
+chmod 755 /usr/share/tphotos/TPhotos.raj
+mv /usr/share/tphotos/TPhotos.raj /usr/share/tphotos/TPhotos.jar

@@ -1,6 +1,5 @@
 package app.print;
 
-import app.App;
 import i18n.I18N;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -21,10 +20,11 @@ import tools.SwingTools;
 
 public class GridCell extends JLabel {
 
-	private static final String TT = "GridImage.";
+	private static final String TT = "GridCell.";
 
 	private PrintCell item;
 	private final Grid grid;
+	private boolean selected = false;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public GridCell(Grid grid, PrintCell item) {
@@ -32,6 +32,18 @@ public class GridCell extends JLabel {
 		this.item = item;
 		initialize();
 		setupInteractions();
+	}
+
+	public void selectedSet() {
+		selected = true;
+	}
+
+	public void selectedUnset() {
+		selected = false;
+	}
+
+	public boolean selectedCheck() {
+		return selected;
 	}
 
 	public PrintCell printCellGet() {
@@ -52,7 +64,7 @@ public class GridCell extends JLabel {
 		this.removeAll();
 		this.setIcon(null);
 		this.setText("");
-		this.setBorder(null);
+		this.setBorder(BorderFactory.createLineBorder((selected ? Color.red : Color.WHITE), 2));
 		int w = grid.imgGetSize().width;
 		int h = grid.imgGetSize().height;
 		if (w <= 0 || h <= 0) {
@@ -72,28 +84,31 @@ public class GridCell extends JLabel {
 
 		if (item.isPhoto()) {
 			this.setBackground(Color.WHITE);
-			if (item.photoFileGet() != null && !item.photoFileGet().isEmpty()) {
+			if (item.photoFileGet() != null && item.photoFileGet().exists()) {
 				int sz = Math.min(cellWidth, cellHeight);
-				this.setIcon(ImageUtil.getImage(item.photoFileGet(), Math.max(targetW, targetH)));
+				this.setIcon(ImageUtil.getImage(item.photoFileGet(),
+						Math.max(targetW, targetH)));
 			} else {
-				this.setText("Photo vide (#" + item.photoIdGet() + ")");
+				this.setText("Photo introuvable (#" + item.photoIdGet() + ")");
 				this.setHorizontalAlignment(JLabel.CENTER);
 			}
 		} else if (item.isText()) {
 			this.setBackground(new Color(255, 255, 245));
 			String textContent = (item.textGet() != null) ? item.textGet() : "";
-			String html = String.format("<html><body style='padding:1px; font-size:%dpx;'>%s</body></html>",
-					App.fontGet().getSize(), textContent);
 			String txt = "<html>"
 					+ "<body style='"
 					+ "font-size:" + 10 + "px;'"
-					+ "h1, h2, h3, p { margin-top: 1px; margin-bottom: 2px; padding: 0; }"
+					+ "h1, h2, h3, p { "
+					+ "margin-top: 1px; "
+					+ "margin-bottom: 2px; "
+					+ "padding: 0; }"
 					+ ">"
 					+ textContent
-					+ "</body></html>";
+					+ "</body>"
+					+ "</html>";
 			this.setVerticalAlignment(JLabel.TOP);
 			setText(txt);
-		} else { // Affichage pour une case vide
+		} else {
 			this.setBorder(BorderFactory.createDashedBorder(Color.LIGHT_GRAY, 2, 2, 1, false));
 			this.setBackground(new Color(248, 248, 248));
 			this.setText(String.valueOf(item.cellNumGet()));
@@ -107,18 +122,17 @@ public class GridCell extends JLabel {
 		this.repaint();
 	}
 
-	private void handleSimpleClick() {
-		//LOG.trace(TT + "handleSimpleClick()");
-		if (grid.gridCellSelectedGet() != null) {
-			GridCell selected = grid.gridCellSelectedGet();
-			if (selected.item.isText()) {
+	private void actionSimpleClick() {
+		//LOG.trace(TT + "actionSimpleClick()");
+		if (grid.gridCellSelectedGet() != null && item.isEmpty()) {
+			//there is a selected cell to move
+			GridCell cell = grid.gridCellSelectedGet();
+			if (!cell.item.posGet().equals("1,1")) {
+				//not allowed
 				return;
 			}
-			if (selected.item.isPhoto()) { // swap avec selected
-				grid.getPrint().swapCell(item, selected.item);
-			}
-			if (item.isEmpty()) { // affectation du Grid selected
-				PrintCell dest = selected.item;
+			if (cell.item.isText() || cell.item.isPhoto()) {
+				PrintCell dest = cell.item;
 				dest.pageSet(item.pageGet());
 				dest.posSet(item.posGet());
 				grid.getPrint().updateCell(dest, item.pageGet(), item.posGet());
@@ -126,24 +140,24 @@ public class GridCell extends JLabel {
 			return;
 		}
 		PoolCell poolCell = grid.getPrint().poolGet().poolCellSelectedGet();
-		if (poolCell != null) {
+		if (poolCell != null) {//there is a poolcell to place
 			grid.getPrint().updateCell(poolCell.printCellGet(), item.pageGet(), item.posGet());
 		}
 	}
 
-	private void handleDoubleClick() {
-		//LOG.trace(TT + "handleDoubleClick()" + item.toString());
+	private void actionDoubleClick() {
+		//LOG.trace(TT + "actionDoubleClick()" + item.toString());
 		if (item.isPhoto()) {
 			grid.getPrint().getMainFrame().showPhoto(item.photoFileGet());
 		} else if (item.isText()) {
-			grid.getPrint().shefEdit(item);
-		} else if (item.isEmpty()) {
+			grid.getPrint().textEdit(item);
+		}/* else if (item.isEmpty()) {
 			grid.getPrint().textCreate(item);
-		}
+		}*/
 		grid.gridCellUnselect();
 	}
 
-	private final Timer timer = new Timer(250, e -> handleSimpleClick());
+	private final Timer timer = new Timer(250, e -> actionSimpleClick());
 
 	{
 		timer.setRepeats(false);
@@ -160,7 +174,7 @@ public class GridCell extends JLabel {
 							break;
 						case 2:
 							timer.stop();
-							handleDoubleClick();
+							actionDoubleClick();
 							break;
 					}
 				}
@@ -200,11 +214,11 @@ public class GridCell extends JLabel {
 			edit.addActionListener(l -> grid.getPrint().textCreate(item));
 			menu.add(edit);
 		} else {
-			//call shef editor if text
+			//call textEdit editor if text
 			if (item.isText()) {
 				JMenuItem textEdit = new JMenuItem(I18N.getMsg("print.text_edit"));
 				textEdit.addActionListener(al -> {
-					grid.getPrint().shefEdit(item);
+					grid.getPrint().textEdit(item);
 				});
 				menu.add(textEdit);
 			} else if (item.isPhoto()) {
@@ -221,7 +235,7 @@ public class GridCell extends JLabel {
 				menu.add(textCreate);
 			}
 			//clear cell
-			JMenuItem clearCell = new JMenuItem(I18N.getMsg("print.menu.clear"));
+			JMenuItem clearCell = new JMenuItem(I18N.getMsg("print.clear"));
 			clearCell.setEnabled(item.photoIdGet() != -1
 					|| item.textIdGet() != -1
 					|| !item.textGet().isEmpty());
@@ -265,14 +279,15 @@ public class GridCell extends JLabel {
 	}
 
 	private void releaseCellInPool() {
-		LOG.trace(TT + "releaseCellInPool() item=" + item.toString());
+		//LOG.trace(TT + "releaseCellInPool() item=" + item.toString());
 		Print print = grid.getPrint();
 		if (print == null || print.getCells() == null) {
 			return;
 		}
 		item.pageSet(0);
 		print.xmlGet().save();
-		print.poolGet().updatePoolNode(item);
+		print.poolGet().poolCellUnselect();
+		print.poolGet().refresh();
 		print.gridGet().refresh();
 	}
 

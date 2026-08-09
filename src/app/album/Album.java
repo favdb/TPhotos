@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 favdb
+ * Copyright (C) 2024-2026 favdb
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,16 +20,18 @@ package app.album;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
+import app.Pref;
 import static app.album.AlbumTree.getSubdir;
 import app.diapo.DiapoParam;
-import app.diapo.DiapoParamDlg;
-import app.gallery.Gallery;
-import app.gallery.ImageLabel;
 import app.ui.ChangeDateDlg;
+import app.ui.CommentParamDlg;
 import app.ui.MainFrame;
 import app.xml.Xml;
+import app.xml.XmlAlbum;
+import app.xml.XmlAlbumItem;
 import i18n.I18N;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
@@ -40,9 +42,11 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.swing.JDialog;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -50,7 +54,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.event.ListSelectionEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
@@ -69,19 +72,43 @@ public class Album extends JFrame {
 	private static final String TT = "Album.";
 	private static final int IMG_SIZE = 200;
 
+	public enum VIEW_MODE {
+		YEAR(0, "organize.by_year"),
+		MONTH(1, "organize.by_month"),
+		DAY(2, "organize.by_day"),
+		NONE(3, "organize.by_none");
+
+		private final int level;
+		private final String i18nKey;
+
+		VIEW_MODE(int level, String i18nKey) {
+			this.level = level;
+			this.i18nKey = i18nKey;
+		}
+
+		public int getLevel() {
+			return level;
+		}
+
+		public String getI18nKey() {
+			return i18nKey;
+		}
+	}
+
 	private DiapoParam param;
 	// tree and table
 	private AlbumTree tree;
-	private Gallery gallery;
+	private AlbumGallery gallery;
 	private AlbumTable table;
 	private JPanel pTree, pGallery, pTable;
+	private JComboBox<VIEW_MODE> cbViewMode;
+	private VIEW_MODE currentViewMode = VIEW_MODE.MONTH;
 	// other components
 	private String albumName = "Album";
 	private Xml xml;
 	private JTextField title;
 	private boolean imageAllowed;
 	private Color originBK, originFG;
-	private JSplitPane sp;
 	private File curImg;
 	private String curTxt;
 	private Dimension curSz;
@@ -115,53 +142,36 @@ public class Album extends JFrame {
 	 * initialize the panel
 	 */
 	private void initialize() {
-		//LOG.trace(TT + "initialize()");
+		setLayout(new MigLayout(MIG.FILL));
+		currentViewMode = VIEW_MODE.values()[App.preferences.albumViewLastGet()];
+		// initialize original colors
 		originBK = this.getBackground();
 		originFG = this.getForeground();
 		String xmlAlbum = App.preferences.albumLastGet();
 		if (xmlAlbum.isEmpty()) {
 			xmlAlbum = "Album.xml";
 		}
-		File xfile = new File(App.preferences.photosDirGet() + File.separator + xmlAlbum);
-		if (!xfile.exists()) {
-			xfile = new File(App.preferences.photosDirGet() + File.separator + "Album.xml");
+		file = new File(App.preferences.photosDirGet() + File.separator + xmlAlbum);
+		if (!file.exists()) {
+			file = new File(App.preferences.photosDirGet() + File.separator + "Album.xml");
 		}
-		xml = new Xml(xfile);
-		this.file = new File(App.preferences.photosDirGet() + File.separator + xmlAlbum);
+		xml = new Xml(file);
 		param = new DiapoParam(xml);
 		JPanel ptree = initTree();
-		initGallery();
+		JPanel pgallery = initGallery();
 		JPanel ptable = initTable();
-
-		JPanel pgallery = new JPanel(new MigLayout(MIG.get(MIG.FILLX, MIG.INS0, MIG.WRAP1)));
-		pgallery.setPreferredSize(new Dimension(800, 800));
-		JToolBar tb = new JToolBar();
-		tb.setFloatable(false);
-		btAdd = new IconButton("", ICONS.K.PLUS, e -> btAddPhotos());
-		btAdd.setEnabled(false);
-		tb.add(btAdd, MIG.RIGHT);
-		pgallery.add(tb, MIG.GROWX);
-		pgallery.add(gallery, MIG.GROW);
-
 		JSplitPane spRight = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, pgallery, ptable);
 		spRight.setResizeWeight(1.0);
-		sp = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, ptree, spRight);
-		sp.setResizeWeight(0.15);
-		sp.setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
-
-		setLayout(new MigLayout(MIG.FILLX));
-		add(sp, MIG.GROW);
-
-		table.getSelectionModel().addListSelectionListener((ListSelectionEvent event) -> {
-			imageAllowed = false;
-			if (table.getRowCount() == 0) {
-				return;
-			}
-			int[] rows = table.getSelectedRows();
-			if (rows == null || rows.length != 1) {
-				return;
-			}
-		});
+		JSplitPane spAll = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, ptree, spRight);
+		spAll.setResizeWeight(0.10);
+		spAll.setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
+		add(spAll, MIG.GROW);
+		String node = App.preferences.getString(Pref.KEY.ALBUM_LASTNODE);
+		if (!node.isEmpty()) {
+			File sel = new File(App.preferences.photosDirGet(), node);
+			tree.select(sel);
+			gallery.refresh();
+		}
 	}
 
 	/**
@@ -171,26 +181,58 @@ public class Album extends JFrame {
 	 */
 	private JPanel initTree() {
 		//LOG.trace(TT + "initTree()");
-		pTree = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0)));
+		pTree = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0, MIG.WRAP1)));
+		cbViewMode = new JComboBox<>(VIEW_MODE.values());
+		cbViewMode.setSelectedItem(currentViewMode);
+		cbViewMode.setRenderer(new DefaultListCellRenderer() {
+			@Override
+			public Component getListCellRendererComponent(JList<?> ls,
+					Object val, int idx, boolean sel, boolean focus) {
+				super.getListCellRendererComponent(ls, val, idx, sel, focus);
+				if (val instanceof VIEW_MODE) {
+					setText(I18N.getMsg(((VIEW_MODE) val).getI18nKey()));
+				}
+				return this;
+			}
+		});
+		cbViewMode.addActionListener(e -> {
+			VIEW_MODE mode = (VIEW_MODE) cbViewMode.getSelectedItem();
+			if (mode != null && mode != currentViewMode) {
+				currentViewMode = mode;
+				App.preferences.albumViewLastSet(mode.level);
+				tree.reload(currentViewMode);
+				treeChanged();
+			}
+		});
+		pTree.add(cbViewMode, MIG.get(MIG.GROWX, MIG.SPAN));
 		tree = new AlbumTree(this);
 		tree.addTreeSelectionListener(e -> treeChanged());
 		JScrollPane scroll = new JScrollPane(tree);
-		scroll.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
-		int minWidth = Ui.getTextWidth(" 9999|99|99 ", tree.getFont());
-		pTree.setMinimumSize(new Dimension(minWidth, 100));
+		int minWidth = Ui.getTextWidth(" 9999/99/99 ", tree.getFont());
 		scroll.setMinimumSize(new Dimension(minWidth, 100));
-		pTree.add(scroll, MIG.GROW);
+		pTree.add(scroll, MIG.get(MIG.GROW, MIG.PUSH));
 		return pTree;
 	}
 
 	/**
-	 * initalize the gallery panel
+	 * initialize the gallery panel
 	 *
 	 * @return
 	 */
-	private void initGallery() {
-		gallery = new Gallery(this, new File(App.preferences.photosDirGet()));
-		gallery.setPreferredSize(new Dimension(800, 800));
+	private JPanel initGallery() {
+		//LOG.trace(TT + "initGallery()");
+		JPanel pgallery = new JPanel(new MigLayout(MIG.get(/*MIG.FILL, */MIG.INS0, MIG.WRAP1)));
+		pgallery.setPreferredSize(new Dimension(800, 800));
+		JToolBar tb = new JToolBar();
+		tb.setFloatable(false);
+		btAdd = new IconButton("", ICONS.K.PLUS, e -> btAddPhotos());
+		btAdd.setEnabled(false);
+		tb.add(btAdd, MIG.RIGHT);
+		pgallery.add(tb, MIG.GROWX);
+		gallery = new AlbumGallery(this, null);
+		//gallery.setPreferredSize(new Dimension(800, 800));
+		pgallery.add(gallery, MIG.get(MIG.GROW, MIG.PUSH));
+		return pgallery;
 	}
 
 	/**
@@ -200,31 +242,22 @@ public class Album extends JFrame {
 	 */
 	private JPanel initTable() {
 		//LOG.trace(TT + "initTable()");
-		pTable = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0, MIG.GAP + " 5"), "[grow]", "[][grow]"));
-		JPanel ptitle = new JPanel(new MigLayout(MIG.FLOWX));
+		pTable = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0, MIG.GAP + " 5"),
+				"[grow]", "[][grow]"));
+		JPanel ptitle = new JPanel(new MigLayout(/*MIG.GROWX*/));
 		ptitle.add(new JLabel(I18N.getColonMsg("album.title")), MIG.SPLIT2);
 		ptitle.add(title = new JTextField(), MIG.get(MIG.SPAN, MIG.GROWX));
-		title.setText(xml.albumGet().titleGet());
+		XmlAlbum xmlAlbum = xml.albumGet();
+		title.setText(xmlAlbum != null ? xmlAlbum.titleGet() : "");
 		title.setColumns(32);
 		title.addCaretListener(e -> titleChange());
 		pTable.add(ptitle, MIG.get(MIG.GROWX));
-		IconButton bt = new IconButton("", ICONS.K.PHOTO, "album.preview", e -> {
-			JDialog dialog = new JDialog();
-			dialog.setLayout(new MigLayout(MIG.FILL));
-			dialog.setTitle("album.preview");
-			dialog.setSize(1024, 600);
-			dialog.setLocationRelativeTo(this.getParent());
-			dialog.setModal(true);
-			dialog.add(new Gallery(table), MIG.GROW);
-			dialog.setVisible(true);
-		});
-		pTable.add(bt, MIG.SPAN);
 		table = new AlbumTable(this);
-		table.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
+		//table.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
 		JScrollPane scroll = new JScrollPane(table);
-		scroll.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
-		pTable.add(scroll, MIG.get(MIG.SPAN, MIG.GROW));
-		pTable.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
+		//scroll.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
+		pTable.add(scroll, MIG.get(MIG.NEWLINE, MIG.SPAN, MIG.GROW));
+		//pTable.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
 		int minWidth = Ui.getTextWidth("WW | Photo | Commentaire ", table.getFont());
 		table.setMinimumSize(new Dimension(minWidth, 100));
 		scroll.setMinimumSize(new Dimension(minWidth, 100));
@@ -244,34 +277,62 @@ public class Album extends JFrame {
 	 * action when tree selection changed
 	 */
 	private void treeChanged() {
-		//LOG.trace(TT + "treeChanged()");
-		String txt = "";
-		File img = null;
-		TreePath[] paths = tree.getSelectionPaths();
-		if (paths != null && paths.length > 1) {
-			txt = I18N.getMsg("photo.selected", paths.length);
-		} else {
-			DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-			if (node == null) {
-				return;
-			}
-			File imgFile = (File) node.getUserObject();
-			if (imgFile.isDirectory()) {
-				gallery.setRootdir(imgFile);
-			}
-			if (node.isLeaf() && imgFile.isFile()) {
-				if (App.jpegIs(imgFile)) {
-					img = imgFile;
-				} else {
-					LOG.trace("image not JPEG");
-					return;
-				}
+		DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+		if (node == null) {
+			gallery.rootdirSet(null);
+			return;
+		}
+		File imgFile = (File) node.getUserObject();
+		if (imgFile.isDirectory()) {
+			if (isSelectionAllowedForMode(imgFile)) {
+				gallery.rootdirSet(imgFile);
+				String path = imgFile.getPath()
+						.replace(App.preferences.photosDirGet(), "")
+						.substring(1);
+				App.preferences.setString(Pref.KEY.ALBUM_LASTNODE, path);
 			} else {
-				int nb = App.jpegCount(imgFile);
-				txt = String.format("%d %s", nb, I18N.getMsg(nb > 1 ? "photos" : "photo"));
+				gallery.rootdirSet(null);
 			}
+		} else {
+			gallery.rootdirSet(null);
 		}
 		imageAllowed = true;
+	}
+
+	/**
+	 * Vérifie si le dossier sélectionné correspond au niveau autorisé par le VIEW_MODE
+	 * courant
+	 */
+	private boolean isSelectionAllowedForMode(File file) {
+		if (!isNormedDir(file)) {
+			return true;
+		}
+
+		int depth = getNormedDepth(file);
+		int targetDepth = currentViewMode.getLevel() + 1;
+
+		return depth >= targetDepth;
+	}
+
+	/**
+	 * Détermine la profondeur d'un dossier normé
+	 */
+	private int getNormedDepth(File file) {
+		int depth = 0;
+		File current = file;
+		File root = new File(App.preferences.photosDirGet());
+		while (current != null && !current.equals(root) && current.getName().matches("\\d+")) {
+			depth++;
+			current = current.getParentFile();
+		}
+		return depth;
+	}
+
+	/**
+	 * Vérifie si le dossier est normé (numérique)
+	 */
+	private boolean isNormedDir(File dir) {
+		return dir.getName().matches("\\d+");
 	}
 
 	/**
@@ -293,9 +354,9 @@ public class Album extends JFrame {
 		loadTable();
 	}
 
-	public AlbumItem tableRowGet(int i) {
+	public XmlAlbumItem tableRowGet(int i) {
 		if (table == null || table.getRowCount() >= i) {
-			return table.getRow(i);
+			return (XmlAlbumItem) table.getRow(i);
 		}
 		return null;
 	}
@@ -304,6 +365,10 @@ public class Album extends JFrame {
 	 * save the Table content
 	 */
 	public void save() {
+		XmlAlbum xmlAlbum = xml.albumGet();
+		if (xmlAlbum != null) {
+			xmlAlbum.titleSet(title.getText());
+		}
 		table.save(title.getText());
 	}
 
@@ -361,8 +426,11 @@ public class Album extends JFrame {
 		xml = new Xml(file);
 		table.load(xml);
 		loadParam();
-		title.setText(xml.albumGet().titleGet());
-		tree.reload();
+		XmlAlbum xmlAlbum = xml.albumGet();
+		if (xmlAlbum != null) {
+			title.setText(xmlAlbum.titleGet());
+		}
+		tree.reload(currentViewMode);
 	}
 
 	/**
@@ -371,7 +439,6 @@ public class Album extends JFrame {
 	 * @return
 	 */
 	public File fileGet() {
-		//LOG.trace(TT + "fileGet()=" + file.getAbsolutePath());
 		return file;
 	}
 
@@ -388,7 +455,7 @@ public class Album extends JFrame {
 	 * refresh the panel
 	 */
 	public void refreshAll() {
-		tree.reload();
+		tree.reload(currentViewMode);
 		gallery.refresh();
 		fileSet(new File(App.preferences.photosDirGet() + File.separator + "Album.xml"));
 	}
@@ -397,32 +464,36 @@ public class Album extends JFrame {
 	 * add selected photos to the current album
 	 */
 	public void btAddPhotos() {
-		List<ImageLabel> imgList = gallery.getImgList();
-		for (ImageLabel il : imgList) {
+		if (CommentParamDlg.showing(this, true)) {
+			param.setComment(xml.albumGet().getPrefComment());
+		}
+		List<AlbumGalleryCell> imgList = gallery.cellListGet();
+		for (AlbumGalleryCell il : imgList) {
 			File f = il.fileGet();
-			if (il.getSel() == ImageLabel.SEL) {
-				table.addRow(new AlbumItem(table.getRowCount() + 1, param.getComment(f), f));
-				il.setSel(ImageLabel.SEL_ALBUM);
+			if (il.getSel() == AlbumGalleryCell.SEL) {
+				table.rowAdd(new XmlAlbumItem("" + (table.getRowCount() + 1),
+						f.getAbsolutePath(), param.getComment(f)));
+				il.setSel(AlbumGalleryCell.SEL_ALBUM);
 			}
 		}
-		refreshAll();
+		table.setModified();
+		gallery.refresh();
 	}
 
 	/**
 	 * action for button to add folder photos to the current album
 	 */
 	public void btAddAction() {
-		//LOG.trace(TT + "btAddAction()");
-		if (!DiapoParamDlg.showing(this, true)) {
-			return;
+		if (CommentParamDlg.showing(this, true)) {
+			//todo save comment template
 		}
 		DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
 		if (node == null) {
 			return;
 		}
-		List<AlbumItem> treeItems = new ArrayList<>();
+		List<XmlAlbumItem> treeItems = new ArrayList<>();
 		TreePath[] paths = tree.getSelectionPaths();
-		for (TreePath path : tree.getSelectionPaths()) {
+		for (TreePath path : paths) {
 			String nf = path.getLastPathComponent().toString();
 			File fl = new File(nf);
 			if (fl.isDirectory()) {
@@ -432,14 +503,15 @@ public class Album extends JFrame {
 			}
 		}
 		if (!treeItems.isEmpty()) {
-			Collections.sort(treeItems, (AlbumItem f1, AlbumItem f2)
-					-> f1.file.getAbsolutePath().compareTo(f2.file.getAbsolutePath()));
+			Collections.sort(treeItems, (XmlAlbumItem f1, XmlAlbumItem f2)
+					-> f1.photoFile().getAbsolutePath().compareTo(f2.photoFile().getAbsolutePath()));
 			int n = table.getRowCount() + 1;
-			for (AlbumItem item : treeItems) {
-				item.id = n++;
-				table.addRow(item);
+			for (XmlAlbumItem item : treeItems) {
+				item.idSet("" + n++);
+				table.rowAdd(item);
 			}
-			refreshAll();
+			table.setModified();
+			gallery.refresh();
 		}
 	}
 
@@ -447,9 +519,7 @@ public class Album extends JFrame {
 	 * action to change a comment
 	 */
 	public void changeComments() {
-		//LOG.trace(TT + "changeComments()");
-		//show comment dialog to get new comment template
-		DiapoParamDlg dlg = new DiapoParamDlg(this, false);
+		CommentParamDlg dlg = new CommentParamDlg(this, false);
 		dlg.setVisible(true);
 		if (dlg.isCanceled()) {
 			return;
@@ -457,7 +527,6 @@ public class Album extends JFrame {
 		String newComment = dlg.getComment();
 		AlbumTable tb = getTable();
 		int[] rows = tb.getSelectedRows();
-		LOG.log("change comment for " + rows.length + " rows, comment=\"" + newComment + "\"");
 		for (int i = 0; i < rows.length; i++) {
 			tb.updateComment(rows[i], newComment);
 		}
@@ -469,9 +538,11 @@ public class Album extends JFrame {
 	 * @param dir
 	 * @param treeItems
 	 */
-	private void addDir(File dir, List<AlbumItem> treeItems) {
-		//LOG.trace(TT + "addDir(dir=" + dir.getName() + ")");
+	private void addDir(File dir, List<XmlAlbumItem> treeItems) {
 		File[] files = dir.listFiles();
+		if (files == null) {
+			return;
+		}
 		for (File f : files) {
 			if (f.isDirectory()) {
 				addDir(f, treeItems);
@@ -488,10 +559,10 @@ public class Album extends JFrame {
 	 * @param file
 	 * @param treeItems
 	 */
-	private void addFile(File file, List<AlbumItem> treeItems) {
-		//LOG.trace(TT + "addFile(file=" + file.getName() + ")");
+	private void addFile(File file, List<XmlAlbumItem> treeItems) {
 		if (App.jpegIs(file)) {
-			treeItems.add(new AlbumItem(treeItems.size() + 1, param.getComment(file), file));
+			treeItems.add(new XmlAlbumItem("" + treeItems.size() + 1,
+					param.getComment(file), file.getAbsolutePath()));
 		}
 	}
 
@@ -513,6 +584,7 @@ public class Album extends JFrame {
 	 * showing the popup menu
 	 *
 	 * @param e
+	 * @param node
 	 */
 	public void showPopup(MouseEvent e, DefaultMutableTreeNode node) {
 		JPopupMenu popupMenu = new JPopupMenu();
@@ -542,13 +614,13 @@ public class Album extends JFrame {
 			dlg.setVisible(true);
 			if (!dlg.isCancel()) {
 				String origin = FileUtil.removeExtension(file.getName());
-				String date = dlg.getDate();
+				String date = dlg.getDate(); // AAAAMMJJ_hhmmss
 				if (!date.equals(origin)) try {
-					int mode = dlg.getMode();
-					String subdir = getSubdir(date, mode);
-					File out = new File(App.preferences.photosDirGet() + File.separator
-							+ subdir + File.separator + date + ".jpg");
-					out.mkdirs();
+					String subdir = getSubdir(date, 2);
+					File out = new File(App.preferences.photosDirGet()
+							+ File.separator + subdir
+							+ File.separator + date + ".jpg");
+					out.getParentFile().mkdirs();
 					Files.move(file.toPath(), out.toPath(), REPLACE_EXISTING);
 					gallery.refresh();
 				} catch (IOException ex) {
@@ -562,7 +634,9 @@ public class Album extends JFrame {
 	 * change Album title
 	 */
 	private void titleChange() {
-		if (!title.getText().equals(xml.albumGet().titleGet())) {
+		XmlAlbum xmlAlbum = xml.albumGet();
+		if (xmlAlbum != null && !title.getText().equals(xmlAlbum.titleGet())) {
+			xmlAlbum.titleSet(title.getText());
 			table.setModified();
 		}
 	}
@@ -573,10 +647,11 @@ public class Album extends JFrame {
 	 * @return
 	 */
 	public String diapoTitleGet() {
-		return xml.albumGet().titleGet();
+		XmlAlbum xmlAlbum = xml.albumGet();
+		return xmlAlbum != null ? xmlAlbum.titleGet() : "";
 	}
 
-	public Gallery getGallery() {
+	public AlbumGallery getGallery() {
 		return gallery;
 	}
 
@@ -585,27 +660,33 @@ public class Album extends JFrame {
 	 *
 	 * @param il
 	 */
-	public void photoAdd(ImageLabel il) {
-		if (!DiapoParamDlg.showing(this, true)) {
-			return;
+	public void photoAdd(AlbumGalleryCell il) {
+		if (CommentParamDlg.showing(this, true)) {
+			// save comment template
 		}
 		File f = il.fileGet();
-		table.addRow(new AlbumItem(table.getRowCount() + 1, param.getComment(f), f));
+		XmlAlbumItem item = new XmlAlbumItem("" + (table.getRowCount() + 1),
+				f.getAbsolutePath(), param.getComment(f));
+		table.rowAdd(item);
+		table.setModified();
 		save();
 		gallery.refresh();
 	}
 
-	/**
-	 * remove the given photo from the current album
-	 *
-	 * @param lb
-	 */
-	public void photoRemove(ImageLabel lb) {
+	public void photoRemove(AlbumGalleryCell lb) {
 		DefaultTableModel model = (DefaultTableModel) table.getModel();
+		String targetPath = lb.fileGet().getAbsolutePath();
 		for (int row = 0; row < table.getRowCount(); row++) {
-			File f = (File) model.getValueAt(row, 1);
-			if (f.getAbsolutePath().equals(lb.fileGet().getAbsolutePath())) {
-				model.removeRow(row);
+			Object val = model.getValueAt(row, 1);
+			String itemPath = "";
+			if (val instanceof XmlAlbumItem) {
+				itemPath = ((XmlAlbumItem) val).fileGet().getAbsolutePath();
+			} else if (val instanceof File) {
+				itemPath = ((File) val).getAbsolutePath();
+			}
+			if (itemPath.equals(targetPath)) {
+				table.rowRemove(row);
+				table.setModified();
 				save();
 				gallery.refresh();
 				break;
@@ -615,6 +696,17 @@ public class Album extends JFrame {
 
 	public MainFrame getMainFrame() {
 		return App.mainFrame;
+	}
+
+	public VIEW_MODE currentViewModeGet() {
+		return currentViewMode;
+	}
+
+	public void currentViewModeSet(VIEW_MODE mode) {
+		this.currentViewMode = mode;
+		if (cbViewMode != null) {
+			cbViewMode.setSelectedItem(mode);
+		}
 	}
 
 }

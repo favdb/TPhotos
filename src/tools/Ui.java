@@ -149,7 +149,8 @@ public class Ui {
 	 * @param action
 	 * @return
 	 */
-	public static JToggleButton initToggleButton(String text, ICONS.K icon, boolean selected, ActionListener action) {
+	public static JToggleButton initToggleButton(String text, ICONS.K icon,
+			boolean selected, ActionListener action) {
 		JToggleButton bt = new JToggleButton(I18N.getMsg(text));
 		bt.setIcon(IconUtil.getIconSmall(icon));
 		bt.setToolTipText(I18N.getMsg(text + "_tips"));
@@ -166,7 +167,8 @@ public class Ui {
 	 * @param action
 	 * @return
 	 */
-	public static JToggleButton initToggleButton(String text, boolean selected, ActionListener action) {
+	public static JToggleButton initToggleButton(String text,
+			boolean selected, ActionListener action) {
 		JToggleButton bt = new JToggleButton(I18N.getMsg(text));
 		bt.setIcon(IconUtil.getIconSmall(text.replace(".", "_")));
 		bt.setToolTipText(I18N.getMsg(text + "_tips"));

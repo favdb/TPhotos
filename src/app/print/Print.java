@@ -20,7 +20,7 @@ package app.print;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.ui.MainFrame;
-import app.ui.SHEFDialog;
+import app.ui.SherpaDlg;
 import app.xml.Xml;
 import app.xml.XmlPrint;
 import app.xml.XmlPrintPage;
@@ -38,7 +38,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 import resources.icons.ICONS;
-import tools.LOG;
+import tools.Html;
 import tools.Ui;
 
 /**
@@ -82,7 +82,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * initialize this JFrame
+	 * initialize this JPanel
 	 */
 	private void initialize() {
 		//LOG.trace(TT + "initialize()");
@@ -92,8 +92,8 @@ public class Print extends JPanel {
 			pages.add(new XmlPrintPage(xml, "1"));
 		}
 		totalPages = pages.size();
+		cells.clear();
 		cells = xmlPrint.getCells();
-
 		this.setLayout(new MigLayout(MIG.get(MIG.FILL), "[256px][]"));
 		add(poolInit(), MIG.get(MIG.TOP, MIG.GROWY));
 		add(gridInit(), MIG.get(MIG.SPAN, MIG.GROW));
@@ -114,9 +114,9 @@ public class Print extends JPanel {
 		return new PrintCell();
 	}
 
-	//******************************//
-	//** manage the Pool          **//
-	//******************************//
+//***************************************************
+//** manage the Pool
+//***************************************************
 	public Pool poolGet() {
 		return pPool;
 	}
@@ -139,13 +139,13 @@ public class Print extends JPanel {
 	 * Refresh the photos pool
 	 */
 	private void poolRefresh() {
-		LOG.trace(TT + "poolRefresh()");
+		//LOG.trace(TT + "poolRefresh()");
 		pPool.refresh();
 	}
 
-	//******************************//
-	//** manage the Grid          **//
-	//******************************//
+//***************************************************
+//** manage the Grid
+//***************************************************
 	/**
 	 * get the current page of the grid
 	 *
@@ -233,7 +233,16 @@ public class Print extends JPanel {
 		}
 		if (modified) {
 			actionSave();
+			refresh();
 		}
+	}
+
+	private void gridClearAll() {
+		for (PrintCell cell : cells) {
+			cell.pageSet(0);
+		}
+		xml.save();
+		refresh();
 	}
 
 	/**
@@ -251,7 +260,7 @@ public class Print extends JPanel {
 			xmlPrint.formatSet(paperFormatGet());
 			xml.save();
 		});
-		//p.add(cbFormat);
+		//p.addLib(cbFormat);
 
 		String orList[] = {I18N.getMsg("print.orientation_portrait"),
 			I18N.getMsg("print.orientation_landscape")};
@@ -263,12 +272,14 @@ public class Print extends JPanel {
 		p.add(cbOrientation);
 		p.add(Ui.initIconButton("btRefresh", ICONS.K.REFRESH, "print.refresh", e -> refresh()));
 		p.add(Ui.initIconButton("btAddAll", ICONS.K.AR_RIGHT, "print.add_all", e -> gridAddAll()));
+		p.add(Ui.initIconButton("btRemoveAll", ICONS.K.CANCEL, "print.clear_all",
+				e -> gridClearAll()));
 		JPanel pNav = new JPanel(new MigLayout("ins 0, alignx right"));
-		btPagePrev = Ui.initIconButton("btPagePrev", ICONS.K.NAV_PREV, e -> GridNavigation(-1));
+		btPagePrev = Ui.initIconButton("btPagePrev", ICONS.K.NAV_PREV, e -> gridNavigation(-1));
 		pNav.add(btPagePrev);
 		lbPage = new JLabel(I18N.getMsg("print.page") + " 1 / 1");
 		pNav.add(lbPage, "gapx 1 1");
-		btPageNext = Ui.initIconButton("btPageNext", ICONS.K.NAV_NEXT, e -> GridNavigation(1));
+		btPageNext = Ui.initIconButton("btPageNext", ICONS.K.NAV_NEXT, e -> gridNavigation(1));
 		pNav.add(btPageNext);
 		pNav.add(Ui.initIconButton("btPageAdd", ICONS.K.PLUS, "print.page_add", e -> gridPageAdd()));
 
@@ -278,7 +289,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * add a page to the grid
+	 * addLib a page to the grid
 	 */
 	private void gridPageAdd() {
 		//LOG.trace(TT + "gridPageAdd()");
@@ -320,8 +331,8 @@ public class Print extends JPanel {
 				e -> actionPreview()));
 		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT,
 				e -> Printer.executePrint(this)));
-		p.add(Ui.initButton("print.action_close", ICONS.K.EXIT,
-				e -> actionClose()));
+		/*p.addLib(Ui.initButton("print.action_close", ICONS.K.EXIT,
+				e -> actionClose()));*/
 		return p;
 	}
 
@@ -329,34 +340,18 @@ public class Print extends JPanel {
 	 * refresh this Print
 	 */
 	public void refresh() {
-		LOG.trace(TT + "refresh()");
+		//LOG.trace(TT + "refresh()");
 		pPool.refresh();
 		pGrid.refresh();
 		refreshButtons();
 	}
 
 	/**
-	 * Reinit action for the grid and the pool
-	 */
-	private void actionReinit() {
-		int rows = isPortrait ? 5 : 3;
-		int cols = isPortrait ? 3 : 5;
-		int cellsPerPage = rows * cols;
-		int row_count = mainFrame.albumGet().getTable().getRowCount();
-		if (row_count == 0) {
-			totalPages = 1;
-		} else {
-			totalPages = (int) Math.ceil((double) row_count / cellsPerPage);
-		}
-		currentPage = 1;
-		refresh();
-	}
-
-	/**
 	 * Refresh the status of the buttons
 	 */
 	private void refreshButtons() {
-		lbPage.setText(String.format("%s %d / %d", I18N.getMsg("print.page"), currentPage, totalPages));
+		lbPage.setText(String.format("%s %d / %d",
+				I18N.getMsg("print.page"), currentPage, totalPages));
 		btPagePrev.setEnabled(currentPage > 1);
 		btPageNext.setEnabled(currentPage < totalPages);
 	}
@@ -366,7 +361,7 @@ public class Print extends JPanel {
 	 *
 	 * @param direction
 	 */
-	private void GridNavigation(int direction) {
+	private void gridNavigation(int direction) {
 		currentPage += direction;
 		if (currentPage < 1) {
 			currentPage = 1;
@@ -383,30 +378,6 @@ public class Print extends JPanel {
 	private void gridRefresh() {
 		//LOG.trace(TT + "gridRefresh()");
 		pGrid.refresh();
-	}
-
-	/**
-	 * action for previewing in default browser as a HTML
-	 */
-	private void actionPreview() {
-		File fx = mainFrame.albumGet().fileGet();
-		File dirDest = fx.getParentFile();
-		File outfile = new File(dirDest, fx.getName().replace(".xml", "") + "_print.html");
-		BuilderHtml.generateHTML(this, outfile, true);
-	}
-
-	/**
-	 * action for previewing in default browser as a HTML
-	 */
-	private void actionPrint() {
-		Printer.executePrint(this);
-	}
-
-	/**
-	 * action for close (return to the default album panel)
-	 */
-	private void actionClose() {
-		mainFrame.printHide();
 	}
 
 	/**
@@ -436,13 +407,129 @@ public class Print extends JPanel {
 		return xmlPrint;
 	}
 
+//***************************************************
+//** main actions
+//***************************************************
 	/**
-	 * Save Print data
+	 * Reinit action for the grid and the pool
+	 */
+	private void actionReinit() {
+		int rows = isPortrait ? 5 : 3;
+		int cols = isPortrait ? 3 : 5;
+		int cellsPerPage = rows * cols;
+		int row_count = mainFrame.albumGet().getTable().getRowCount();
+		if (row_count == 0) {
+			totalPages = 1;
+		} else {
+			totalPages = (int) Math.ceil((double) row_count / cellsPerPage);
+		}
+		currentPage = 1;
+		refresh();
+	}
+
+	/**
+	 * action for previewing in default browser as a HTML
+	 */
+	private void actionPreview() {
+		File fx = mainFrame.albumGet().fileGet();
+		File dirDest = fx.getParentFile();
+		File outfile = new File(dirDest,
+				fx.getName().replace(".xml", "") + "_print.html");
+		BuilderHtml.generateHTML(this, outfile, true);
+	}
+
+	/**
+	 * action for close (return to the default album panel)
+	 */
+	private void actionClose() {
+		mainFrame.printHide();
+	}
+
+	/**
+	 * action for previewing in default browser as a HTML
+	 */
+	private void actionPrint() {
+		Printer.executePrint(this);
+	}
+
+	/**
+	 * action for saving the Print data
 	 */
 	public void actionSave() {
 		//LOG.trace(TT + "actionSave()");
 		PrintCell.sortByPage(cells);
 		xml.save();
+	}
+
+	/**
+	 * update the given PrintCell
+	 *
+	 * @param dest
+	 * @param pageGet
+	 * @param posGet
+	 */
+	public void updateCell(PrintCell dest, int pageGet, String posGet) {
+		xmlPrint.updateCell(dest, pageGet, posGet);
+		xml.save();
+		refresh();
+	}
+
+	/**
+	 * swap the two given PrintCell
+	 *
+	 * @param srce
+	 * @param dest
+	 */
+	public void swapCell(PrintCell srce, PrintCell dest) {
+		int sPage = srce.pageGet();
+		String sPos = srce.posGet();
+		srce.pageSet(dest.pageGet());
+		srce.posSet(dest.posGet());
+		dest.pageSet(sPage);
+		dest.posSet(sPos);
+		xml.save();
+		pGrid.refresh();
+	}
+
+	/**
+	 * SHERPA editor to edit the given PrintCell text
+	 *
+	 * @param item
+	 */
+	public void textEdit(PrintCell item) {
+		SherpaDlg dlg = new SherpaDlg(mainFrame, item.textGet());
+		if (dlg.isSaved()) {
+			String txt = dlg.getHtmlContent();
+			if (Html.htmlToText(txt).isEmpty()) {
+				return;
+			}
+			item.textSet(txt);
+			xml.save();
+			refresh();
+		}
+	}
+
+	/**
+	 * SHERPA editor to create a new text
+	 *
+	 * @param item
+	 */
+	public void textCreate(PrintCell item) {
+		SherpaDlg dlg = new SherpaDlg(mainFrame, "", "print.text_create");
+		if (dlg.isSaved()) {
+			String txt = dlg.getHtmlContent();
+			if (Html.htmlToText(txt).isEmpty()) {
+				return;
+			}
+			xml.libsGet().addLib(txt);
+			PrintCell cell = new PrintCell(xml.libsGet().getAll().size() - 1,
+					dlg.getHtmlContent(),
+					item.pageGet(),
+					item.posGet());
+			xmlPrint.addCell(cell);
+			xml.save();
+			refresh();
+		}
 	}
 
 //***************************************************
@@ -480,42 +567,4 @@ public class Print extends JPanel {
 		refresh();
 	}
 
-	public void shefEdit(PrintCell item) {
-		SHEFDialog dlg = new SHEFDialog(mainFrame, item.textGet());
-		if (dlg.isSaved()) {
-			item.textSet(dlg.getHtmlContent());
-			xml.save();
-			refresh();
-		}
-	}
-
-	public void updateCell(PrintCell dest, int pageGet, String posGet) {
-		xmlPrint.updateCell(dest, pageGet, posGet);
-		xml.save();
-		refresh();
-	}
-
-	public void swapCell(PrintCell srce, PrintCell dest) {
-		int sPage = srce.pageGet();
-		String sPos = srce.posGet();
-		srce.pageSet(dest.pageGet());
-		srce.posSet(dest.posGet());
-		dest.pageSet(sPage);
-		dest.posSet(sPos);
-		xml.save();
-		pGrid.refresh();
-	}
-
-	public void textCreate(PrintCell item) {
-		SHEFDialog dlg = new SHEFDialog(mainFrame, "");
-		if (dlg.isSaved()) {
-			PrintCell cell = new PrintCell(xml.libsGet().getAll().size() + 1,
-					dlg.getHtmlContent(),
-					item.pageGet(),
-					item.posGet());
-			xmlPrint.addCell(cell);
-			xml.save();
-			refresh();
-		}
-	}
 }

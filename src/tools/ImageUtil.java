@@ -19,13 +19,13 @@ package tools;
 
 import app.App;
 import app.album.AlbumTree;
+import app.ui.MainFrame;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.MediaTracker;
 import java.awt.RenderingHints;
-import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -108,6 +108,7 @@ public class ImageUtil {
 	}
 
 	public static ImageIcon getThumb(File srce, int size) {
+		//LOG.trace(TT + "getThumb(srce=" + srce.getAbsolutePath() + ", size=" + size);
 		File cacheDir = new File(CACHE_PATH);
 		if (!cacheDir.exists()) {
 			cacheDir.mkdirs();
@@ -193,52 +194,58 @@ public class ImageUtil {
 		return null;
 	}
 
-	public static ImageIcon getImage(String f, int size) {
-		File ff = new File(f);
-		if (!ff.exists()) {
-			ff = new File(App.preferences.photosDirGet() + File.separator + f);
+	private static File getImageFile(String f) {
+		File fx = new File(f);
+		if (!fx.isAbsolute()) {
+			fx = new File(App.preferences.photosDirGet(), f);
+		} else if (!fx.exists()) {
+			fx = new File(App.preferences.photosDirGet(), fx.getPath());
 		}
+		return fx;
+	}
+
+	private static File getImageFile(File f) {
+		if (f.exists()) {
+			return f;
+		}
+		return new File(App.preferences.photosDirGet(), f.getPath());
+	}
+
+	public static ImageIcon getImage(String f, int size) {
+		File ff = getImageFile(f);
 		return getImage(ff, size);
 	}
 
 	public static ImageIcon getImage(String f, Dimension size) {
-		//LOG.trace(TT + "getImage(file=" + f + ", size=" + size.toString() + ")");
-		File ff = new File(f);
-		if (!ff.exists()) {
-			ff = new File(App.preferences.photosDirGet() + File.separator + f);
-		}
+		//LOG.trace(TT + "getImage(file=" + f + ", size dim=" + size.toString() + ")");
+		File ff = getImageFile(f);
 		return getImage(ff, size);
 	}
 
 	public static ImageIcon getImage(File f, int size) {
 		//LOG.trace(TT + "getImage(file=" + f.getAbsolutePath() + ", size=" + size + ")");
+		File fx = getImageFile(f);
 		ImageIcon img;
-		if (f.exists()) {
-			img = new ImageIcon(f.getAbsolutePath());
+		if (fx.exists()) {
+			img = new ImageIcon(fx.getAbsolutePath());
 		} else {
-			LOG.err("image " + f.getAbsolutePath() + " not exists");
-			File ff = new File(App.preferences.photosDirGet() + File.separator + f.getName());
-			if (ff.exists()) {
-				img = new ImageIcon(f.getAbsolutePath());
-			} else {
-				img = IconUtil.getImageIcon(ICONS.K.UNKNOWN, size);
-			}
+			img = IconUtil.getImageIcon(ICONS.K.UNKNOWN, size);
+			LOG.err(TT + "getImage(" + f.getAbsolutePath() + ", size=" + size
+					+ ") " + fx.getAbsolutePath() + " not exists");
 		}
 		return resizeIcon(img, size);
 	}
 
 	public static ImageIcon getImage(File f, Dimension size) {
 		//LOG.trace(TT + "getImage(file=" + f.getAbsolutePath() + ", size=" + size.toString() + ")");
+		File fx = getImageFile(f);
 		ImageIcon img;
-		if (f.exists()) {
+		if (fx.exists()) {
 			img = new ImageIcon(f.getAbsolutePath());
 		} else {
-			File ff = new File(App.preferences.photosDirGet() + File.separator + f.getName());
-			if (ff.exists()) {
-				img = new ImageIcon(f.getAbsolutePath());
-			} else {
-				img = IconUtil.getImageIcon(ICONS.K.UNKNOWN, size.width);
-			}
+			img = IconUtil.getImageIcon(ICONS.K.UNKNOWN, size.width);
+			LOG.err(TT + "getImage(" + f.getAbsolutePath() + ", size=" + size.toString()
+					+ ") " + fx.getAbsolutePath() + " not exists");
 		}
 		return resizeIcon(img, size);
 	}
@@ -311,17 +318,18 @@ public class ImageUtil {
 		return new ImageIcon(resultImage);
 	}
 
-	public static void showPhoto(Window parent, String fichier) {
+	public static void showPhoto(MainFrame parent, File file) {
+		//LOG.trace(TT + "showPhoto(parent, file=" + file + ")");
 		try {
-			File fImg = new File(App.preferences.photosDirGet(), fichier);
-			ImageIcon img = getImage(fichier, App.mainFrame.getSize());
+			ImageIcon img = getImage(file, App.mainFrame.getSize().height);
 			JDialog dlg = new JDialog(parent,
-					"Aperçu de la photo " + fImg.getAbsolutePath());
+					"Aperçu de la photo " + getImageFile(file));
 			dlg.setModal(true);
 			dlg.add(new JLabel(img));
 			dlg.pack();
 			dlg.setLocationRelativeTo(parent);
 			dlg.setVisible(true);
+			//todo ajout la possibilité de "naviguer" (next/previux)
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
 		}

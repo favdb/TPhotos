@@ -17,6 +17,7 @@
  */
 package app.ui;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
 import i18n.I18N;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
+import java.util.Properties;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -37,7 +39,6 @@ import resources.MainResources;
 import resources.icons.ICONS;
 import tools.Html;
 import tools.LOG;
-import api.mig.MIG;
 import tools.Ui;
 import tools.file.FileUtil;
 
@@ -115,10 +116,12 @@ public class AboutDlg extends JDialog {
 	 */
 	private JPanel initVersions() {
 		JPanel p = new JPanel(new MigLayout(MIG.FILL));
+		getBuildDate();
 		JTextPane tx = new JTextPane();
 		tx.setContentType("text/html");
 		tx.setEditable(false);
-		String str = FileUtil.resourceRead("Versions.TXT", MainResources.class).replace("\n", "<br>");
+		String str = "<i>build date: " + getBuildDate() + "</i><br><br>"
+				+ (FileUtil.resourceRead("Versions.TXT", MainResources.class).replace("\n", "<br>"));
 		tx.setText(Html.intoHtml(str));
 		tx.setPreferredSize(new Dimension(680, 650));
 		JScrollPane scroll = new JScrollPane(tx);
@@ -142,6 +145,17 @@ public class AboutDlg extends JDialog {
 		} catch (URISyntaxException | IOException e) {
 			LOG.err(TT + "openBrowser(" + url + ")", e);
 		}
+	}
+
+	public String getBuildDate() {
+		try {
+			Properties buildProps = new Properties();
+			buildProps.load(getClass().getResourceAsStream("/buildinfo.properties"));
+			return (buildProps.getProperty("build.date"));
+		} catch (IOException ex) {
+			LOG.err("AboutDlg.getBuildDate() exception", ex);
+		}
+		return "????";
 	}
 
 }

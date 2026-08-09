@@ -55,39 +55,42 @@ public class XmlPrint {
 	public void load() {
 		//LOG.trace(TT + "load()");
 		NodeList node = xml.getDocument().getElementsByTagName("print");
-		format = xml.attributeGet((Element) node.item(0), "format");
-		orientation = xml.attributeGet((Element) node.item(0), "orient");
+		if (node.getLength() > 0) {
+			format = xml.attributeGet((Element) node.item(0), "format");
+			orientation = xml.attributeGet((Element) node.item(0), "orient");
 
-		// 1. Initialise la liste globale unique de référence avec TOUTES les instances possibles
-		loadCells();
+			// 1. Initialise la liste globale unique de référence avec TOUTES les instances possibles
+			loadCells();
 
-		// 2. Recréation des structures de pages (sans données internes dupliquées)
-		pages.clear();
-		NodeList pagesnode = xml.getDocument().getElementsByTagName("page");
+			// 2. Recréation des structures de pages (sans données internes dupliquées)
+			pages.clear();
+			NodeList pagesnode = xml.getDocument().getElementsByTagName("page");
 
-		for (int i = 0; i < pagesnode.getLength(); i++) {
-			Node pageNode = pagesnode.item(i);
-			int pageId = XmlUtil.integerGet(pageNode, "id");
-			pages.add(new XmlPrintPage(xml, XmlUtil.stringGet(pageNode, "id")));
+			for (int i = 0; i < pagesnode.getLength(); i++) {
+				Node pageNode = pagesnode.item(i);
+				int pageId = XmlUtil.integerGet(pageNode, "id");
+				pages.add(new XmlPrintPage(xml, XmlUtil.stringGet(pageNode, "id")));
 
-			NodeList cellnodes = ((Element) pageNode).getElementsByTagName("cell");
-			for (int ii = 0; ii < cellnodes.getLength(); ii++) {
-				Element el = (Element) cellnodes.item(ii);
+				NodeList cellnodes = ((Element) pageNode).getElementsByTagName("cell");
+				for (int ii = 0; ii < cellnodes.getLength(); ii++) {
+					Element el = (Element) cellnodes.item(ii);
 
-				String type = XmlUtil.stringGet(el, "type");
-				int ref = XmlUtil.integerGet(el, "ref");
-				int page = XmlUtil.integerGet(el, "page");
-				String pos = XmlUtil.stringGet(el, "pos");
+					String type = XmlUtil.stringGet(el, "type");
+					int ref = XmlUtil.integerGet(el, "ref");
+					int page = XmlUtil.integerGet(el, "page");
+					String pos = XmlUtil.stringGet(el, "pos");
 
-				// 3. Recherche de la VRAIE cellule de référence déjà existante
-				for (PrintCell target : cells) {
-					int cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
+					// 3. Recherche de la VRAIE cellule de référence déjà existante
+					for (PrintCell target : cells) {
+						int cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
 
-					// Si le type et l'ID métier correspondent, on lui injecte ses coordonnées
-					if ((target.typeGet().equals(type) || target.typeGet().startsWith(type)) && cId == ref) {
-						target.pageSet(pageId);
-						target.posSet(pos);
-						break;
+						// Si le type et l'ID métier correspondent, on lui injecte ses coordonnées
+						if ((target.typeGet().equals(type)
+								|| target.typeGet().startsWith(type)) && cId == ref) {
+							target.pageSet(pageId);
+							target.posSet(pos);
+							break;
+						}
 					}
 				}
 			}
@@ -174,10 +177,10 @@ public class XmlPrint {
 	public void loadCells() {
 		//LOG.trace(TT + "loadCells()");
 		cells.clear();
-		List<XmlAlbumPhoto> xphotos = xml.albumGet().photosAllGet();
-		for (XmlAlbumPhoto x : xphotos) {
+		List<XmlAlbumItem> xphotos = xml.albumGet().itemsGet();
+		for (XmlAlbumItem x : xphotos) {
 			int cellid = Integer.parseInt(x.idGet());
-			cells.add(new PrintCell(cellid, cellid, x.fileGet(), x.commentGet(), 0));
+			cells.add(new PrintCell(cellid, cellid, x.photoGet(), x.commentGet(), 0));
 		}
 		int nid = 1;
 		for (XmlLib x : xml.libsGet().getAll()) {
@@ -195,7 +198,7 @@ public class XmlPrint {
 				Element child = (Element) nodes.item(i);
 				if (xml.attributeGet(child, "id").equals(id)) {
 					pc.cellIdSet(XmlUtil.integerGet(child, "id"));
-					pc.photoFileSet(XmlUtil.stringGet(child, "file"));
+					pc.photoNameSet(XmlUtil.stringGet(child, "file"));
 					pc.commentSet(XmlUtil.stringGet(child, "comment"));
 					return pc;
 				}
@@ -262,6 +265,13 @@ public class XmlPrint {
 
 	public void addCell(PrintCell cell) {
 		cells.add(cell);
+	}
+
+	public void updateAll() {
+		//check all print item exists in XmlAlbumItem
+		cells.clear();
+		pages.clear();
+		loadCells();
 	}
 
 }

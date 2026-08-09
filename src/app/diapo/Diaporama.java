@@ -17,9 +17,11 @@
  */
 package app.diapo;
 
-import app.album.AlbumTable;
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.album.AlbumTable;
 import app.ui.MainFrame;
+import app.xml.XmlAlbumItem;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -35,22 +37,22 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import resources.icons.ICONS;
 import resources.icons.IconUtil;
-import api.mig.MIG;
+import tools.file.FileUtil;
 
 /**
  * class for diaporama
  *
  * @author favdb
  */
-public class DiapoPreview extends JFrame {
+public class Diaporama extends JFrame {
 
 	private static final Dimension SCREEN = Toolkit.getDefaultToolkit().getScreenSize();
 	private final MainFrame mainFrame;
 	private AlbumTable table;
 	private JLabel lbImage, lbText;
-	private int nbImage, curImage = 0;
+	private int nbImage, curRow = 0;
 
-	public DiapoPreview(MainFrame mainFrame) {
+	public Diaporama(MainFrame mainFrame) {
 		super();
 		this.mainFrame = mainFrame;
 		initialize();
@@ -111,7 +113,8 @@ public class DiapoPreview extends JFrame {
 	public void setImage(File file, String text) {
 		int sz = SCREEN.height - (int) (lbText.getFont().getSize() * 2);
 		updateSize(lbImage, sz);
-		lbImage.setIcon(IconUtil.getJpegIconFromFile(file, new Dimension(SCREEN.width, sz)));
+		File fimg = FileUtil.getPhotoFile(file);
+		lbImage.setIcon(IconUtil.getJpegIconFromFile(fimg, new Dimension(SCREEN.width, sz)));
 		lbText.setText(text.trim());
 	}
 
@@ -135,17 +138,20 @@ public class DiapoPreview extends JFrame {
 	 */
 	public void navImage(int n) {
 		if (n == Integer.MAX_VALUE) {
-			curImage = table.getRowCount() - 1;
+			curRow = table.getRowCount() - 1;
 		} else {
-			curImage += n;
-			if (curImage < 0) {
-				curImage = 0;
-			} else if (curImage >= table.getRowCount()) {
+			curRow += n;
+			if (curRow < 0) {
+				curRow = 0;
+			} else if (curRow >= table.getRowCount()) {
 				dispose();
 				return;
 			}
 		}
-		setImage((File) table.getValueAt(curImage, 1), (String) table.getValueAt(curImage, 2));
+		XmlAlbumItem photo = mainFrame.albumGet().xmlGet().albumGet().itemGet(curRow);
+		//File f = photo.fileGet();
+		//LOG.trace("Diaporama f=" + f.getAbsolutePath());
+		setImage(photo.fileGet(), photo.commentGet());
 	}
 
 	/**
@@ -174,7 +180,7 @@ public class DiapoPreview extends JFrame {
 			switch (key) {
 				case KeyEvent.KEY_FIRST:
 				case KeyEvent.VK_HOME:
-					curImage = -1;
+					curRow = -1;
 					navImage(1);
 					break;
 				case KeyEvent.VK_RIGHT:

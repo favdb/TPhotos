@@ -17,7 +17,7 @@
  */
 package app.export;
 
-import app.album.AlbumItem;
+import app.xml.XmlAlbumItem;
 import java.io.File;
 import java.util.List;
 import tools.file.FileUtil;
@@ -32,7 +32,7 @@ public class ExportHTML {
 	private final Export export;
 	private StringBuilder html;
 	private final File dir;
-	private List<AlbumItem> items;
+	private List<XmlAlbumItem> items;
 	private final String title;
 
 	public ExportHTML(Export export, File dir) {
@@ -41,25 +41,25 @@ public class ExportHTML {
 		this.title = export.getMainFrame().diapoTitleGet();
 	}
 
-	public void begin(List<AlbumItem> items) {
+	public void begin(List<XmlAlbumItem> items) {
 		this.items = items;
 		createScript(items);
 		createStyle();
 		end();
 	}
 
-	private void createScript(List<AlbumItem> items) {
+	private void createScript(List<XmlAlbumItem> items) {
 		html = new StringBuilder();
 		StringBuilder files = new StringBuilder();
 		StringBuilder texts = new StringBuilder();
-		for (AlbumItem item : items) {
+		for (XmlAlbumItem item : items) {
 			if (!files.toString().isEmpty()) {
 				files.append(", \n");
 				texts.append(", \n");
 			}
-			files.append("\"").append(item.file.getName()).append("\"");
-			String ftxt = FileUtil.changeExt(item.file.getName(), "txt");
-			texts.append("\"").append(item.text).append("\"");
+			files.append("\"").append(item.fileGet().getName()).append("\"");
+			String ftxt = FileUtil.changeExt(item.fileGet().getName(), "txt");
+			texts.append("\"").append(item.commentGet()).append("\"");
 		}
 		html.append("let slideIndex = 0;\n")
 				.append("const imagePaths = [").append(files.toString()).append("];\n")
@@ -143,26 +143,24 @@ public class ExportHTML {
 
 	public void end() {
 		html = new StringBuilder();
-		html.append("<!DOCTYPE html>\n"
-				+ "<html lang=\"fr\">\n"
-				+ "<head>\n"
-				+ "    <meta charset=\"UTF-8\">\n"
-				+ "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-				+ "    <title>" + title + "</title>\n"
-				+ "    <link rel=\"stylesheet\" href=\"styles.css\">\n"
-				+ "</head>\n"
-				+ "<body>\n"
-				+ "    <div class=\"slideshow-container\">\n"
-				+ "        <div class=\"slideshow\">\n"
-				+ "            <img id=\"slideshow-image\" src=\"\" alt=\"Image\" />\n"
-				+ "            <div id=\"slideshow-text\" class=\"slideshow-text\"></div>\n"
-				+ "        </div>\n"
-				+ "        <a class=\"prev\" onclick=\"changeSlide(-1)\">&#10094;</a>\n"
-				+ "        <a class=\"next\" onclick=\"changeSlide(1)\">&#10095;</a>\n"
-				+ "    </div>\n"
-				+ "    <script src=\"script.js\"></script>\n"
-				+ "</body>\n"
-				+ "</html>");
+		html.append("<!DOCTYPE html>\n")
+				.append("<html lang=\"fr\">\n<head>\n")
+				.append("<meta charset=\"UTF-8\">\n")
+				.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n")
+				.append("<title>").append(title).append("</title>\n")
+				.append("<link rel=\"stylesheet\" href=\"styles.css\">\n")
+				.append("</head>\n<body>\n")
+				.append("    <div class=\"slideshow-container\">\n")
+				.append("        <div class=\"slideshow\">\n")
+				.append("            <img id=\"slideshow-image\" src=\"\" alt=\"Image\" />\n")
+				.append("            <div id=\"slideshow-text\" class=\"slideshow-text\"></div>\n")
+				.append("        </div>\n")
+				.append("        <a class=\"prev\" onclick=\"changeSlide(-1)\">&#10094;</a>\n")
+				.append("        <a class=\"next\" onclick=\"changeSlide(1)\">&#10095;</a>\n")
+				.append("    </div>\n")
+				.append("    <script src=\"script.js\"></script>\n")
+				.append("</body>\n")
+				.append("</html>");
 		FileUtil.fileWriteString(new File(dir, "Album.html"), html.toString());
 	}
 

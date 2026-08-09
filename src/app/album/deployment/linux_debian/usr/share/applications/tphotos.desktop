@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=TPhotos
+Version=2.02
+Terminal=false
+Icon=/usr/share/icons/tphotos.png
+Exec=/usr/bin/tphotos
+Categories=Photography;Graphics;FileTools
+Comment=Manage photos.
+Comment[fr]=Gestion de photos
+Name[fr_FR]=TPhotos
+Keywords=Photo

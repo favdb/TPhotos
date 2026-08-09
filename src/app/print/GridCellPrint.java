@@ -1,6 +1,5 @@
 package app.print;
 
-import app.App;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Shape;
@@ -10,6 +9,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import tools.LOG;
+import tools.file.FileUtil;
 
 /**
  * Handles rendering of individual cells onto a Graphics2D surface.
@@ -60,19 +60,17 @@ public class GridCellPrint {
 	 * @param w
 	 * @param h
 	 */
-	private static void drawPhoto(Graphics2D g2d,
-			PrintCell cell, int x, int y, int w, int h) {
-		String filePath = cell.photoFileGet();
+	private static void drawPhoto(Graphics2D g2d, PrintCell cell, int x, int y, int w, int h) {
+		String filePath = cell.photoNameGet();
 		if (filePath == null || filePath.isEmpty()) {
 			return;
 		}
-		File imgFile = new File(App.preferences.photosDirGet(), filePath);
-		if (!imgFile.exists()) {
-			imgFile = new File(filePath);
-		}
+		// Obtention du fichier résolu
+		File imgFile = FileUtil.getPhotoFile(cell.photoFileGet());
 		if (!imgFile.exists()) {
 			return;
 		}
+
 		try {
 			BufferedImage img = ImageIO.read(imgFile);
 			if (img == null) {

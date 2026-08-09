@@ -7,6 +7,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
  */
 public class PoolCell extends DefaultMutableTreeNode {
 
+	private static final String TT = "PoolCell.";
+
 	private PrintCell poolCell;
 
 	public PoolCell(PrintCell printCell) {

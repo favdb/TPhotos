@@ -331,7 +331,7 @@ public class App {
 	 * do the sorter
 	 */
 	public static void sorterDo() {
-		mainFrame.doSorter();
+		mainFrame.doOrganizer();
 	}
 
 	/**
@@ -354,7 +354,7 @@ public class App {
 	public static void updateTitle() {
 		if (mainFrame != null) {
 			mainFrame.titleUpdate();
-			diaporamaEnable();
+			diapoEnable();
 		}
 	}
 
@@ -368,11 +368,12 @@ public class App {
 	/**
 	 * enable the diaporama
 	 */
-	public static void diaporamaEnable() {
+	public static void diapoEnable() {
 		if (mainFrame != null) {
 			boolean b = mainFrame.albumGet().getTable().getRowCount() > 0;
 			if (mainFrame.appMenu.btDiapo != null) {
 				mainFrame.appMenu.btDiapo.setVisible(b);
+				mainFrame.appMenu.btPrint.setVisible(b);
 				mainFrame.appMenu.btExport.setVisible(b);
 			}
 		}
@@ -413,7 +414,7 @@ public class App {
 	}
 
 	public static void printDo() {
-		mainFrame.printDo();
+		mainFrame.doPrint();
 	}
 
 }

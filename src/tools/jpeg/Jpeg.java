@@ -29,8 +29,8 @@ import javax.swing.SwingUtilities;
 import tools.LOG;
 
 /**
- * Jpeg class is used to store all information of a jpeg file. It contains all structures of a jpeg.
- * adapted from https://github.com/drewnoakes/metadata-extractor
+ * Jpeg class is used to store all information of a jpeg file. It contains all structures
+ * of a jpeg. adapted from https://github.com/drewnoakes/metadata-extractor
  */
 public class Jpeg {
 
@@ -141,7 +141,7 @@ public class Jpeg {
 
 	public static String getDate(File file) {
 		try {
-			if (!file.exists()) {
+			if (!file.exists() || file.isDirectory()) {
 				return null;
 			}
 			String str = null;

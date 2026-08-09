@@ -95,7 +95,7 @@ public class XmlLibs {
 	 *
 	 * * @param id l'identifiant du texte à modifier
 	 * @param id
-	 * @param newText le nouveau texte HTML provenant de SHEF
+	 * @param newText le nouveau texte HTML
 	 */
 	public void libUpdate(int id, String newText) {
 		//todo à réécrire
@@ -122,9 +122,17 @@ public class XmlLibs {
 		return b.toString();
 	}
 
+	public void addLib(String value) {
+		libs.add(new XmlLib(libs.size() + 1, value));
+	}
+
 	public class XmlLib {
 
 		private String id = "", text = "";
+
+		public XmlLib(int id, String text) {
+			this("" + id, text);
+		}
 
 		public XmlLib(String id, String text) {
 			this.id = id;

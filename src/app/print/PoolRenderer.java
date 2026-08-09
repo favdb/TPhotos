@@ -53,7 +53,7 @@ public class PoolRenderer extends DefaultTreeCellRenderer {
 		Component comp = super.getTreeCellRendererComponent(tree, value, sel,
 				expanded, leaf, row, hasFocus);
 
-		// Extraction sécurisée de la PrintCell depuis le nœud[cite: 10]
+		// Extraction sécurisée du PrintCell depuis le noeud
 		PrintCell cell = null;
 		if (value instanceof PoolCell) {
 			cell = ((PoolCell) value).printCellGet();
@@ -67,26 +67,26 @@ public class PoolRenderer extends DefaultTreeCellRenderer {
 		// Si on a trouvé une cellule, on applique le rendu graphique personnalisé[cite: 10]
 		if (cell != null) {
 			if (cell.isPhoto()) {
-				// Reconstitution et vérification du chemin d'accès
-				String fullPath = app.App.preferences.photosDirGet() + File.separator + cell.photoFileGet();
-				File fileCheck = new File(fullPath);
-
-				if (!fileCheck.exists() && cell.photoFileGet() != null) {
-					fileCheck = new File(cell.photoFileGet());
-				}
-
+				File fileCheck = cell.photoFileGet();
 				if (fileCheck.exists() && fileCheck.isFile()) {
-					setIcon(ImageUtil.getImage(cell.photoFileGet(), icon_sz - ins));
+					setIcon(ImageUtil.getThumb(fileCheck, icon_sz - ins));
 				} else {
-					// Fallback : Texte HTML rouge explicite indiquant que le fichier est inconnu
-					String filename = (cell.photoFileGet() != null) ? new File(cell.photoFileGet()).getName() : "?";
-					String errorTxt = "<html><body style='padding:2px; text-align:center; color:red; font-size:9px;'>"
-							+ "<b>⚠️ [?]</b><br>"
-							+ "<small style='font-size:8px;'>" + filename + "</small></body></html>";
+					String filename = fileCheck.getAbsolutePath();
+					String errorTxt = "<html><body "
+							+ "style=\"padding:2px; "
+							+ "text-align:center; "
+							+ "color:red; "
+							+ "font-size:9px;\">"
+							+ "<b>⚠️ [?]</b>" + filename + " not find"
+							+ "</body>"
+							+ "</html>";
 					setIcon(ImageUtil.createTextImage(errorTxt, icon_sz - ins));
 				}
 			} else {
-				String txt = "<html><body style='padding:5px;'>" + cell.textGet() + "</body></html>";
+				String txt = "<html>"
+						+ "<body style=\"padding:5px;\">" + cell.textGet()
+						+ "</body>"
+						+ "</html>";
 				setIcon(ImageUtil.createTextImage(txt, icon_sz - ins));
 			}
 			setText("");

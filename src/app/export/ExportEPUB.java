@@ -17,7 +17,7 @@
  */
 package app.export;
 
-import app.album.AlbumItem;
+import app.xml.XmlAlbumItem;
 import i18n.I18N;
 import java.io.File;
 import java.util.List;
@@ -35,7 +35,7 @@ public class ExportEPUB {
 	private final Export export;
 	private final File dir;
 	private File OEBPS, CSS, META;
-	private List<AlbumItem> items;
+	private List<XmlAlbumItem> items;
 
 	public static void create(Export export, File dir) {
 		ExportEPUB epub = new ExportEPUB(export, dir);
@@ -49,7 +49,7 @@ public class ExportEPUB {
 		this.title = export.getMainFrame().diapoTitleGet();
 	}
 
-	public void start(List<AlbumItem> items) {
+	public void start(List<XmlAlbumItem> items) {
 		this.items = items;
 		CSS = new File(dir, "CSS");
 		CSS.mkdirs();
@@ -152,9 +152,9 @@ public class ExportEPUB {
 		File outfile = new File(dir, "toc.ncx");
 		StringBuilder b = new StringBuilder();
 		b.append(TOC_BEGIN);
-		for (AlbumItem item : items) {
-			int id = item.id + 1;
-			String str = FileUtil.removeExtension(item.file.getName());
+		for (XmlAlbumItem item : items) {
+			int id = Integer.parseInt(item.idGet()) + 1;
+			String str = FileUtil.removeExtension(item.fileGet().getName());
 			b.append(String.format(TOC_NAVPOINT, id, id, id, str));
 		}
 		b.append(TOC_END);
@@ -162,7 +162,8 @@ public class ExportEPUB {
 	}
 
 	private static final String TOCNAV_BEGIN = "<?xml version='1.0' encoding='utf-8'?>\n"
-			+ "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\">\n"
+			+ "<html xmlns=\"http://www.w3.org/1999/xhtml\""
+			+ " xmlns:epub=\"http://www.idpf.org/2007/ops\">\n"
 			+ "<head>\n"
 			+ "    <title>%s</title>\n"
 			+ "<style>\n"
@@ -186,8 +187,8 @@ public class ExportEPUB {
 	private void createTitlepage() {
 		StringBuilder b = new StringBuilder();
 		b.append(String.format(TOCNAV_BEGIN, title, title));
-		for (AlbumItem item : items) {
-			String fname = FileUtil.removeExtension(item.file.getName());
+		for (XmlAlbumItem item : items) {
+			String fname = FileUtil.removeExtension(item.fileGet().getName());
 			String str = String.format(TOCNAV_ITEM, fname, fname);
 			b.append(str);
 		}
@@ -197,7 +198,7 @@ public class ExportEPUB {
 	}
 
 	private void createPages() {
-		for (AlbumItem item : items) {
+		for (XmlAlbumItem item : items) {
 			createPage(item);
 		}
 	}
@@ -221,9 +222,9 @@ public class ExportEPUB {
 			+ "</body>\n"
 			+ "</html>";
 
-	private void createPage(AlbumItem item) {
-		String str = String.format(HTML_PAGE, title, item.file.getName(), item.text);
-		File outfile = new File(OEBPS, FileUtil.changeExt(item.file.getName(), "xhtml"));
+	private void createPage(XmlAlbumItem item) {
+		String str = String.format(HTML_PAGE, title, item.fileGet().getName(), item.commentGet());
+		File outfile = new File(OEBPS, FileUtil.changeExt(item.fileGet().getName(), "xhtml"));
 		FileUtil.fileWriteString(outfile, str);
 	}
 
@@ -255,20 +256,20 @@ public class ExportEPUB {
 		// manifest for xhtml files
 		String type = "application/xhtml+xml";
 		int i = 1;
-		for (AlbumItem item : items) {
-			String str = FileUtil.removeExtension(item.file.getName()) + ".xhtml";
+		for (XmlAlbumItem item : items) {
+			String str = FileUtil.removeExtension(item.fileGet().getName()) + ".xhtml";
 			b.append(String.format(OPF_MANIFEST, String.format("img_%03d", i++), str, type));
 		}
 		//manifest for jpg files
 		type = "image/jpeg";
 		i = 1;
-		for (AlbumItem item : items) {
-			String str = item.file.getName();
+		for (XmlAlbumItem item : items) {
+			String str = item.fileGet().getName();
 			b.append(String.format(OPF_MANIFEST, String.format("jpg_%03d", i++), str, type));
 		}
 		b.append(OPF_SPINE);
 		i = 1;
-		for (AlbumItem item : items) {
+		for (XmlAlbumItem item : items) {
 			b.append(String.format(OPF_ITEM, String.format("img_%03d", i++)));
 		}
 		b.append(OPF_END);

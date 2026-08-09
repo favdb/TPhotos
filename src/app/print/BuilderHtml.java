@@ -134,7 +134,8 @@ public class BuilderHtml {
 		StringBuilder b = new StringBuilder();
 		int colsCountInt = Integer.parseInt(cols);
 		b.append("<div class=\"page\">\n");
-		b.append("  <div class=\"page-number\">").append(pageNum).append("/").append(totalPages).append("</div>\n");
+		b.append("  <div class=\"page-number\">")
+				.append(pageNum).append("/").append(totalPages).append("</div>\n");
 		b.append("  <div class=\"grid-container\" style=\"")
 				.append("grid-template-rows: repeat(")
 				.append(rows).append(", 1fr); ")
@@ -151,8 +152,11 @@ public class BuilderHtml {
 			if (cell.isPhoto()) {
 				b.append("    <div class=\"cell photo\" style=\"")
 						.append(gridStyle).append("\">\n");
-				String src = cell.photoFileGet();
-				b.append("      <img src=\"").append(src).append("\" alt=\"\">\n");
+				File realFile = cell.photoFileGet();
+
+				b.append("      <img src=\"")
+						.append(realFile.getAbsolutePath())
+						.append("\" alt=\"\">\n");
 				b.append("    </div>\n");
 			} else {
 				b.append("    <div class=\"cell text\" style=\"")

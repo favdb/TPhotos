@@ -37,18 +37,18 @@ public class PrintCell {
 	}
 
 	public int id, page, photoId = -1, textId = -1;
-	private int spanH = 1, spanV = 1;
-	public String type = "text", comment = "", photoFile = "", text = "";
-	private POSITION pos = new POSITION();
+	private final int spanH = 1, spanV = 1;
+	public String type = "text", comment = "", photoName = "", text = "";
+	private final POSITION pos = new POSITION();
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public PrintCell(int id, int photo_id, String photo, String comment, int page, int... span) {
 		this.id = id;
 		this.comment = comment;
 		this.photoId = photo_id;
-		this.photoFile = photo;
+		this.photoName = photo;
 		if (photo.startsWith(App.preferences.photosDirGet())) {
-			this.photoFile = photo.replace(App.preferences.photosDirGet() + File.separator, "");
+			this.photoName = photo.replace(App.preferences.photosDirGet() + File.separator, "");
 		}
 		this.type = "photo";
 		this.page = page;
@@ -175,12 +175,12 @@ public class PrintCell {
 	 *
 	 * @param value
 	 */
-	public void photoFileSet(String value) {
+	public void photoNameSet(String value) {
 		try {
-			this.photoFile = value.trim();
+			this.photoName = value.trim();
 		} catch (Exception e) {
 			this.photoId = -1;
-			this.photoFile = "";
+			this.photoName = "";
 		}
 	}
 
@@ -189,8 +189,16 @@ public class PrintCell {
 	 *
 	 * @return
 	 */
-	public String photoFileGet() {
-		return this.photoFile;
+	public String photoNameGet() {
+		return this.photoName;
+	}
+
+	public File photoFileGet() {
+		File f = new File(photoName);
+		if (!f.exists()) {
+			f = new File(App.preferences.photosDirGet(), photoName);
+		}
+		return f;
 	}
 
 	/**
@@ -227,7 +235,7 @@ public class PrintCell {
 	}
 
 	/**
-	 * set pos and span values from the given String (P,C,H,V)
+	 * set pos and span values from the given String (C,H,V)
 	 *
 	 * @param value
 	 */
@@ -334,7 +342,7 @@ public class PrintCell {
 	public String toString() {
 		if (isPhoto()) {
 			return String.format("id=%d type=%s photo_id=%s file=%s page=%d pos=(%s) comment=%s", id, type,
-					photoId, photoFile, page, pos.toString(), comment);
+					photoId, photoName, page, pos.toString(), comment);
 		} else {
 			return String.format("id=%d type=%s text_id=%s page=%d pos=%s textlen=%d", id, type,
 					textId, page, pos.toString(), text.length());
@@ -369,7 +377,7 @@ public class PrintCell {
 	 * @return
 	 */
 	public String photoGet() {
-		return photoFile;
+		return photoName;
 	}
 
 	/**
@@ -436,7 +444,7 @@ public class PrintCell {
 	public void clear() {
 		this.type = "unknown";
 		this.photoId = -1;
-		this.photoFile = "";
+		this.photoName = "";
 		this.textId = -1;
 		this.text = "";
 		this.comment = "";
@@ -453,19 +461,19 @@ public class PrintCell {
 		}
 		String tempType = this.type;
 		int tempPhotoId = this.photoId;
-		String tempPhotoFile = this.photoFile;
+		String tempPhotoFile = this.photoName;
 		int tempTextId = this.textId;
 		String tempText = this.text;
 		String tempComment = this.comment;
 		this.type = old.type;
 		this.photoId = old.photoId;
-		this.photoFile = old.photoFile;
+		this.photoName = old.photoName;
 		this.textId = old.textId;
 		this.text = old.text;
 		this.comment = old.comment;
 		old.type = tempType;
 		old.photoId = tempPhotoId;
-		old.photoFile = tempPhotoFile;
+		old.photoName = tempPhotoFile;
 		old.textId = tempTextId;
 		old.text = tempText;
 		old.comment = tempComment;
