@@ -22,9 +22,9 @@ import app.ui.MainFrame;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import resources.icons.ICONS;
+import app.resources.icons.ICONS;
 import api.mig.MIG;
-import tools.Ui;
+import app.tools.Ui;
 
 /**
  *

@@ -17,15 +17,15 @@
  */
 package app;
 
-import i18n.I18N;
-
 /**
  *
  * @author favdb
  */
 public class Const {
 
-	static String getVersion() {
+	public static final Integer FONT_SIZE = 12;
+
+	public static String getVersion() {
 		return TPhotos.VERSION.toString();
 	}
 
@@ -51,19 +51,6 @@ public class Const {
 		@Override
 		public String toString() {
 			return text;
-		}
-	}
-
-	public static final Integer FONT_SIZE = 12;
-
-	/**
-	 * Look and Feel values
-	 */
-	public enum LookAndFeel {
-		LIGHT, ADVANCED, DARK, DRACULA;
-
-		public String getI18N() {
-			return I18N.getMsg("preferences.laf." + name().toLowerCase());
 		}
 	}
 

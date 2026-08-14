@@ -17,13 +17,20 @@
  */
 package app;
 
-import app.ui.AboutDlg;
+import app.i18n.I18N;
+import app.resources.icons.IconUtil;
+import app.tools.LOG;
+import app.tools.LaF;
+import app.tools.file.EnvUtil;
 import app.ui.MainFrame;
-import app.ui.PrefDlg;
+import app.ui.dialog.AboutDlg;
+import app.ui.dialog.PrefDlg;
 import app.xml.Xml;
-import i18n.I18N;
 import java.awt.Font;
 import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileLock;
 import java.util.Enumeration;
 import java.util.Locale;
 import javax.swing.JFileChooser;
@@ -33,11 +40,6 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.FontUIResource;
-import resources.icons.IconUtil;
-import tools.LOG;
-import tools.LaF;
-import tools.file.EnvUtil;
-import tools.file.FileUtil;
 
 /**
  * application main class
@@ -48,24 +50,74 @@ public class App {
 
 	private static final String TT = "App.";
 
-	public static Pref preferences;
+	public static Pref pref;
 	private static Font fontDef;
 	public static MainFrame mainFrame;
 	private static boolean dev;
-	private static String lang = "";//to force the language
+	private static String lang = "";
 
 	/**
-	 * the main methode to create the class
+	 * main methode to create the class
 	 *
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
+		I18N.initMessages(Locale.getDefault());
+		if (!lockInstance(EnvUtil.getLockFile())) {
+			Object[] options = {I18N.getMsg("running.remove"), I18N.getMsg("cancel")};
+			int n = JOptionPane.showOptionDialog(null,
+					I18N.getMsg("running.msg"),
+					I18N.getMsg("running.title"),
+					JOptionPane.YES_NO_CANCEL_OPTION,
+					JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
+			if (n == 1) {
+				File file = new File(EnvUtil.getLockFile());
+				if (file.exists() && file.canWrite() && !file.delete()) {
+					JOptionPane.showMessageDialog(null, "Delete failed",
+							"File\n" + file.getAbsolutePath() + "\ncould not be deleted.",
+							JOptionPane.ERROR_MESSAGE);
+				}
+			}
+			return;
+		}
 		initialize(args, "App");
 		SwingUtilities.invokeLater(() -> {
 			mainFrame = new MainFrame();
 			sorterDo();
 			mainFrame.setVisible(true);
 		});
+	}
+
+	/**
+	 * lock the instance
+	 *
+	 * @param lockFile
+	 * @return
+	 */
+	private static boolean lockInstance(final String lockFile) {
+		try {
+			final File file = new File(lockFile);
+			final RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+			final FileLock fileLock = randomAccessFile.getChannel().tryLock();
+			if (fileLock != null) {
+				Runtime.getRuntime().addShutdownHook(new Thread() {
+					@Override
+					public void run() {
+						try {
+							fileLock.release();
+							randomAccessFile.close();
+							file.delete();
+						} catch (IOException e) {
+							LOG.err("Unable to remove lock file: " + lockFile, e);
+						}
+					}
+				});
+				return true;
+			}
+		} catch (IOException e) {
+			LOG.err("Unable to create and/or lock file: " + lockFile, e);
+		}
+		return false;
 	}
 
 	/**
@@ -108,7 +160,7 @@ public class App {
 				}
 			}
 		}
-		prefInit();
+		pref = new Pref();
 		fontInit();
 		LaF.init();
 		if (lang.isEmpty()) {
@@ -123,7 +175,7 @@ public class App {
 	 * initialize the font
 	 */
 	public static void fontInit() {
-		int sz = preferences.getInteger(Pref.KEY.FONT_SIZE);
+		int sz = pref.getInteger(Pref.KEY.FONT_SIZE);
 		fontDef = new Font("dialog", Font.PLAIN, sz);
 		UIDefaults defaults = UIManager.getDefaults();
 		Enumeration newKeys = defaults.keys();
@@ -153,8 +205,8 @@ public class App {
 	 * @param font
 	 */
 	public static void fontSet(Font font) {
-		preferences.setInteger(Pref.KEY.FONT_SIZE, font.getSize());
-		int sz = preferences.getInteger(Pref.KEY.FONT_SIZE);
+		pref.setInteger(Pref.KEY.FONT_SIZE, font.getSize());
+		int sz = pref.getInteger(Pref.KEY.FONT_SIZE);
 		fontDef = new Font("dialog", Font.PLAIN, sz);
 		if (mainFrame != null) {
 			SwingUtilities.updateComponentTreeUI(mainFrame);
@@ -162,19 +214,11 @@ public class App {
 	}
 
 	/**
-	 * initialize preferences
-	 */
-	private static void prefInit() {
-		//LOG.trace(TT + "prefInit()");
-		preferences = new Pref();
-	}
-
-	/**
 	 * exit application
 	 */
 	public static void exit() {
 		mainFrame.albumGet().save();
-		preferences.save();
+		pref.save();
 		System.exit(0);
 	}
 
@@ -200,7 +244,7 @@ public class App {
 	}
 
 	/**
-	 * count the number of JPEG files
+	 * count the number of JPEG files in given directory
 	 *
 	 * @param dir
 	 * @return
@@ -228,7 +272,7 @@ public class App {
 	 * select a photos folder
 	 */
 	public static void photosDirSelect() {
-		String dir = App.preferences.photosDirGet();
+		String dir = pref.photosDirGet();
 		if (dir.isEmpty()) {
 			dir = EnvUtil.getPhotosDir().getAbsolutePath();
 		}
@@ -238,19 +282,9 @@ public class App {
 			return;
 		}
 		String newdir = chooser.getSelectedFile().getAbsolutePath();
-		preferences.photosDirSet(newdir);
+		pref.photosDirSet(newdir);
 		mainFrame.photosDirSet(new File(newdir));
 		mainFrame.fileSet(new File(newdir + File.separator + "Album.xml"));
-	}
-
-	/**
-	 * init the album File
-	 *
-	 * @param file
-	 */
-	private static void albumFileSet(File file) {
-		preferences.albumLastSet(file.getName());
-		mainFrame.fileSet(file);
 	}
 
 	/**
@@ -258,7 +292,7 @@ public class App {
 	 */
 	public static void albumFileNew() {
 		FileNameExtensionFilter xmlfilter = new FileNameExtensionFilter("xml files (*.xml)", "xml");
-		String base = preferences.photosDirGet() + File.separator + "Album";
+		String base = pref.photosDirGet() + File.separator + "Album";
 		File inf = new File(base + ".xml");
 		int i = 1;
 		while (inf.exists()) {
@@ -287,14 +321,7 @@ public class App {
 		}
 		File file = new File(str);
 		if (!file.exists()) {
-			//create an empty Album file
-			FileUtil.fileWriteString(file,
-					Xml.getHeader()
-					+ String.format("<album title=\"%s\">", FileUtil.removeExtension(file.getName()))
-					+ "<pref mode=\"0\" tempo=\"0\" comment=\"{JJ/MM/AA}\" />"
-					+ "<list/>"
-					+ "</album>"
-			);
+			Xml.createNew(file);
 			mainFrame.fileSet(file);
 		} else {
 			JOptionPane.showMessageDialog(mainFrame,
@@ -309,7 +336,7 @@ public class App {
 	 */
 	public static void albumFileOpen() {
 		FileNameExtensionFilter xmlfilter = new FileNameExtensionFilter("xml files (*.xml)", "xml");
-		JFileChooser chooser = new JFileChooser(preferences.photosDirGet());
+		JFileChooser chooser = new JFileChooser(pref.photosDirGet());
 		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 		chooser.setFileFilter(xmlfilter);
 		int i = chooser.showOpenDialog(null);

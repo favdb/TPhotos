@@ -20,6 +20,9 @@ package app.ui;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
+import app.resources.icons.ICONS;
+import app.resources.icons.ICONS.K;
+import app.tools.Ui;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.BorderFactory;
@@ -31,9 +34,6 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
-import resources.icons.ICONS;
-import resources.icons.ICONS.K;
-import tools.Ui;
 
 /**
  * main menu class
@@ -82,7 +82,7 @@ public class MainMenu {
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.FILLX)));
 		p.setOpaque(false);
 		String space = "   ";
-		p.add(btPhotos = Ui.initIconButton(" menu.file", ICONS.K.OPTIONS, null));
+		p.add(btPhotos = Ui.initIconButton("menu.file", ICONS.K.OPTIONS, null));
 		btPhotos.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {

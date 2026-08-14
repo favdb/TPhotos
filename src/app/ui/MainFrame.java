@@ -21,13 +21,12 @@ import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
 import app.Const;
-import app.Organizer;
-import app.album.Album;
-import app.diapo.DiapoParam;
-import app.diapo.Diaporama;
+import app.ui.album.Album;
+import app.ui.diapo.DiapoParam;
+import app.ui.diapo.Diaporama;
 import app.export.Export;
-import app.print.Print;
-import i18n.I18N;
+import app.ui.print.Print;
+import app.i18n.I18N;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
@@ -37,10 +36,10 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextPane;
-import resources.icons.ICONS;
-import resources.icons.IconUtil;
-import tools.ImageUtil;
-import tools.LOG;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.ImageUtil;
+import app.tools.LOG;
 
 /**
  * main JFrame class
@@ -156,7 +155,7 @@ public class MainFrame extends JFrame {
 		b.append(Const.getFullName()).append(" ");
 		if (appMenu.btSorter != null) {
 			if (appMenu.btSorter.isSelected()) {
-				b.append("(").append(App.preferences.photosDirGet()).append(")");
+				b.append("(").append(App.pref.photosDirGet()).append(")");
 			} else if (appMenu.btAlbum.isSelected()) {
 				b.append("(").append(album.diapoNameGet()).append(")");
 			} else if (appMenu.btExport.isSelected()) {

@@ -36,7 +36,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import tools.LOG;
+import app.tools.LOG;
 
 /**
  * utility class for setting/getting values from Xml

@@ -30,8 +30,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import tools.LOG;
-import tools.file.FileUtil;
+import app.tools.LOG;
+import app.tools.file.FileUtil;
 
 /**
  * Classe pivot technique gérant le document DOM XML global.
@@ -40,6 +40,22 @@ public class Xml {
 
 	private static final String TT = "Xml.";
 	private static final String HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+
+	public static void createNew(File file) {
+		StringBuilder b = new StringBuilder();
+		b.append(Xml.getHeader())
+				.append("<album title=\"%")
+				.append(FileUtil.removeExtension(file.getName()))
+				.append("\">")
+				.append("<pref"
+						+ " mode=\"0\""
+						+ " tempo=\"0\""
+						+ " comment=\"{DD/MM/YYYY}\""
+						+ " />")
+				.append("<list/>")
+				.append("</album>");
+		FileUtil.fileWriteString(file, b.toString());
+	}
 
 	private Document document = null;
 	private File file = null;

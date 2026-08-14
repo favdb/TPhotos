@@ -17,12 +17,12 @@
  */
 package app.ui;
 
-import i18n.I18N;
+import app.i18n.I18N;
 import java.awt.Color;
 import java.awt.Cursor;
 import javax.swing.JFrame;
 import javax.swing.JTextPane;
-import tools.Html;
+import app.tools.Html;
 
 /**
  * abstract clas for standard frame

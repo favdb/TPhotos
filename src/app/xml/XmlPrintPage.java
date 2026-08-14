@@ -17,7 +17,6 @@
  */
 package app.xml;
 
-import app.print.PrintCell;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class XmlPrintPage {
 	}
 
 	public void load() {
-		//empty all data loaded as PrintCell
+		//empty all data loaded as XmlPrintCell
 	}
 
 	/**
@@ -65,9 +64,9 @@ public class XmlPrintPage {
 	 *
 	 * @return
 	 */
-	public List<PrintCell> cellsGet() {
-		List<PrintCell> l = new ArrayList<>();
-		for (PrintCell c : xml.printGet().getCells()) {
+	public List<XmlPrintCell> cellsGet() {
+		List<XmlPrintCell> l = new ArrayList<>();
+		for (XmlPrintCell c : xml.printGet().getCells()) {
 			String sid = Integer.toString(c.pageGet());
 			if (id.equals(sid)) {
 				l.add(c);
@@ -81,7 +80,7 @@ public class XmlPrintPage {
 	 *
 	 * @param cell
 	 */
-	public void cellAdd(PrintCell cell) {
+	public void cellAdd(XmlPrintCell cell) {
 		if (cell == null) {
 			return;
 		}
@@ -101,7 +100,7 @@ public class XmlPrintPage {
 		b.append(XmlUtil.indent(3)).append("<page ")
 				.append(XmlUtil.attributXml("id", id))
 				.append(">\n");
-		for (PrintCell p : cellsGet()) {
+		for (XmlPrintCell p : cellsGet()) {
 			b.append(p.toXml());
 		}
 		b.append(XmlUtil.indent(3)).append("</page>\n");

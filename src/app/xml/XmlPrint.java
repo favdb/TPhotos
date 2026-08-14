@@ -17,15 +17,14 @@
  */
 package app.xml;
 
-import static app.print.Print.*;
-import app.print.PrintCell;
+import static app.ui.print.Print.*;
 import app.xml.XmlLibs.XmlLib;
 import java.util.ArrayList;
 import java.util.List;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import tools.LOG;
+import app.tools.LOG;
 
 /**
  * Gère exclusivement les configurations de la mise en page print.
@@ -37,7 +36,7 @@ public class XmlPrint {
 	private final Xml xml;
 	private String format = "A4", orientation = PORTRAIT;
 	private final List<XmlPrintPage> pages = new ArrayList<>();
-	private final List<PrintCell> cells = new ArrayList<>();
+	private List<XmlPrintCell> cells = new ArrayList<>();
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlPrint(Xml xml) {
@@ -47,7 +46,7 @@ public class XmlPrint {
 
 	public void traceCells() {
 		LOG.trace(TT + "traceCells()");
-		for (PrintCell c : cells) {
+		for (XmlPrintCell c : cells) {
 			LOG.trace(c.toString());
 		}
 	}
@@ -81,7 +80,7 @@ public class XmlPrint {
 					String pos = XmlUtil.stringGet(el, "pos");
 
 					// 3. Recherche de la VRAIE cellule de référence déjà existante
-					for (PrintCell target : cells) {
+					for (XmlPrintCell target : cells) {
 						int cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
 
 						// Si le type et l'ID métier correspondent, on lui injecte ses coordonnées
@@ -180,17 +179,17 @@ public class XmlPrint {
 		List<XmlAlbumItem> xphotos = xml.albumGet().itemsGet();
 		for (XmlAlbumItem x : xphotos) {
 			int cellid = Integer.parseInt(x.idGet());
-			cells.add(new PrintCell(cellid, cellid, x.photoGet(), x.commentGet(), 0));
+			cells.add(new XmlPrintCell(cellid, cellid, x.photoGet(), x.commentGet(), 0));
 		}
 		int nid = 1;
 		for (XmlLib x : xml.libsGet().getAll()) {
-			PrintCell cell = new PrintCell(nid++, x.getText(), 0);
+			XmlPrintCell cell = new XmlPrintCell(nid++, x.getText(), 0);
 			cells.add(cell);
 		}
 	}
 
-	public PrintCell photoCellGet(String id) {
-		PrintCell pc = new PrintCell();
+	public XmlPrintCell photoCellGet(String id) {
+		XmlPrintCell pc = new XmlPrintCell();
 		XmlAlbum album = xml.albumGet();
 		NodeList nodes = xml.rootGet().getElementsByTagName("item");
 		if (nodes != null) {
@@ -207,13 +206,13 @@ public class XmlPrint {
 		return null;
 	}
 
-	public void updateCell(PrintCell target, int page, String pos) {
+	public void updateCell(XmlPrintCell target, int page, String pos) {
 		/*LOG.trace(TT + "updateCell(target=" + target.typeGet() + "." + target.idGet()
 				+ ", page=" + page
 				+ ", pos=" + pos + ")");*/
 		String targetType = target.typeGet();
 		int targetId = target.idGet();
-		for (PrintCell c : cells) {
+		for (XmlPrintCell c : cells) {
 			if (c.typeGet().equals(targetType) && c.idGet() == targetId) {
 				c.pageSet(page);
 				c.posSet(pos);
@@ -233,7 +232,7 @@ public class XmlPrint {
 		//save all pages
 		b.append(XmlUtil.indent(2)).append("<pages>\n");
 		int page = 0;
-		for (PrintCell c : cells) {
+		for (XmlPrintCell c : cells) {
 			if (c.pageGet() == 0) {
 				continue;
 			}
@@ -259,11 +258,11 @@ public class XmlPrint {
 		return pages;
 	}
 
-	public List<PrintCell> getCells() {
+	public List<XmlPrintCell> getCells() {
 		return cells;
 	}
 
-	public void addCell(PrintCell cell) {
+	public void addCell(XmlPrintCell cell) {
 		cells.add(cell);
 	}
 
@@ -272,6 +271,26 @@ public class XmlPrint {
 		cells.clear();
 		pages.clear();
 		loadCells();
+	}
+
+	/**
+	 * clear all pages and XmlPrintCell
+	 */
+	public void pagesClear() {
+		cells.clear();
+		pages.clear();;
+	}
+
+	public void pageClear(int page) {
+		List<XmlPrintCell> ls = new ArrayList<>();
+		for (XmlPrintCell p : cells) {
+			if (p.pageGet() == page) {
+				ls.add(p);
+			}
+		}
+		for (XmlPrintCell p : ls) {
+			cells.remove(p);
+		}
 	}
 
 }

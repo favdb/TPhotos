@@ -20,13 +20,13 @@ package app.export;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
-import app.album.AlbumTable;
+import app.ui.album.AlbumTable;
 import app.ui.AbstractFrame;
 import app.ui.MainFrame;
 import app.xml.Xml;
 import app.xml.XmlAlbumItem;
 import app.xml.XmlUtil;
-import i18n.I18N;
+import app.i18n.I18N;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -52,15 +52,15 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
-import resources.icons.ICONS;
-import resources.icons.IconUtil;
-import tools.FFmpeg;
-import tools.Html;
-import tools.LOG;
-import tools.Ui;
-import tools.file.CopyDlg;
-import tools.file.EnvUtil;
-import tools.file.FileUtil;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.FFmpeg;
+import app.tools.Html;
+import app.tools.LOG;
+import app.tools.Ui;
+import app.tools.file.CopyDlg;
+import app.tools.file.EnvUtil;
+import app.tools.file.FileUtil;
 
 /**
  * JDialog to copy multiple images to a destination folder
@@ -184,7 +184,7 @@ public class Export extends AbstractFrame {
 		tfFolder = new JTextField();
 		tfFolder.setColumns(32);
 		tfFolder.setEditable(false);
-		tfFolder.setText(App.preferences.exportLastGet());
+		tfFolder.setText(App.pref.exportLastGet());
 		p2.add(tfFolder);
 		JButton bt = Ui.initIconButton("btFolder", ICONS.K.FOLDER,
 				(ActionEvent evt) -> {
@@ -321,7 +321,7 @@ public class Export extends AbstractFrame {
 	public void copyBegin() {
 		//LOG.trace(TT + "copyBegin()");
 		dirDest = new File(tfFolder.getText());
-		App.preferences.exportLastSet(tfFolder.getText());
+		App.pref.exportLastSet(tfFolder.getText());
 		String format = (String) cbFormat.getSelectedItem();
 		if (format.equals(FORMAT_EPUB)) {
 			dirDest = new File(dirDest, File.separator + "EPUB" + File.separator + "OEBPS");

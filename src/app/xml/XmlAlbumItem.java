@@ -77,7 +77,7 @@ public class XmlAlbumItem {
 	public File fileGet() {
 		File f = new File(photo);
 		if (!f.exists()) {
-			f = new File(App.preferences.photosDirGet(), photo);
+			f = new File(App.pref.photosDirGet(), photo);
 		}
 		return f;
 	}
@@ -107,7 +107,7 @@ public class XmlAlbumItem {
 
 	public String toXml() {
 		StringBuilder b = new StringBuilder();
-		String photosDir = App.preferences.photosDirGet();
+		String photosDir = App.pref.photosDirGet();
 		String relativePath = photo;
 		if (photosDir != null && !photosDir.isEmpty()) {
 			File photoFile = new File(photo);
@@ -138,7 +138,7 @@ public class XmlAlbumItem {
 	public File photoFile() {
 		File f = new File(photo);
 		if (!f.exists()) {
-			f = new File(App.preferences.photosDirGet());
+			f = new File(App.pref.photosDirGet());
 		}
 		return f;
 	}
