@@ -242,13 +242,19 @@ public class GridCell extends JLabel {
 					grid.getPrint().getMainFrame().showPhoto(item.photoFileGet());
 				});
 				menu.add(textEdit);
-			}/* else if (item.isEmpty()) {
-				JMenuItem textCreate = new JMenuItem(I18N.getMsg("print.text_create"));
-				textCreate.addActionListener(al -> {
-					grid.getPrint().textCreate(item);
-				});
-				menu.add(textCreate);
-			}*/
+			}
+			//set the zoom mode
+			JMenu zoom = new JMenu(I18N.getMsg("print.zoom"));
+			JMenuItem z0 = new JMenuItem(I18N.getMsg("print.zoom_none"));
+			z0.addActionListener(z0n -> grid.zoomSet(item, 0));
+			zoom.add(z0);
+			JMenuItem z1 = new JMenuItem(I18N.getMsg("print.zoom_contain"));
+			z1.addActionListener(z1n -> grid.zoomSet(item, 1));
+			zoom.add(z1);
+			JMenuItem z2 = new JMenuItem(I18N.getMsg("print.zoom_cover"));
+			z2.addActionListener(z2n -> grid.zoomSet(item, 2));
+			zoom.add(z2);
+			menu.add(zoom);
 			//clear the cell
 			JMenuItem clearCell = new JMenuItem(I18N.getMsg("print.clear"));
 			clearCell.setEnabled(item.photoIdGet() != -1

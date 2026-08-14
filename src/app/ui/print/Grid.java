@@ -17,15 +17,15 @@
  */
 package app.ui.print;
 
-import app.xml.XmlPrintCell;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
+import app.tools.LaF;
 import static app.ui.print.Print.*;
+import app.xml.XmlPrintCell;
 import app.xml.XmlPrintPage;
 import java.awt.Dimension;
 import javax.swing.JPanel;
-import app.tools.LaF;
 
 /**
  * JPanel class for the grid (Simule une page papier A4 avec marges)
@@ -393,6 +393,18 @@ public class Grid extends JPanel {
 			setModified();
 			refresh();
 		}
+	}
+
+	/**
+	 * set zoom mode
+	 *
+	 * @param item
+	 * @param value
+	 */
+	public void zoomSet(XmlPrintCell item, int value) {
+		item.zoomSet(value);
+		setModified();
+		refresh();
 	}
 
 }

@@ -131,10 +131,20 @@ public class XmlPrintCell {
 		this.type = value;
 	}
 
+	/**
+	 * get zoom mode
+	 *
+	 * @return
+	 */
 	public int zoomGet() {
 		return pos.zoomGet();
 	}
 
+	/**
+	 * set zoommode
+	 *
+	 * @param value
+	 */
 	public void zoomSet(int value) {
 		pos.zoomSet(value);
 	}
@@ -252,6 +262,9 @@ public class XmlPrintCell {
 			pos.cellNumSet(Integer.parseInt(p[0].trim()));
 			pos.spanHSet(Integer.parseInt(p[1].trim()));
 			pos.setSpanV(Integer.parseInt(p[2].trim()));
+		}
+		if (p.length > 3) {
+			pos.zoomSet(Integer.parseInt(p[3].trim()));
 		}
 	}
 
@@ -659,7 +672,7 @@ public class XmlPrintCell {
 		 */
 		@Override
 		public String toString() {
-			return String.format("%d,%d,%d", num, H, V);
+			return String.format("%d,%d,%d,%s", num, H, V, zoom);
 		}
 
 	}

@@ -17,6 +17,8 @@
  */
 package app.xml;
 
+import app.tools.LOG;
+import app.tools.file.FileUtil;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -30,8 +32,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import app.tools.LOG;
-import app.tools.file.FileUtil;
 
 /**
  * Classe pivot technique gérant le document DOM XML global.
@@ -201,7 +201,7 @@ public class Xml {
 	 * save with text method
 	 */
 	public void save() {
-		LOG.trace(TT + "save()");
+		//LOG.trace(TT + "save()");
 		if (document == null || file == null) {
 			return;
 		}
