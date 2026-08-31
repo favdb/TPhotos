@@ -22,10 +22,9 @@ import app.resources.icons.IconUtil;
 import app.tools.LOG;
 import app.tools.LaF;
 import app.tools.file.EnvUtil;
-import app.ui.MainFrame;
-import app.ui.dialog.AboutDlg;
-import app.ui.dialog.PrefDlg;
 import app.xml.Xml;
+import app.zdlg.AboutDlg;
+import app.zdlg.PrefDlg;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
@@ -344,6 +343,7 @@ public class App {
 			return;
 		}
 		mainFrame.fileSet(chooser.getSelectedFile());
+		pref.setString(Pref.KEY.ALBUM_LAST, chooser.getSelectedFile().getAbsolutePath());
 	}
 
 	/**

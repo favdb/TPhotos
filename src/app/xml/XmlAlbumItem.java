@@ -21,6 +21,7 @@ import app.App;
 import java.io.File;
 
 /**
+ * class to manage album item
  *
  * @author favdb
  */
@@ -43,10 +44,20 @@ public class XmlAlbumItem {
 		this.comment = comment;
 	}
 
+	/**
+	 * get the ID
+	 *
+	 * @return
+	 */
 	public String idGet() {
 		return id;
 	}
 
+	/**
+	 * set the ID
+	 *
+	 * @param id
+	 */
 	public void idSet(String id) {
 		this.id = id;
 	}
@@ -100,11 +111,21 @@ public class XmlAlbumItem {
 		this.comment = comment;
 	}
 
+	/**
+	 * get this as a String
+	 *
+	 * @return
+	 */
 	@Override
 	public String toString() {
 		return id + "," + photo + "," + comment;
 	}
 
+	/**
+	 * get the XML String of this
+	 *
+	 * @return
+	 */
 	public String toXml() {
 		StringBuilder b = new StringBuilder();
 		String photosDir = App.pref.photosDirGet();
@@ -135,11 +156,4 @@ public class XmlAlbumItem {
 		return b.toString();
 	}
 
-	public File photoFile() {
-		File f = new File(photo);
-		if (!f.exists()) {
-			f = new File(App.pref.photosDirGet());
-		}
-		return f;
-	}
 }

@@ -91,23 +91,16 @@ public class XmlLibs {
 	}
 
 	/**
-	 * Met à jour le contenu d'une bibliothèque de texte par son identifiant.
+	 * Update the text content of the XmlLib given index .
 	 *
-	 * * @param id l'identifiant du texte à modifier
-	 * @param id
-	 * @param newText le nouveau texte HTML
+	 * @param id index to modify
+	 * @param value new text to set
 	 */
-	public void libUpdate(int id, String newText) {
-		//todo à réécrire
-		NodeList libNodes = xml.getDocument().getElementsByTagName("lib");
-		for (int i = 0; i < libNodes.getLength(); i++) {
-			Element el = (Element) libNodes.item(i);
-			String idStr = xml.attributeGet(el, "id");
-
-			if (!idStr.isEmpty() && Integer.parseInt(idStr) == id) {
-				// Remplacement du contenu par le nouveau texte épuré/HTML
-				el.setTextContent(newText);
-				return;
+	public void libUpdate(int id, String value) {
+		for (XmlLib l : libs) {
+			if (l.getId().equals("" + id)) {
+				l.setText(value);
+				break;
 			}
 		}
 	}
@@ -151,7 +144,7 @@ public class XmlLibs {
 			return text;
 		}
 
-		public void setFile(String value) {
+		public void setText(String value) {
 			this.text = value;
 		}
 

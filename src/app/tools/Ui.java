@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -235,6 +236,22 @@ public class Ui {
 			m.addActionListener(action);
 		}
 		return m;
+	}
+
+	/**
+	 * initalize a JCheckBox
+	 *
+	 * @param name
+	 * @param check
+	 * @param action
+	 * @return
+	 */
+	public static JCheckBox initCheckBox(String name, boolean check, ActionListener action) {
+		JCheckBox ck = new JCheckBox(I18N.getMsg(name));
+		ck.setName(name);
+		ck.setSelected(check);
+		ck.addActionListener(action);
+		return ck;
 	}
 
 	/**

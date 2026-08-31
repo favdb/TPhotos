@@ -16,6 +16,7 @@
  */
 package app.xml;
 
+import app.tools.LOG;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -36,25 +37,26 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import app.tools.LOG;
 
 /**
- * utility class for setting/getting values from Xml
+ * utility class for setting/getting values to/from Xml
  *
  * @author favdb
  */
 public class XmlUtil {
 
+	public XmlUtil() {
+
+	}
+
 	public static final String INDENT = "   ";
 
-	public static String attributXml(String key, String value) {
-		return key + "=\"" + value + "\" ";
-	}
-
-	public static String attributXml(String key, Integer value) {
-		return key + "=\"" + value.toString() + "\" ";
-	}
-
+	/**
+	 * add an indent
+	 *
+	 * @param n
+	 * @return
+	 */
 	public static String indent(int n) {
 		StringBuilder b = new StringBuilder();
 		for (int i = 0; i < n; i++) {
@@ -63,8 +65,37 @@ public class XmlUtil {
 		return b.toString();
 	}
 
-	public XmlUtil() {
+	/**
+	 * get an attribute String for the given key and value
+	 *
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public static String attributXml(String key, String value) {
+		return key + "=\"" + value + "\" ";
+	}
 
+	/**
+	 * get an attribute String for the given key and Integer value
+	 *
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public static String attributXml(String key, Integer value) {
+		return key + "=\"" + value.toString() + "\" ";
+	}
+
+	/**
+	 * get an attribute String for the given key and boolean value
+	 *
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public static String attributXml(String key, boolean value) {
+		return key + "=\"" + (value ? "true" : "false") + "\" ";
 	}
 
 	/**
@@ -251,6 +282,12 @@ public class XmlUtil {
 		}
 	}
 
+	/**
+	 * convert a given Element to a String
+	 *
+	 * @param element
+	 * @return
+	 */
 	public static String elementToString(Element element) {
 		try {
 			TransformerFactory tf = TransformerFactory.newInstance();
@@ -269,10 +306,10 @@ public class XmlUtil {
 	}
 
 	/**
-	 * Échappe les caractères spéciaux XML dans une chaîne de caractères.
+	 * Escape specials XML caracters in a String
 	 *
-	 * @param input La chaîne à échapper
-	 * @return La chaîne échappée, ou une chaîne vide si l'entrée est null
+	 * @param input the String to escape
+	 * @return the escaped String or an empty String if input is null
 	 */
 	public static String escapeXml(String input) {
 		if (input == null || input.isEmpty()) {

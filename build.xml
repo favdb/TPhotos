@@ -28,11 +28,6 @@
         <mkdir dir="${build.dir}/mergedjar"/>
         <!-- On extrait d'abord le jar de l'appli : son MANIFEST.MF (Main-Class, etc.) est conservé -->
         <unjar src="${dist.dir}/${name.app}.jar" dest="${build.dir}/mergedjar"/>
-        <!-- Puis on extrait les libs par-dessus, sans écraser le MANIFEST.MF ni les signatures -->
-        <unzip dest="${build.dir}/mergedjar">
-            <fileset dir="${dist.dir}/lib" includes="*.jar"/>
-            <patternset excludes="META-INF/MANIFEST.MF, META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
-        </unzip>
         <delete file="${dist.dir}/${name.app}.jar"/>
         <jar destfile="${dist.dir}/${name.app}.jar"
              basedir="${build.dir}/mergedjar"

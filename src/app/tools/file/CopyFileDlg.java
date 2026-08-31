@@ -19,11 +19,15 @@ package app.tools.file;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.AbstractFrame;
 import app.App;
 import app.export.ExportImage;
-import app.ui.AbstractFrame;
-import app.xml.XmlAlbumItem;
 import app.i18n.I18N;
+import app.tools.Html;
+import app.tools.LOG;
+import app.tools.jpeg.Jpeg;
+import app.tools.jpeg.Webp;
+import app.xml.XmlAlbumItem;
 import java.awt.Dimension;
 import java.io.File;
 import java.util.ArrayList;
@@ -31,10 +35,6 @@ import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
-import app.tools.Html;
-import app.tools.LOG;
-import app.tools.jpeg.Jpeg;
-import app.tools.jpeg.Webp;
 
 /**
  * copy files dialog
@@ -130,18 +130,18 @@ public class CopyFileDlg extends JDialog {
 	 * initialize dialog
 	 */
 	private void initialize() {
-		LOG.trace(TT + "initialize()"
+		/*LOG.trace(TT + "initialize()"
 				+ " items nb=" + items.size()
 				+ " withText=" + (withText ? "true" : "false")
 				+ " todir=" + todir
 				+ " sorter=" + sorter
 				+ " autoremove=" + (autoremove ? "true" : "false")
-				+ " dim=" + (dim == null ? "null" : dim.toString()));
+				+ " dim=" + (dim == null ? "null" : dim.toString()));*/
 		setTitle(I18N.getMsg("organize.inprogress"));
 		setLayout(new MigLayout(MIG.WRAP1));
-		addReport(I18N.getMsg("photo.copy", new Object[]{
+		/*addReport(I18N.getMsg("photo.copy", new Object[]{
 			items.size(), I18N.getMsg(items.size() > 1 ? "files" : "file")
-		}) + "<br>");
+		}) + "<br>");*/
 		add(new JLabel(/*Html.intoHtml(report.toString())*/));
 		add(lbFile = new JLabel());
 		int c = App.fontGet().getSize();

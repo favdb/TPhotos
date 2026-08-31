@@ -18,6 +18,9 @@ package app.resources.icons;
 
 import app.App;
 import app.i18n.I18N;
+import app.resources.MainResources;
+import app.tools.LOG;
+import app.tools.file.EnvUtil;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
@@ -32,9 +35,6 @@ import javax.imageio.ImageIO;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import app.resources.MainResources;
-import app.tools.LOG;
-import app.tools.file.EnvUtil;
 
 /**
  * icons utilities
@@ -171,7 +171,8 @@ public class IconUtil {
 	public static Icon getIconLarge(String subpath, String key) {
 		String path = subpath + key.toLowerCase().replace(".", "/") + ".png";
 		String p2 = (EnvUtil.getUserDir()
-				+ File.separator + "resources" + File.separator + path).replace("/", File.separator);
+				+ File.separator + "resources" + File.separator
+				+ path).replace("/", File.separator);
 		File file = new File(p2);
 		if (file.exists()) {
 			return (new ImageIcon(p2));
@@ -223,7 +224,8 @@ public class IconUtil {
 			path = DIR + key.toLowerCase();
 		}
 		String p2 = (EnvUtil.getUserDir()
-				+ File.separator + "resources" + File.separator + path).replace("/", File.separator);
+				+ File.separator + "resources" + File.separator
+				+ path).replace("/", File.separator);
 		File file = new File(p2);
 		if (file.exists()) {
 			return (new ImageIcon(p2));

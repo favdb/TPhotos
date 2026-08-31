@@ -19,14 +19,23 @@ package app.export;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.AbstractFrame;
 import app.App;
-import app.ui.album.AlbumTable;
-import app.ui.AbstractFrame;
-import app.ui.MainFrame;
+import app.MainFrame;
+import app.album.AlbumTable;
+import app.i18n.I18N;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.FFmpeg;
+import app.tools.Html;
+import app.tools.LOG;
+import app.tools.Ui;
+import app.tools.file.CopyDlg;
+import app.tools.file.EnvUtil;
+import app.tools.file.FileUtil;
 import app.xml.Xml;
 import app.xml.XmlAlbumItem;
 import app.xml.XmlUtil;
-import app.i18n.I18N;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -52,15 +61,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
-import app.resources.icons.ICONS;
-import app.resources.icons.IconUtil;
-import app.tools.FFmpeg;
-import app.tools.Html;
-import app.tools.LOG;
-import app.tools.Ui;
-import app.tools.file.CopyDlg;
-import app.tools.file.EnvUtil;
-import app.tools.file.FileUtil;
 
 /**
  * JDialog to copy multiple images to a destination folder
@@ -500,7 +500,7 @@ public class Export extends AbstractFrame {
 	}
 
 	/**
-	 * add an album with XML file
+	 * add an album with a XML file
 	 */
 	private void makeSimple() {
 		//LOG.trace(TT + "makeSimple()");

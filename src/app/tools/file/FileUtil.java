@@ -19,6 +19,7 @@ package app.tools.file;
 
 import app.App;
 import app.i18n.I18N;
+import app.tools.LOG;
 import java.awt.Component;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -65,7 +66,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import app.tools.LOG;
 
 public class FileUtil {
 
@@ -479,6 +479,28 @@ public class FileUtil {
 			return name.substring(0, lastDot);
 		}
 		return name;
+	}
+
+	/**
+	 * delete the given directory if empty, and remove all parent directory when empty
+	 *
+	 * @param parent
+	 */
+	public static void dirRemove(File dir) {
+		File current = dir;
+		while (current != null && current.exists() && current.isDirectory()) {
+			String[] content = current.list();
+			if (content != null && content.length == 0) {
+				File parent = current.getParentFile();
+				if (current.delete()) {
+					current = parent;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
 	}
 
 	public boolean fileMove(String sourcePath, String targetPath) {

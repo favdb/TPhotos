@@ -17,14 +17,14 @@
  */
 package app.xml;
 
-import static app.ui.print.Print.*;
+import static app.print.Print.*;
+import app.tools.LOG;
 import app.xml.XmlLibs.XmlLib;
 import java.util.ArrayList;
 import java.util.List;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import app.tools.LOG;
 
 /**
  * Gère exclusivement les configurations de la mise en page print.
@@ -37,6 +37,7 @@ public class XmlPrint {
 	private String format = "A4", orientation = PORTRAIT;
 	private final List<XmlPrintPage> pages = new ArrayList<>();
 	private List<XmlPrintCell> cells = new ArrayList<>();
+	private boolean numpage;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlPrint(Xml xml) {
@@ -55,13 +56,16 @@ public class XmlPrint {
 		//LOG.trace(TT + "load()");
 		NodeList node = xml.getDocument().getElementsByTagName("print");
 		if (node.getLength() > 0) {
-			format = xml.attributeGet((Element) node.item(0), "format");
-			orientation = xml.attributeGet((Element) node.item(0), "orient");
+			//get paper format, orientation, numpage
+			Element item0 = (Element) node.item(0);
+			format = xml.attributeGet(item0, "format");
+			orientation = xml.attributeGet(item0, "orient");
+			numpage = xml.attributeGet(item0, "numpage").equalsIgnoreCase("true");
 
-			// 1. Initialise la liste globale unique de référence avec TOUTES les instances possibles
+			// 1. Initialize global list of XmlPrintCell
 			loadCells();
 
-			// 2. Recréation des structures de pages (sans données internes dupliquées)
+			// 2. load pages structures (without dupplicated internal data)
 			pages.clear();
 			NodeList pagesnode = xml.getDocument().getElementsByTagName("page");
 
@@ -79,11 +83,9 @@ public class XmlPrint {
 					int page = XmlUtil.integerGet(el, "page");
 					String pos = XmlUtil.stringGet(el, "pos");
 
-					// 3. Recherche de la VRAIE cellule de référence déjà existante
+					// 3. Search real existing cell
 					for (XmlPrintCell target : cells) {
 						int cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
-
-						// Si le type et l'ID métier correspondent, on lui injecte ses coordonnées
 						if ((target.typeGet().equals(type)
 								|| target.typeGet().startsWith(type)) && cId == ref) {
 							target.pageSet(pageId);
@@ -228,6 +230,7 @@ public class XmlPrint {
 				.append(XmlUtil.attributXml("format", format))
 				.append(XmlUtil.attributXml("orient", orientation))
 				.append(XmlUtil.attributXml("size", sizeGet()))
+				.append(XmlUtil.attributXml("numpage", numpage))
 				.append(">\n");
 		//save all pages
 		b.append(XmlUtil.indent(2)).append("<pages>\n");
@@ -291,6 +294,24 @@ public class XmlPrint {
 		for (XmlPrintCell p : ls) {
 			cells.remove(p);
 		}
+	}
+
+	/**
+	 * set boolean value for page number to print
+	 *
+	 * @param selected
+	 */
+	public void numpageSet(boolean value) {
+		this.numpage = value;
+	}
+
+	/**
+	 * set boolean value for page number to print
+	 *
+	 * @param selected
+	 */
+	public boolean numpageGet() {
+		return this.numpage;
 	}
 
 }

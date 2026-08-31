@@ -18,19 +18,21 @@
 package app.tools;
 
 import app.App;
+import app.MainFrame;
+import app.album.AlbumTree;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.file.EnvUtil;
-import app.ui.MainFrame;
-import app.ui.album.AlbumTree;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.MediaTracker;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JDialog;
@@ -321,12 +323,14 @@ public class ImageUtil {
 		return new ImageIcon(resultImage);
 	}
 
-	public static void showPhoto(MainFrame parent, File file) {
+	public static void showPhoto(MainFrame parent, File file, List... list) {
 		//LOG.trace(TT + "showPhoto(parent, file=" + file + ")");
 		try {
-			ImageIcon img = getImage(file, App.mainFrame.getSize().height);
+			ImageIcon img = getImage(file,
+					(int) Math.round(Toolkit.getDefaultToolkit().getScreenSize().height * 0.95),
+					2);
 			JDialog dlg = new JDialog(parent,
-					"Aperçu de la photo " + getImageFile(file));
+					"Aperçu de la photo " + file.getName());
 			dlg.setModal(true);
 			dlg.add(new JLabel(img));
 			dlg.pack();

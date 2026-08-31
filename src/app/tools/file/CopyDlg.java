@@ -21,7 +21,7 @@ import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
 import app.export.ExportImage;
-import app.ui.AbstractFrame;
+import app.AbstractFrame;
 import app.xml.XmlAlbumItem;
 import app.i18n.I18N;
 import java.awt.Dimension;

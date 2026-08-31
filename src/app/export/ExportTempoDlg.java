@@ -18,7 +18,7 @@
 package app.export;
 
 import api.mig.swing.MigLayout;
-import app.ui.MainFrame;
+import app.MainFrame;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
