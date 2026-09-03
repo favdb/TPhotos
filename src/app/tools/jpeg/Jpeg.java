@@ -170,7 +170,9 @@ public class Jpeg {
 	}
 
 	public static String safeChar(String input) {
-		char[] allowed = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toCharArray();
+		char[] allowed = ("0123456789"
+				+ "abcdefghijklmnopqrstuvwxyz"
+				+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ ").toCharArray();
 		char[] charArray = input.toCharArray();
 		StringBuilder result = new StringBuilder();
 		for (char c : charArray) {

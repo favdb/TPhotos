@@ -63,7 +63,7 @@ public class App {
 	public static void main(String[] args) {
 		I18N.initMessages(Locale.getDefault());
 		if (!lockInstance(EnvUtil.getLockFile())) {
-			Object[] options = {I18N.getMsg("running.remove"), I18N.getMsg("cancel")};
+			Object[] options = {"remove", "cancel"};
 			int n = JOptionPane.showOptionDialog(null,
 					I18N.getMsg("running.msg"),
 					I18N.getMsg("running.title"),

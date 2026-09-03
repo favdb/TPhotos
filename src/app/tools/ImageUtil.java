@@ -18,26 +18,23 @@
 package app.tools;
 
 import app.App;
-import app.MainFrame;
 import app.album.AlbumTree;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.file.EnvUtil;
+import app.tools.jpeg.Jpeg;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.MediaTracker;
 import java.awt.RenderingHints;
-import java.awt.Toolkit;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
-import javax.swing.JDialog;
 import javax.swing.JEditorPane;
-import javax.swing.JLabel;
 
 /**
  * tools for images
@@ -50,6 +47,14 @@ public class ImageUtil {
 	private static final String CACHE_PATH
 			= EnvUtil.getPrefDir() + File.separator + "cache";
 
+	/**
+	 * get an ImageIcon for the given String with given width and height
+	 *
+	 * @param htmlText
+	 * @param width
+	 * @param height
+	 * @return
+	 */
 	public static ImageIcon createTextImage(String html, int width, int height) {
 		if (width <= 0 || height <= 0) {
 			width = 100;
@@ -58,8 +63,16 @@ public class ImageUtil {
 		return createTextImage(html, new Dimension(width, height));
 	}
 
+	/**
+	 * get an ImageIcon for the given String with given Dimension
+	 *
+	 * @param htmlText
+	 * @param dim
+	 * @return
+	 */
 	public static ImageIcon createTextImage(String htmlText, Dimension dim) {
-		BufferedImage image = new BufferedImage(dim.height, dim.width,
+		// Correction : inversion largeur/hauteur rectifiée
+		BufferedImage image = new BufferedImage(dim.width, dim.height,
 				BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = image.createGraphics();
 		try {
@@ -68,48 +81,31 @@ public class ImageUtil {
 			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
 					RenderingHints.VALUE_ANTIALIAS_ON);
 			g2.setColor(Color.WHITE);
-			g2.fillRect(0, 0, dim.height, dim.width);
+			g2.fillRect(0, 0, dim.width, dim.height);
 			JEditorPane pane = new JEditorPane();
 			pane.setContentType("text/html");
 			pane.setText(htmlText);
-			pane.setSize(dim.height, dim.width);
+			pane.setSize(dim.width, dim.height);
 			pane.setOpaque(false);
 			pane.paint(g2);
-
 		} finally {
 			g2.dispose();
 		}
 		return resizeIcon(new ImageIcon(image), dim);
 	}
 
+	/**
+	 * get an ImageIcon for the given String with given width
+	 *
+	 * @param htmlText
+	 * @param width
+	 * @return
+	 */
 	public static ImageIcon createTextImage(String htmlText, int width) {
-		/*LOG.trace(TT + "createTextImage("
-				+ "htmlText=" + htmlText + ", width=" + width + ",  height=" + height + ")");*/
-		BufferedImage image = new BufferedImage(width, width,
-				BufferedImage.TYPE_INT_ARGB);
-		Graphics2D g2 = image.createGraphics();
-		try {
-			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-					RenderingHints.VALUE_ANTIALIAS_ON);
-			g2.setColor(Color.WHITE);
-			g2.fillRect(0, 0, width, width);
-			JEditorPane pane = new JEditorPane();
-			pane.setContentType("text/html");
-			pane.setText(htmlText);
-			pane.setSize(width, width);
-			pane.setOpaque(false);
-			pane.paint(g2);
-
-		} finally {
-			g2.dispose();
-		}
-		return resizeIcon(new ImageIcon(image), width);
+		return createTextImage(htmlText, new Dimension(width, width));
 	}
 
 	public static ImageIcon getThumb(File srce, int size) {
-		//LOG.trace(TT + "getThumb(srce=" + srce.getAbsolutePath() + ", size=" + size);
 		File cacheDir = new File(CACHE_PATH);
 		if (!cacheDir.exists()) {
 			cacheDir.mkdirs();
@@ -122,11 +118,18 @@ public class ImageUtil {
 	}
 
 	private static void createThumb(File srce, File dest, int size) {
-		//LOG.trace(TT + "createThumb(srce=" + srce + ", dest=" + dest + ", size=" + size + ")");
 		try {
 			BufferedImage srcImg = ImageIO.read(srce);
 			if (srcImg == null) {
 				return;
+			}
+			try {
+				Jpeg jpeg = new Jpeg(srce);
+				if (jpeg.exif != null) {
+					srcImg = orientedImage(srcImg, jpeg.exif.getOrientation());
+				}
+			} catch (Exception e) {
+				// Ignore si pas d'EXIF
 			}
 			int w = srcImg.getWidth();
 			int h = srcImg.getHeight();
@@ -139,15 +142,18 @@ public class ImageUtil {
 			}
 			BufferedImage thumbImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g2 = thumbImg.createGraphics();
-			// Optimisation de la qualité pour Java 8
-			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-					RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-			g2.setRenderingHint(RenderingHints.KEY_RENDERING,
-					RenderingHints.VALUE_RENDER_QUALITY);
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-					RenderingHints.VALUE_ANTIALIAS_ON);
-			g2.drawImage(srcImg, 0, 0, w, h, null);
-			g2.dispose();
+			// Correction : sécurisation de la libération des ressources de g2
+			try {
+				g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+						RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+				g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+						RenderingHints.VALUE_RENDER_QUALITY);
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+						RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.drawImage(srcImg, 0, 0, w, h, null);
+			} finally {
+				g2.dispose();
+			}
 			ImageIO.write(thumbImg, "JPG", dest);
 		} catch (IOException e) {
 			LOG.err("createThumbnail(srce=" + srce
@@ -163,7 +169,6 @@ public class ImageUtil {
 	 * @param srcDir
 	 */
 	public static void cleanCache(File srcDir) {
-		//LOG.trace(TT + "cleanCache(srcDir=" + srcDir + ")");
 		File dir = new File(App.pref.photosDirGet());
 		File cacheDir = new File(CACHE_PATH);
 		if (!cacheDir.exists() || !cacheDir.isDirectory()) {
@@ -175,7 +180,7 @@ public class ImageUtil {
 		}
 		for (File thumb : cachedFiles) {
 			File original = imgFind(dir, thumb.getName());
-			if (original != null && !original.exists()) {
+			if (original == null || !original.exists()) {
 				if (thumb.delete()) {
 					LOG.log("thumb : " + thumb.getName() + " deleted.");
 				}
@@ -183,8 +188,14 @@ public class ImageUtil {
 		}
 	}
 
+	/**
+	 * find the given image File in the given directory
+	 *
+	 * @param dir
+	 * @param n
+	 * @return
+	 */
 	public static File imgFind(File dir, String n) {
-		//LOG.trace(TT + "imgFind(srcDir, n=" + n + ")");
 		for (int mode = 0; mode <= 2; mode++) {
 			String path = AlbumTree.getSubdir(n, mode);
 			File f = new File(dir, path + File.separator + n);
@@ -195,6 +206,12 @@ public class ImageUtil {
 		return null;
 	}
 
+	/**
+	 * get the File form the given String
+	 *
+	 * @param f
+	 * @return
+	 */
 	private static File getImageFile(String f) {
 		File fx = new File(f);
 		if (!fx.isAbsolute()) {
@@ -205,6 +222,12 @@ public class ImageUtil {
 		return fx;
 	}
 
+	/**
+	 * get the File located in photos directory
+	 *
+	 * @param f
+	 * @return
+	 */
 	private static File getImageFile(File f) {
 		if (f.exists()) {
 			return f;
@@ -212,133 +235,200 @@ public class ImageUtil {
 		return new File(App.pref.photosDirGet(), f.getPath());
 	}
 
+	/**
+	 * get an ImageIcon for the given filename, adjusted size and optional zoom type
+	 *
+	 * @param f
+	 * @param size
+	 * @param zoom
+	 * @return
+	 */
 	public static ImageIcon getImage(String f, int size, int... zoom) {
 		File ff = getImageFile(f);
 		return getImage(ff, size, zoom);
 	}
 
+	/**
+	 * get an ImageIcon for the given filename, adjusted Dimension and optional zoom type
+	 *
+	 * @param f
+	 * @param size
+	 * @param zoom
+	 * @return
+	 */
 	public static ImageIcon getImage(String f, Dimension size, int... zoom) {
-		//LOG.trace(TT + "getImage(file=" + f + ", size dim=" + size.toString() + ")");
 		File ff = getImageFile(f);
 		return getImage(ff, size, zoom);
 	}
 
+	/**
+	 * get an ImageIcon for the given File, adjusted size and optional zoom type
+	 *
+	 * @param f
+	 * @param size
+	 * @param zoom
+	 * @return
+	 */
 	public static ImageIcon getImage(File f, int size, int... zoom) {
-		//LOG.trace(TT + "getImage(file=" + f.getAbsolutePath() + ", size=" + size + ")");
-		File fx = getImageFile(f);
-		ImageIcon img;
-		if (fx.exists()) {
-			img = new ImageIcon(fx.getAbsolutePath());
-		} else {
-			img = IconUtil.getImageIcon(ICONS.K.UNKNOWN, size);
-			LOG.err(TT + "getImage(" + f.getAbsolutePath() + ", size=" + size
-					+ ") " + fx.getAbsolutePath() + " not exists");
-		}
-		return resizeIcon(img, size, zoom);
+		return getImage(f, new Dimension(size, size), zoom);
 	}
 
+	/**
+	 * get an ImageIcon for the given File, adjusted Dimension and optional zoom type
+	 *
+	 * @param f
+	 * @param size
+	 * @param zoom : optional zoom type (0=none, 1=adjusted, 2=zoomed)
+	 * @return
+	 */
 	public static ImageIcon getImage(File f, Dimension size, int... zoom) {
-		//LOG.trace(TT + "getImage(file=" + f.getAbsolutePath() + ", size=" + size.toString() + ")");
 		File fx = getImageFile(f);
-		ImageIcon img;
+		ImageIcon img = null;
+
 		if (fx.exists()) {
-			img = new ImageIcon(f.getAbsolutePath());
-		} else {
+			try {
+				BufferedImage bImg = ImageIO.read(fx);
+				if (bImg != null) {
+					int orientation = 1;
+					try {
+						Jpeg jpeg = new Jpeg(fx);
+						if (jpeg.exif != null) {
+							orientation = jpeg.exif.getOrientation();
+						}
+					} catch (Exception e) {
+						// Ignoré si pas d'EXIF
+					}
+					bImg = orientedImage(bImg, orientation);
+					img = new ImageIcon(bImg);
+				}
+			} catch (Exception e) {
+				LOG.err(TT + "getImage error reading " + fx.getAbsolutePath(), e);
+			}
+		}
+		if (img == null) {
 			img = IconUtil.getImageIcon(ICONS.K.UNKNOWN, size.width);
-			LOG.err(TT + "getImage(" + f.getAbsolutePath() + ", size=" + size.toString()
-					+ ") " + fx.getAbsolutePath() + " not exists");
+			LOG.err(TT + "getImage(" + f.getAbsolutePath() + ", size=" + size
+					+ ") " + fx.getAbsolutePath() + " not exists or unreadable");
 		}
 		return resizeIcon(img, size, zoom);
 	}
 
+	/**
+	 * resize the given ImageIcon to the give size with optional zoom adjustement
+	 *
+	 * @param icon
+	 * @param size
+	 * @param zoom : optional zoom type (0=none, 1=adjusted, 2=zoomed)
+	 * @return
+	 */
 	public static ImageIcon resizeIcon(ImageIcon icon, int size, int... zoom) {
 		return resizeIcon(icon, new Dimension(size, size), zoom);
 	}
 
-	public static ImageIcon resizeIcon(ImageIcon icon, Dimension target, int... zoom) {
-		if (icon == null || target == null || target.width <= 0 || target.height <= 0) {
+	/**
+	 * resize the given ImageIcon to the give Dimension with optional zoom adjustement
+	 *
+	 * @param icon
+	 * @param dim the target Dimension
+	 * @param zoom : optional zoom type (0=none, 1=adjusted, 2=zoomed)
+	 * @return
+	 */
+	public static ImageIcon resizeIcon(ImageIcon icon, Dimension dim, int... zoom) {
+		if (icon == null || dim == null || dim.width <= 0 || dim.height <= 0) {
 			return icon;
 		}
 		if (icon.getImageLoadStatus() == MediaTracker.LOADING || icon.getIconWidth() == -1) {
 			icon.setImage(icon.getImage());
 		}
-
 		int oWidth = icon.getIconWidth();
 		int oHeight = icon.getIconHeight();
 		if (oWidth <= 0 || oHeight <= 0) {
 			return icon;
 		}
-
 		int zoomMode = (zoom != null && zoom.length > 0) ? zoom[0] : 0;
-
-		// Mode 0 : Aucune adaptation (image rendue telle quelle)
 		if (zoomMode == 0) {
 			return icon;
 		}
-
-		double wRatio = (double) target.width / oWidth;
-		double hRatio = (double) target.height / oHeight;
+		double wRatio = (double) dim.width / oWidth;
+		double hRatio = (double) dim.height / oHeight;
 		double ratio;
-
 		if (zoomMode == 1) {
-			// Mode 1 : Ajustement à l'intérieur (contain) - l'image occupe le max sans être tronquée
 			ratio = Math.min(wRatio, hRatio);
 		} else if (zoomMode == 2) {
-			// Mode 2 : Remplissage complet (cover) - agrandissement max, peut être tronquée
 			ratio = Math.max(wRatio, hRatio);
 		} else {
 			return icon;
 		}
-
 		int drawW = (int) Math.round(oWidth * ratio);
 		int drawH = (int) Math.round(oHeight * ratio);
-
 		if (drawW <= 0) {
 			drawW = 1;
 		}
 		if (drawH <= 0) {
 			drawH = 1;
 		}
-
-		// Pour le mode 1, le canvas correspond à la taille redimensionnée de l'image
-		// Pour le mode 2, le canvas est fixe (target) pour rogner le surplus
-		int canvasW = (zoomMode == 1) ? drawW : target.width;
-		int canvasH = (zoomMode == 1) ? drawH : target.height;
-
+		int canvasW = (zoomMode == 1) ? drawW : dim.width;
+		int canvasH = (zoomMode == 1) ? drawH : dim.height;
 		int drawX = (canvasW - drawW) / 2;
 		int drawY = (canvasH - drawH) / 2;
-
-		BufferedImage resultImage = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage resultImage = new BufferedImage(canvasW, canvasH,
+				BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = resultImage.createGraphics();
 		try {
-			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-			g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
+			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+					RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+					RenderingHints.VALUE_RENDER_QUALITY);
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+					RenderingHints.VALUE_ANTIALIAS_ON);
 			g2.drawImage(icon.getImage(), drawX, drawY, drawW, drawH, null);
 		} finally {
 			g2.dispose();
 		}
-
 		return new ImageIcon(resultImage);
 	}
 
-	public static void showPhoto(MainFrame parent, File file, List... list) {
-		//LOG.trace(TT + "showPhoto(parent, file=" + file + ")");
-		try {
-			ImageIcon img = getImage(file,
-					(int) Math.round(Toolkit.getDefaultToolkit().getScreenSize().height * 0.95),
-					2);
-			JDialog dlg = new JDialog(parent,
-					"Aperçu de la photo " + file.getName());
-			dlg.setModal(true);
-			dlg.add(new JLabel(img));
-			dlg.pack();
-			dlg.setLocationRelativeTo(parent);
-			dlg.setVisible(true);
-			//todo ajout la possibilité de "naviguer" (next/previux)
-		} catch (Exception e) {
-			e.printStackTrace(System.err);
+	/**
+	 * get the necessary rotation from EXIF tag (1 à 8).
+	 */
+	public static BufferedImage orientedImage(BufferedImage src, int orientationExif) {
+		switch (orientationExif) {
+			case 6:
+				return rotate(src, 90);
+			case 3:
+				return rotate(src, 180);
+			case 8:
+				return rotate(src, 270);
+			case 1:
+			default:
+				return src; // Aucune modification
 		}
 	}
+
+	/**
+	 * rotate the given BufferedImage.
+	 */
+	public static BufferedImage rotate(BufferedImage src, int angle) {
+		int w = src.getWidth();
+		int h = src.getHeight();
+		boolean swapDims = (angle == 90 || angle == 270);
+		int newW = swapDims ? h : w;
+		int newH = swapDims ? w : h;
+		int type = (src.getType() == BufferedImage.TYPE_CUSTOM)
+				? BufferedImage.TYPE_INT_ARGB : src.getType();
+		BufferedImage dest = new BufferedImage(newW, newH, type);
+		Graphics2D g2d = dest.createGraphics();
+		try {
+			AffineTransform at = new AffineTransform();
+			at.translate(newW / 2.0, newH / 2.0);
+			at.rotate(Math.toRadians(angle));
+			at.translate(-w / 2.0, -h / 2.0);
+			g2d.setTransform(at);
+			g2d.drawImage(src, 0, 0, null);
+		} finally {
+			g2d.dispose();
+		}
+		return dest;
+	}
+
 }

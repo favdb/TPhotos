@@ -45,7 +45,7 @@ import javax.swing.SwingWorker;
 import javax.swing.table.TableModel;
 
 /**
- * gallery panel with asynchronous load
+ * class for the gallery panel with asynchronous load
  *
  * @author favdb
  */
@@ -85,15 +85,22 @@ public class AlbumGallery extends JPanel {
 		initialize();
 	}
 
+	/**
+	 * get the MainFrame
+	 *
+	 * @return
+	 */
 	public MainFrame mainFrameGet() {
 		return App.mainFrame;
 	}
 
+	/**
+	 * initialization
+	 */
 	private void initialize() {
 		//LOG.trace(TT+"initialize()");
-		setLayout(new MigLayout(MIG.get(/*MIG.FILL, */MIG.INS0, MIG.GAP1)));
+		setLayout(new MigLayout(MIG.get(MIG.INS0, MIG.GAP1)));
 		int nbcols = nbColsGet();
-
 		if (pGallery == null) {
 			pGallery = new JPanel();
 		}
@@ -124,7 +131,7 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
-	 * get size of columns
+	 * get number of columns
 	 *
 	 * @return
 	 */
@@ -173,7 +180,6 @@ public class AlbumGallery extends JPanel {
 				}
 			}
 		} else if (rootdir != null && rootdir.exists()) {
-			// On charge le dossier sélectionné et l'ensemble de son arborescence
 			collectPhotos(rootdir, filesToLoad);
 			Collections.sort(filesToLoad, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
 		}
@@ -212,10 +218,10 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
-	 * Parcours récursif pour collecter tous les fichiers JPEG sous le dossier sélectionné
+	 * Recursive files collect in selected sub-directory for all JPEG
 	 *
-	 * @param dir dossier à explorer
-	 * @param result liste cible des fichiers images trouvés
+	 * @param dir sub-directorys to explore
+	 * @param result target list for finded images
 	 */
 	private void collectPhotos(File dir, List<File> result) {
 		File[] files = dir.listFiles();
@@ -224,7 +230,6 @@ public class AlbumGallery extends JPanel {
 		}
 		for (File f : files) {
 			if (f.isDirectory()) {
-				// Explore tous les sous-dossiers (normés ou non) situés sous le dossier sélectionné
 				collectPhotos(f, result);
 			} else if (App.jpegIs(f)) {
 				result.add(f);
@@ -246,9 +251,6 @@ public class AlbumGallery extends JPanel {
 		}
 		for (File f : files) {
 			if (f.isDirectory()) {
-				// Si c'est un sous-dossier hors-norme, on explore toujours.
-				// Si c'est un dossier normé (ex: jour), on explore seulement si on est en train
-				// d'explorer sous le dossier racine sélectionné (isRoot = true).
 				if (!isNormedDir(f) || isRoot) {
 					collectPhotos(f, result, false);
 				}
@@ -259,11 +261,10 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
-	 * Vérifie si le dossier suit la norme numérique (Année / Mois / Jour)
+	 * Check if given directory name is standard (Year / Month / Day)
 	 */
 	private boolean isNormedDir(File dir) {
 		String name = dir.getName();
-		// Vérifie si le nom du dossier est purement numérique (ex: 2026, 08, 25)
 		return name.matches("\\d+");
 	}
 
@@ -324,7 +325,6 @@ public class AlbumGallery extends JPanel {
 	 */
 	public void btAddUpdate() {
 		album.updateBtAdd(false);
-		//album.updateBtAdd(album.xmlGet().albumGet().photosAllGet().size() > 0);
 		for (AlbumGalleryCell il : galleryCells) {
 			if (il.getSel() == AlbumGalleryCell.SEL) {
 				album.updateBtAdd(true);
@@ -334,7 +334,7 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
-	 * show popup menu
+	 * show popup menu for the given AlbumGalleryCell
 	 *
 	 * @param e
 	 * @param il
@@ -382,7 +382,7 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
-	 * add an image label
+	 * add the given AlbumGalleryCellto the album
 	 *
 	 * @param lb
 	 */
@@ -394,7 +394,7 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
-	 * remove an image label
+	 * remove the given AlbumGalleryCell from the album
 	 *
 	 * @param lb
 	 */

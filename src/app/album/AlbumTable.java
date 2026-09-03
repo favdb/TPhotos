@@ -18,10 +18,13 @@
 package app.album;
 
 import app.App;
+import app.i18n.I18N;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.TableColumnAdjuster;
 import app.xml.Xml;
 import app.xml.XmlAlbum;
 import app.xml.XmlAlbumItem;
-import app.i18n.I18N;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import static java.awt.event.KeyEvent.*;
@@ -39,9 +42,6 @@ import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
-import app.resources.icons.ICONS;
-import app.resources.icons.IconUtil;
-import app.tools.TableColumnAdjuster;
 
 /**
  * Table for items in photo album.
@@ -62,10 +62,20 @@ public class AlbumTable extends JTable {
 		initialize();
 	}
 
+	/**
+	 * check if table was modified
+	 *
+	 * @return
+	 */
 	public boolean isModified() {
 		return modified;
 	}
 
+	/**
+	 * get the Album
+	 *
+	 * @return
+	 */
 	public Album getAlbumPanel() {
 		return album;
 	}
@@ -159,7 +169,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * add an AlbumItem in table
+	 * add an XmlAlbumItem in table
 	 *
 	 * @param item
 	 */
@@ -170,6 +180,11 @@ public class AlbumTable extends JTable {
 		renumber();
 	}
 
+	/**
+	 * remove the given row
+	 *
+	 * @param row
+	 */
 	public void rowRemove(int row) {
 		DefaultTableModel model = (DefaultTableModel) this.getModel();
 		if (row >= 0 && row < model.getRowCount()) {
@@ -179,7 +194,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * move given line to up
+	 * move given line up
 	 */
 	private void mouveUp() {
 		int row = getSelectedRow();
@@ -241,7 +256,7 @@ public class AlbumTable extends JTable {
 	}
 
 	/**
-	 * save table content in XmlAlbum and save to wml file
+	 * save table content in XmlAlbum and save to xml file
 	 *
 	 * @param title Le titre courant de l'album
 	 */
@@ -275,13 +290,13 @@ public class AlbumTable extends JTable {
 			}
 			xml.save();
 			modified = false;
-			album.xmlGet().printGet().updateAll();
+			album.xmlGet().printGet().reloadAll();
 			App.updateTitle();
 		}
 	}
 
 	/**
-	 * get AlbumItem for given row
+	 * get XmlAlbumItem for the given row
 	 *
 	 * @param row : line index
 	 * @return AlbumItem
@@ -291,13 +306,13 @@ public class AlbumTable extends JTable {
 			int id = (Integer) getValueAt(row, 0);
 			File file = (File) getValueAt(row, 1);
 			String text = (String) getValueAt(row, 2);
-			return new XmlAlbumItem("" + id, text, file.getAbsolutePath());
+			return new XmlAlbumItem("" + id, file.getAbsolutePath(), text);
 		}
 		return null;
 	}
 
 	/**
-	 * Tag table modified
+	 * set table modified
 	 */
 	public void setModified() {
 		modified = true;
@@ -320,7 +335,7 @@ public class AlbumTable extends JTable {
 			int key = e.getKeyCode();
 			char keychar = e.getKeyChar();
 			if (key == VK_DELETE || keychar == 0x007F) {
-				table.rowRemove(table.getSelectedRow());
+				table.removeSelectedRows();
 			}
 			if (keychar == '-' && e.isControlDown()) {
 				table.mouveUp();
@@ -339,7 +354,6 @@ public class AlbumTable extends JTable {
 		public void keyReleased(KeyEvent e) {
 			// empty
 		}
-
 	}
 
 	/**
@@ -395,19 +409,19 @@ public class AlbumTable extends JTable {
 		@Override
 		public Component getTableCellRendererComponent(JTable table, Object value,
 				boolean isSelected, boolean hasFocus, int row, int column) {
+			JLabel lb = new JLabel(IconUtil.getIconSmall(ICONS.K.PHOTO));
 			if (value instanceof XmlAlbumItem) {
 				XmlAlbumItem x = (XmlAlbumItem) value;
-				JLabel lb = new JLabel(IconUtil.getIconSmall(ICONS.K.PHOTO));
-				lb.setText("");
 				lb.setToolTipText(x.photoGet());
-				table.setRowHeight(row, IconUtil.getDefSize());
-				if (isSelected || hasFocus) {
-					lb.setBackground(table.getSelectionBackground());
-					lb.setOpaque(true);
-				}
-				return lb;
+			} else if (value instanceof File) {
+				lb.setToolTipText(((File) value).getAbsolutePath());
 			}
-			return this;
+			table.setRowHeight(row, IconUtil.getDefSize());
+			if (isSelected || hasFocus) {
+				lb.setBackground(table.getSelectionBackground());
+				lb.setOpaque(true);
+			}
+			return lb;
 		}
 	}
 

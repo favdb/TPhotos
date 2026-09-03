@@ -17,6 +17,7 @@
  */
 package app.xml;
 
+import app.tools.LOG;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,8 @@ import org.w3c.dom.NodeList;
  * @author favdb
  */
 public class XmlLibs {
+
+	private static final String TT = "XmlLibs.";
 
 	private final Xml xml;
 	List<XmlLib> libs = new ArrayList<>();
@@ -115,8 +118,37 @@ public class XmlLibs {
 		return b.toString();
 	}
 
-	public void addLib(String value) {
-		libs.add(new XmlLib(libs.size() + 1, value));
+	/**
+	 * add the given text in libs
+	 *
+	 * @param value
+	 * @return
+	 */
+	public int libAdd(String value) {
+		int n = 0;
+		for (XmlLib l : libs) {
+			int id = Integer.parseInt(l.getId());
+			n = Math.max(n, id);
+		}
+		int id = n + 1;
+		libs.add(new XmlLib(id, value));
+		return id;
+	}
+
+	/**
+	 * remove the given text id from libs
+	 *
+	 * @param value
+	 */
+	public void libDelete(int value) {
+		LOG.trace(TT + "libDelete(" + "id=" + value + ")");
+		for (XmlLib l : libs) {
+			int id = Integer.parseInt(l.getId());
+			if (id == value) {
+				libs.remove(l);
+				break;
+			}
+		}
 	}
 
 	public class XmlLib {

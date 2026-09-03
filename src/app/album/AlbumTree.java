@@ -20,6 +20,9 @@ package app.album;
 import app.App;
 import app.Pref;
 import app.i18n.I18N;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.file.FileUtil;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -40,9 +43,6 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
-import app.resources.icons.ICONS;
-import app.resources.icons.IconUtil;
-import app.tools.file.FileUtil;
 
 /**
  * JTree for the files
@@ -63,6 +63,9 @@ public class AlbumTree extends JTree {
 		initialize();
 	}
 
+	/**
+	 * initialization
+	 */
 	public void initialize() {
 		rootDir = new File(App.pref.photosDirGet());
 		rootNode = new DefaultMutableTreeNode(rootDir);
@@ -78,7 +81,8 @@ public class AlbumTree extends JTree {
 	}
 
 	/**
-	 * get the sub folder name
+	 * get the sub-directory name for the given date String, the mode is not used
+	 * (allways=2)
 	 *
 	 * @param date
 	 * @param mode 0 year only, 1=with year and month, 2=with year, month and day
@@ -87,12 +91,11 @@ public class AlbumTree extends JTree {
 	public static String getSubdir(String date, int mode) {
 		StringBuilder subdir = new StringBuilder();
 		if (mode < 3) {
-			// always add year
 			subdir.append(date.substring(0, 4)).append(File.separator);
-			if (mode > 0) {// add month
+			if (mode > 0) {
 				subdir.append(date.substring(4, 6)).append(File.separator);
 			}
-			if (mode > 1) {// add day
+			if (mode > 1) {
 				subdir.append(date.substring(6, 8)).append(File.separator);
 			}
 		}
@@ -181,13 +184,14 @@ public class AlbumTree extends JTree {
 	}
 
 	/**
-	 * Construit l'arbre composé des dossiers normaux (limités par le mode) et des
-	 * sous-dossiers personnalisés.
+	 * -
+	 * Build the treewith all normal directories and sub-directories) and all presonalized
+	 * sub-directories.
 	 *
-	 * @param fileRoot Le dossier courant
-	 * @param node Le nœud parent
-	 * @param mode Le mode d'affichage courant
-	 * @param depth La profondeur actuelle (0 = Racine, 1 = Année, 2 = Mois, 3 = Jour)
+	 * @param fileRoot Current directory
+	 * @param node the parent node
+	 * @param mode The view mod
+	 * @param depth Actual depth (0 = Root, 1 = Year, 2 = Month, 3 = Day)
 	 */
 	private void buildVirtualTree(File fileRoot, DefaultMutableTreeNode node,
 			Album.VIEW_MODE mode, int depth) {
@@ -195,34 +199,23 @@ public class AlbumTree extends JTree {
 		if (files == null) {
 			return;
 		}
-
 		Arrays.sort(files);
-		// depth 0: Racine (photosDir)
-		// depth 1: Années (ex: 2026) -> mode YEAR
-		// depth 2: Mois (ex: 08)     -> mode MONTH
-		// depth 3: Jours (ex: 25)    -> mode DAY
 		int maxDepth = mode.getLevel() + 1;
-
 		for (File file : files) {
 			if (file.isDirectory()) {
 				boolean normed = isNormedDir(file);
-
-				// Si c'est un dossier normé et qu'on a atteint la limite du mode d'affichage, on ne l'ajoute pas
 				if (normed && depth >= maxDepth) {
 					continue;
 				}
-
 				DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(file);
 				node.add(childNode);
-
-				// Exploration récursive
 				buildVirtualTree(file, childNode, mode, depth + 1);
 			}
 		}
 	}
 
 	/**
-	 * Vérifie si le dossier suit la norme numérique (Année / Mois / Jour)
+	 * Check if folder name is standard (Year / Month / Day)
 	 */
 	private boolean isNormedDir(File dir) {
 		return dir.getName().matches("\\d+");
@@ -365,4 +358,5 @@ public class AlbumTree extends JTree {
 			}
 		}
 	}
+
 }

@@ -55,16 +55,13 @@ public class ExportImage {
 	 *
 	 * @throws Exception
 	 */
-	public static File writeTo(File src,
-			String text,
-			File dirDest,
-			String outName,
+	public static File writeTo(File src, String text,
+			File dirDest, String outName,
 			float compression) throws Exception {
 		BufferedImage srcImage = ImageIO.read(src);
 		Dimension imgDim = new Dimension(srcImage.getWidth(), srcImage.getHeight());
 		Dimension scaledDim = (text != null && !text.isEmpty())
-				? getNewDim(imgDim, new Dimension(1280, 720))
-				: imgDim;
+				? getNewDim(imgDim, new Dimension(1280, 720)) : imgDim;
 		Image scaledImage = srcImage.getScaledInstance(scaledDim.width,
 				scaledDim.height, Image.SCALE_SMOOTH);
 		int textZoneHeight = 0;
@@ -114,50 +111,30 @@ public class ExportImage {
 	}
 
 	/**
-	 * insert text into the image
-	 *
-	 * @param text: String text to insert
-	 * @param g2d: graphics of the destination image
-	 * @param dim: dimension of the image
-	 */
-	private static void insertText(String text, Graphics2D g2d, Dimension dim) {
-		if (text != null && !text.isEmpty()) {
-			g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g2d.setFont(new Font("Arial", Font.PLAIN, 20));
-			FontMetrics fontMetrics = g2d.getFontMetrics();
-			int textW = fontMetrics.stringWidth(text), textH = fontMetrics.getHeight();
-			int padding = 10, rectHeight = textH + padding * 2;
-			g2d.setColor(Color.BLACK);
-			g2d.fillRect(0, dim.height - rectHeight, dim.width, rectHeight);
-			g2d.setColor(Color.WHITE);
-			int x = (dim.width - textW) / 2,
-					y = dim.height - padding - fontMetrics.getDescent();
-			g2d.drawString(text, x, y);
-		}
-	}
-
-	/**
-	 * compress and wite the image
+	 * compress and write the image
 	 *
 	 * @param image: buffered image to compress
-	 * @param outfile: destination File
-	 * @param compress: ratio of the compression, between 0 and 1
+	 * @param out: destination File
+	 * @param zip: ratio of the compression, between 0 and 1
 	 *
 	 * @throws IOException
 	 */
-	private static void compressImage(BufferedImage image, File outfile, float compress) throws IOException {
-		//LOG.trace(TT + "compressImage(image, outfile, " + String.format("%f", compress) + ")");
+	private static void compressImage(BufferedImage image, File out, float zip)
+			throws IOException {
+		/*LOG.trace(TT + "compressImage(image,
+				outfile, " + String.format("%f", compress) + ")");*/
 		Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
 		ImageWriter writer = writers.next();
-		try (ImageOutputStream outputStream = ImageIO.createImageOutputStream(outfile)) {
+		try (ImageOutputStream outputStream = ImageIO.createImageOutputStream(out)) {
 			writer.setOutput(outputStream);
 			ImageWriteParam params = writer.getDefaultWriteParam();
-			if (compress > 0f) {
+			if (zip > 0f) {
 				params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-				params.setCompressionQuality(compress); // Compression entre 0.5 (forte) et 0.75 (faible)
+				params.setCompressionQuality(zip);
 			}
 			writer.write(null, new IIOImage(image, null, null), params);
 		}
 		writer.dispose();
 	}
+
 }

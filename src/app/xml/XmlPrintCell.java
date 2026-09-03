@@ -361,10 +361,14 @@ public class XmlPrintCell {
 	@Override
 	public String toString() {
 		if (isPhoto()) {
-			return String.format("id=%d type=%s photo_id=%s file=%s page=%d pos=(%s) comment=%s", id, type,
+			return String.format(
+					"id=%d type=%s photo_id=%s file=%s page=%d pos=(%s) comment=%s",
+					id, type,
 					photoId, photoName, page, pos.toString(), comment);
 		} else {
-			return String.format("id=%d type=%s text_id=%s page=%d pos=%s textlen=%d", id, type,
+			return String.format(
+					"id=%d type=%s text_id=%s page=%d pos=%s textlen=%d",
+					id, type,
 					textId, page, pos.toString(), text.length());
 		}
 	}

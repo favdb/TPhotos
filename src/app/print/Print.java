@@ -40,6 +40,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.Border;
@@ -282,7 +283,7 @@ public class Print extends JPanel {
 			gridGet().setDim(paperFormatGet(), paperOrientationGet());
 			gridRefresh();
 		});
-		//p.addLib(cbFormat);
+		//p.libAdd(cbFormat);
 
 		String orList[] = {I18N.getMsg("print.orientation_portrait"),
 			I18N.getMsg("print.orientation_landscape")};
@@ -325,7 +326,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * addLib a page to the grid
+	 * libAdd a page to the grid
 	 */
 	private void gridPageAdd() {
 		//LOG.trace(TT + "gridPageAdd()");
@@ -369,7 +370,7 @@ public class Print extends JPanel {
 				e -> actionPreview()));
 		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT,
 				e -> Printer.executePrint(this)));
-		/*p.addLib(Ui.initButton("print.action_close", ICONS.K.EXIT,
+		/*p.libAdd(Ui.initButton("print.action_close", ICONS.K.EXIT,
 				e -> actionClose()));*/
 		return p;
 	}
@@ -491,6 +492,7 @@ public class Print extends JPanel {
 	public void updateCell(XmlPrintCell dest, int pageGet, String posGet) {
 		xmlPrint.updateCell(dest, pageGet, posGet);
 		xml.save();
+		this.gridGet().gridCellUnselect();
 		refresh();
 	}
 
@@ -518,9 +520,8 @@ public class Print extends JPanel {
 	 */
 	public void textEdit(XmlPrintCell item) {
 		SherpaDlg dlg = new SherpaDlg(mainFrame, item.textGet());
-		if (dlg.isValidate()) {
+		if (dlg.isOK()) {
 			String txt = dlg.getHtmlContent();
-			LOG.trace(TT + "textEdit(item) validated ='" + txt + "'");
 			if (Html.htmlToText(txt).isEmpty()) {
 				return;
 			}
@@ -536,27 +537,43 @@ public class Print extends JPanel {
 	 *
 	 * @param item
 	 */
-	public void textCreate(XmlPrintCell item) {
+	public void textCreate(int page, String pos) {
 		SherpaDlg dlg = new SherpaDlg(mainFrame, "", "print.text_create");
-		if (dlg.isValidate()) {
+		if (dlg.isOK()) {
 			String txt = dlg.getHtmlContent();
 			if (Html.htmlToText(txt).isEmpty()) {
 				return;
 			}
-			xml.libsGet().addLib(txt);
-			XmlPrintCell cell = new XmlPrintCell(xml.libsGet().getAll().size() - 1,
-					dlg.getHtmlContent(),
-					item.pageGet(),
-					item.posGet());
-			xmlPrint.addCell(cell);
+			int id = xml.libsGet().libAdd(txt);
+			XmlPrintCell cell = new XmlPrintCell(id, txt,
+					(page == -1 ? currentPage : page), pos);
+			xmlPrint.cellAdd(cell);
 			xml.save();
 			refresh();
 		}
 	}
 
-//***************************************************
-// Manage interaction between Pool and Grid
-//***************************************************
+	public void textDelete(XmlPrintCell cell) {
+		LOG.trace(TT + "textDelete(" + cell.toString() + ")");
+		Object[] options = {I18N.getMsg("ask.yes"), I18N.getMsg("ask.no")};
+		int choice = JOptionPane.showOptionDialog(this,
+				I18N.getMsg("ask.delete", Html.htmlToText(cell.textGet())),
+				I18N.getMsg("ask.confirm"),
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.QUESTION_MESSAGE,
+				null, options, options[1]);
+		if (choice != JOptionPane.YES_OPTION) {
+			return;
+		}
+		xmlPrint.cellDelete(cell);
+		xml.libsGet().libDelete(cell.textIdGet());
+		xml.save();
+		refresh();
+	}
+
+	//***************************************************
+	// Manage interaction between Pool and Grid
+	//***************************************************
 	private XmlPrintCell pendingCellToPlace = null;
 
 	/**

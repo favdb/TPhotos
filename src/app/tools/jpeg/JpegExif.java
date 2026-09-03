@@ -40,13 +40,11 @@ public class JpegExif {
 			latMinute = null,
 			longMinute = null;
 	private Double latSecond = null, longSecond = null;
-
 	private LinkedList<JpegExifEntry> gpsEntry,
 			ifd0,
 			subIfd,
 			ifd1,
 			interoperabilityIfd;
-
 	private static final int HEADER_SIZE = 8, RATIONAL_SIZE = 8, SHORT_SIZE = 2, LONG_SIZE = 4;
 	private static final int[] DATA_SIZE = {1, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8};
 
@@ -600,6 +598,29 @@ public class JpegExif {
 	private int getInt16(byte[] value) {
 		return bigEndian ? Endian.Big.getInt16(value)
 				: Endian.Little.getInt16(value);
+	}
+
+	/**
+	 * get EXIF orientation EXIF (Tag 0112).
+	 *
+	 * @return The orientation value (1 à 8). Return 1 by default.
+	 */
+	public int getOrientation() {
+		if (ifd0 != null) {
+			for (JpegExifEntry entry : ifd0) {
+				if (entry.getTagNumberAsString().equalsIgnoreCase(JpegExifTag.TAG_ORIENTATION)) {
+					Object val = entry.getValue();
+					if (val instanceof Integer) {
+						return (Integer) val;
+					} else if (val instanceof int[] && ((int[]) val).length > 0) {
+						return ((int[]) val)[0];
+					} else if (val instanceof Short) {
+						return ((Short) val).intValue();
+					}
+				}
+			}
+		}
+		return 1;
 	}
 
 }

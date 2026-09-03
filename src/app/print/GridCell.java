@@ -27,14 +27,20 @@ public class GridCell extends JLabel {
 
 	private static final String TT = "GridCell.";
 
-	private XmlPrintCell item;
+	private XmlPrintCell cell;
 	private final Grid grid;
 	private boolean selected = false;
 
+	/**
+	 * a cell for Print
+	 *
+	 * @param grid
+	 * @param cell
+	 */
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public GridCell(Grid grid, XmlPrintCell item) {
+	public GridCell(Grid grid, XmlPrintCell cell) {
 		this.grid = grid;
-		this.item = item;
+		this.cell = cell;
 		initialize();
 		setupInteractions();
 	}
@@ -52,9 +58,12 @@ public class GridCell extends JLabel {
 	}
 
 	public XmlPrintCell printCellGet() {
-		return item;
+		return cell;
 	}
 
+	/**
+	 * initialize
+	 */
 	public void initialize() {
 		this.setLayout(new BorderLayout());
 		SwingTools.setFixedSize(this, grid.cellDim);
@@ -65,6 +74,9 @@ public class GridCell extends JLabel {
 		refresh();
 	}
 
+	/**
+	 * refresh
+	 */
 	public void refresh() {
 		this.removeAll();
 		this.setIcon(null);
@@ -78,28 +90,25 @@ public class GridCell extends JLabel {
 			w = disponibleWidth / grid.colsGet();
 			h = disponibleHeight / grid.rowsGet();
 		}
-		int spanH = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1;
-		int spanV = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1;
-
+		int spanH = cell.spanHorizontalGet() > 0 ? cell.spanHorizontalGet() : 1;
+		int spanV = cell.spanVerticalGet() > 0 ? cell.spanVerticalGet() : 1;
 		int cellWidth = w * spanH;
 		int cellHeight = h * spanV;
-
 		int targetW = Math.max(10, cellWidth);
 		int targetH = Math.max(10, cellHeight);
-
-		if (item.isPhoto()) {
+		if (cell.isPhoto()) {
 			this.setBackground(Color.WHITE);
-			if (item.photoFileGet() != null && item.photoFileGet().exists()) {
+			if (cell.photoFileGet() != null && cell.photoFileGet().exists()) {
 				int sz = Math.min(cellWidth, cellHeight);
-				this.setIcon(ImageUtil.getImage(item.photoFileGet(),
-						Math.max(targetW, targetH), item.zoomGet()));
+				this.setIcon(ImageUtil.getImage(cell.photoFileGet(),
+						Math.max(targetW, targetH), cell.zoomGet()));
 			} else {
-				this.setText("Photo introuvable (#" + item.photoIdGet() + ")");
+				this.setText("Photo introuvable (#" + cell.photoIdGet() + ")");
 				this.setHorizontalAlignment(JLabel.CENTER);
 			}
-		} else if (item.isText()) {
+		} else if (cell.isText()) {
 			this.setBackground(new Color(255, 255, 245));
-			String textContent = (item.textGet() != null) ? item.textGet() : "";
+			String textContent = (cell.textGet() != null) ? cell.textGet() : "";
 			String txt = "<html>"
 					+ "<head><style>"
 					+ "body { font-size: 10px; }"
@@ -114,7 +123,7 @@ public class GridCell extends JLabel {
 		} else {
 			this.setBorder(BorderFactory.createDashedBorder(Color.LIGHT_GRAY, 2, 2, 1, false));
 			this.setBackground(new Color(248, 248, 248));
-			this.setText(String.valueOf(item.cellNumGet()));
+			this.setText(String.valueOf(cell.cellNumGet()));
 			this.setFont(this.getFont().deriveFont(14.0f));
 			this.setForeground(Color.LIGHT_GRAY);
 			this.setHorizontalAlignment(JLabel.CENTER);
@@ -125,45 +134,38 @@ public class GridCell extends JLabel {
 		this.repaint();
 	}
 
+	/**
+	 * action for simple click
+	 */
 	private void actionSimpleClick() {
 		//LOG.trace(TT + "actionSimpleClick()");
-		if (grid.gridCellSelectedGet() != null && item.isEmpty()) {
-			//there is a selected cell selected in Grid
-			/* not used
-			GridCell srce = grid.gridCellSelectedGet();
-			if (srce.isSelected) srce.unSelect();
-			if (!srce.item.spanGet().equals("1,1")) {
-				//not allowed
-				return;
-			}
-			if (cell.item.isText() || cell.item.isPhoto()) {
-				XmlPrintCell dest = cell.item;
-				dest.pageSet(item.pageGet());
-				dest.posSet(item.posGet());
-				grid.getPrint().updateCell(dest, item.pageGet(), item.posGet());
-			}
-			 */
+		if (grid.gridCellSelectedGet() != null && cell.isEmpty()) {
+			grid.gridCellUnselect();
 			return;
 		}
 		PoolCell poolCell = grid.getPrint().poolGet().poolCellSelectedGet();
-		if (item.isEmpty() && poolCell != null) {
-			//there is a poolcell to place to thie empty cell
-			grid.getPrint().updateCell(poolCell.printCellGet(), item.pageGet(), item.posGet());
+		if (cell.isEmpty() && poolCell != null) {
+			grid.getPrint().updateCell(poolCell.printCellGet(), cell.pageGet(), cell.posGet());
+			grid.getPrint().poolGet().poolCellUnselect();
 		}
 	}
 
+	/**
+	 * action for double click
+	 */
 	private void actionDoubleClick() {
 		//LOG.trace(TT + "actionDoubleClick()" + item.toString());
-		if (item.isPhoto()) {
-			ShowPhoto.show(item.photoFileGet(), grid.getPrint().getCells());
-		} else if (item.isText()) {
-			grid.getPrint().textEdit(item);
-		}/* else if (item.isEmpty()) {
-			grid.getPrint().textCreate(item);
-		}*/
+		if (cell.isPhoto()) {
+			ShowPhoto.show(cell.photoFileGet(), grid.getPrint().getCells());
+		} else if (cell.isText()) {
+			grid.getPrint().textEdit(cell);
+		}
 		grid.gridCellUnselect();
 	}
 
+	/**
+	 * set up interaction
+	 */
 	private final ClickDispatcher clickDispatcher = new ClickDispatcher(250);
 
 	private void setupInteractions() {
@@ -207,44 +209,45 @@ public class GridCell extends JLabel {
 		}
 		JPopupMenu menu = new JPopupMenu();
 		int totalCols = grid.colsGet(), totalRows = grid.rowsGet();
-		int cellNum = item.cellNumGet();
+		int cellNum = cell.cellNumGet();
 		int col = (cellNum - 1) % totalCols, row = (cellNum - 1) / totalCols;
-		if (item.isEmpty()) {
+		if (cell.isEmpty()) {
+			//create a text
 			JMenuItem edit = new JMenuItem(I18N.getMsg("print.text_create"));
-			edit.addActionListener(l -> grid.getPrint().textCreate(item));
+			edit.addActionListener(l -> grid.getPrint().textCreate(-1, cell.posGet()));
 			menu.add(edit);
 		} else {
 			//call textEdit editor if text
-			if (item.isText()) {
+			if (cell.isText()) {
 				JMenuItem textEdit = new JMenuItem(I18N.getMsg("print.text_edit"));
 				textEdit.addActionListener(al -> {
-					grid.getPrint().textEdit(item);
+					grid.getPrint().textEdit(cell);
 				});
 				menu.add(textEdit);
-			} else if (item.isPhoto()) {
+			} else if (cell.isPhoto()) {
 				JMenuItem textEdit = new JMenuItem(I18N.getMsg("print.pool.open_photo"));
 				textEdit.addActionListener(al -> {
-					ShowPhoto.show(item.photoFileGet(), grid.getPrint().getCells());
+					ShowPhoto.show(cell.photoFileGet(), grid.getPrint().getCells());
 				});
 				menu.add(textEdit);
 			}
 			//set the zoom mode
 			JMenu zoom = new JMenu(I18N.getMsg("print.zoom"));
 			JMenuItem z0 = new JMenuItem(I18N.getMsg("print.zoom_none"));
-			z0.addActionListener(z0n -> grid.zoomSet(item, 0));
+			z0.addActionListener(z0n -> grid.zoomSet(cell, 0));
 			zoom.add(z0);
 			JMenuItem z1 = new JMenuItem(I18N.getMsg("print.zoom_contain"));
-			z1.addActionListener(z1n -> grid.zoomSet(item, 1));
+			z1.addActionListener(z1n -> grid.zoomSet(cell, 1));
 			zoom.add(z1);
 			JMenuItem z2 = new JMenuItem(I18N.getMsg("print.zoom_cover"));
-			z2.addActionListener(z2n -> grid.zoomSet(item, 2));
+			z2.addActionListener(z2n -> grid.zoomSet(cell, 2));
 			zoom.add(z2);
 			menu.add(zoom);
 			//clear the cell
 			JMenuItem clearCell = new JMenuItem(I18N.getMsg("print.clear"));
-			clearCell.setEnabled(item.photoIdGet() != -1
-					|| item.textIdGet() != -1
-					|| (item.textGet() != null && !item.textGet().isEmpty()));
+			clearCell.setEnabled(cell.photoIdGet() != -1
+					|| cell.textIdGet() != -1
+					|| (cell.textGet() != null && !cell.textGet().isEmpty()));
 			clearCell.addActionListener(al -> {
 				releaseCellInPool();
 				grid.setModified();
@@ -255,28 +258,28 @@ public class GridCell extends JLabel {
 			JMenu sub = new JMenu(I18N.getMsg("print.menu.span"));
 			menu.add(sub);
 			JMenuItem incSpanH = new JMenuItem(I18N.getMsg("print.menu.spanh.inc") + " (+1)");
-			incSpanH.setEnabled(grid.isAllowedSpanH(item));
+			incSpanH.setEnabled(grid.isAllowedSpanH(cell));
 			incSpanH.addActionListener(al -> {
-				grid.setSpanH(item, +1);
+				grid.setSpanH(cell, +1);
 			});
 			sub.add(incSpanH);
 			JMenuItem decSpanH = new JMenuItem(I18N.getMsg("print.menu.spanh.dec") + " (-1)");
-			decSpanH.setEnabled(item.spanHorizontalGet() > 1);
+			decSpanH.setEnabled(cell.spanHorizontalGet() > 1);
 			decSpanH.addActionListener(al -> {
-				grid.setSpanH(item, -1);
+				grid.setSpanH(cell, -1);
 			});
 			sub.add(decSpanH);
 			//vertical span
 			JMenuItem incSpanV = new JMenuItem(I18N.getMsg("print.menu.spanv.inc") + " (+1)");
-			incSpanV.setEnabled(grid.isAllowedSpanV(item));
+			incSpanV.setEnabled(grid.isAllowedSpanV(cell));
 			incSpanV.addActionListener(al -> {
-				grid.setSpanV(item, +1);
+				grid.setSpanV(cell, +1);
 			});
 			sub.add(incSpanV);
 			JMenuItem decSpanV = new JMenuItem(I18N.getMsg("print.menu.spanv.dec") + " (-1)");
-			decSpanV.setEnabled(item.spanVerticalGet() > 1);
+			decSpanV.setEnabled(cell.spanVerticalGet() > 1);
 			decSpanV.addActionListener(al -> {
-				grid.setSpanV(item, -1);
+				grid.setSpanV(cell, -1);
 			});
 			sub.add(decSpanV);
 		}
@@ -289,7 +292,7 @@ public class GridCell extends JLabel {
 		if (print == null || print.getCells() == null) {
 			return;
 		}
-		item.pageSet(0);
+		cell.pageSet(0);
 		print.actionSave();
 		print.poolGet().poolCellUnselect();
 		print.poolGet().refresh();

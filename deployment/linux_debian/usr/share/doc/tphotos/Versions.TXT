@@ -2,10 +2,11 @@ TPhotos versions:
 
 3.02: juillet 2026
 - ajout de l'impression
+- ajout de SHERPA
 - Look&Feel FlatLaf
 - restructuration des photos par années/mois/jours
-3.01
-3.00
+3.01 : 27/05/2026
+3.00 : virtuel
 2.05 : 25/02/2026
 - petites corrections L&F
 2.04 : 01/09/2025

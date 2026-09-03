@@ -26,9 +26,11 @@ import app.resources.icons.ICONS;
 import app.tools.Ui;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Window;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -40,29 +42,28 @@ public class SherpaDlg extends JDialog {
 	private String text;
 	private SHERPA editor;
 	private boolean validate = false;
-	private final String[] stitle;
 
-	public SherpaDlg(JFrame parentFrame, String text, String... title) {
-		super(parentFrame, true);
-		this.text = text;
-		this.stitle = title;
-		initialize();
+	public SherpaDlg(JFrame frame, String text, String... title) {
+		this(SwingUtilities.getWindowAncestor(frame), text, title);
 	}
 
-	public SherpaDlg(java.awt.Window parent, String text, String... title) {
+	public SherpaDlg(Window parent, String text, String... title) {
 		super(parent, ModalityType.APPLICATION_MODAL);
 		this.text = text;
-		this.stitle = title;
+		if (title != null && title.length > 0) {
+			this.setTitle(I18N.getMsg(title[0]));
+		} else {
+			this.setTitle(I18N.getMsg("print.text_edit"));
+		}
 		initialize();
 	}
 
+	/**
+	 * initialize
+	 */
 	private void initialize() {
 		this.setFont(App.fontGet());
 		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP1)));
-		this.setTitle(I18N.getMsg("print.text_edit"));
-		if (stitle != null && stitle.length > 0) {
-			this.setTitle(I18N.getMsg(stitle[0]));
-		}
 		this.setPreferredSize(new Dimension(940, 480));
 		add(editor = new SHERPA(), MIG.GROW);
 		editor.setPreferredSize(new Dimension(1024, 480));
@@ -82,24 +83,42 @@ public class SherpaDlg extends JDialog {
 		this.setVisible(true);
 	}
 
+	/**
+	 * set HTMLcontent
+	 *
+	 * @param text
+	 */
 	public void setHtmlContent(String text) {
 		//LOG.trace(TT + "setHtmlContent(text=" + text + ")");
 		editor.htmlContentSet(text);
 	}
 
-	public boolean isValidate() {
-		//LOG.trace(TT + "isValidate()");
-		return validate;
-	}
-
+	/**
+	 * get HTML content
+	 *
+	 * @return
+	 */
 	public String getHtmlContent() {
 		//LOG.trace(TT + "getHtmlContent()");
 		return editor.htmlContentGet();
 	}
 
+	/**
+	 * do validation
+	 */
 	private void doOK() {
 		validate = true;
 		dispose();
+	}
+
+	/**
+	 * check if validated
+	 *
+	 * @return
+	 */
+	public boolean isOK() {
+		//LOG.trace(TT + "isOK()");
+		return validate;
 	}
 
 }

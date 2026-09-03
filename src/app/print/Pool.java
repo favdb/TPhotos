@@ -38,6 +38,11 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
+/**
+ * class to manage the Pool
+ *
+ * @author favdb
+ */
 public class Pool extends JScrollPane {
 
 	private static final String TT = "Pool.";
@@ -49,9 +54,7 @@ public class Pool extends JScrollPane {
 	private DefaultMutableTreeNode photosBranch;
 	private DefaultMutableTreeNode textsBranch;
 	private PoolCell poolCellSelected;
-
 	private Object pendingClickedObject;
-
 	private final ClickDispatcher clickDispatcher = new ClickDispatcher(250);
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
@@ -60,10 +63,18 @@ public class Pool extends JScrollPane {
 		initialize();
 	}
 
+	/**
+	 * get the Print
+	 *
+	 * @return
+	 */
 	public Print printGet() {
 		return print;
 	}
 
+	/**
+	 * initialize
+	 */
 	public void initialize() {
 		rootNode = new DefaultMutableTreeNode("Pool");
 		photosBranch = new DefaultMutableTreeNode(I18N.getMsg("print.pool.photos"));
@@ -79,6 +90,9 @@ public class Pool extends JScrollPane {
 		this.setViewportView(tree);
 	}
 
+	/**
+	 * refresh
+	 */
 	public void refresh() {
 		//LOG.trace(TT + "refresh()");
 		photosBranch.removeAllChildren();
@@ -97,7 +111,7 @@ public class Pool extends JScrollPane {
 	}
 
 	/**
-	 * Return data object associated with selected node (Photo or Text)
+	 * get data object associated with selected node (Photo or Text)
 	 *
 	 * @return
 	 */
@@ -125,16 +139,20 @@ public class Pool extends JScrollPane {
 				JMenuItem openItem = new JMenuItem(I18N.getMsg("print.pool.open_photo"));
 				openItem.addActionListener(al -> openPreviewAction(cell));
 				menu.add(openItem);
-			} else {
+			} else if (cell.isText()) {
 				JMenuItem editItem = new JMenuItem(I18N.getMsg("print.text_edit"));
 				editItem.addActionListener(al -> print.textEdit(cell));
 				menu.add(editItem);
+				if (cell.pageGet() == 0) {
+					JMenuItem supItem = new JMenuItem(I18N.getMsg("print.text_delete"));
+					supItem.addActionListener(al -> print.textDelete(cell));
+					menu.add(supItem);
+				}
 			}
 		}
 		JMenuItem createtext = new JMenuItem(I18N.getMsg("print.text_create"));
 		createtext.addActionListener(l -> {
-			XmlPrintCell ncell = new XmlPrintCell();
-			print.textCreate(ncell);
+			print.textCreate(0, "");
 		});
 		menu.add(createtext);
 		menu.show(e.getComponent(), e.getX(), e.getY());
@@ -147,6 +165,11 @@ public class Pool extends JScrollPane {
 		ShowPhoto.show(photo.photoFileGet(), print.getCells());
 	}
 
+	/**
+	 * update the given node
+	 *
+	 * @param cell
+	 */
 	public void updatePoolNode(XmlPrintCell cell) {
 		//LOG.trace(TT + "updatePoolNode(cell=" + cell.toString() + ")");
 		DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
@@ -168,14 +191,27 @@ public class Pool extends JScrollPane {
 		}
 	}
 
+	/**
+	 * get the selected cell
+	 *
+	 * @return
+	 */
 	public PoolCell poolCellSelectedGet() {
 		return poolCellSelected;
 	}
 
+	/**
+	 * select the given cell
+	 *
+	 * @param cell
+	 */
 	public void poolCellSelect(PoolCell cell) {
 		poolCellSelected = cell;
 	}
 
+	/**
+	 * unselect current cell
+	 */
 	public void poolCellUnselect() {
 		poolCellSelected = null;
 		if (this.tree != null) {
@@ -183,15 +219,16 @@ public class Pool extends JScrollPane {
 		}
 	}
 
+	/**
+	 * handle for simpleclick
+	 */
 	private void handleSimpleClick() {
 		//LOG.trace(TT + "handleSimpleClick()");
 		if (!(pendingClickedObject instanceof PoolCell)) {
 			return;
 		}
-
 		PoolCell cellClicked = (PoolCell) pendingClickedObject;
 		XmlPrintCell cell = cellClicked.printCellGet();
-
 		if (cell.pageGet() > 0) {
 			return;
 		}
@@ -205,6 +242,11 @@ public class Pool extends JScrollPane {
 		tree.repaint();
 	}
 
+	/**
+	 * handle for double click
+	 *
+	 * @param userObject
+	 */
 	private void handleDoubleClick(Object userObject) {
 		//LOG.trace(TT + "handleDoubleClick()");
 		poolCellUnselect();
@@ -220,6 +262,9 @@ public class Pool extends JScrollPane {
 		}
 	}
 
+	/**
+	 * mouse listener
+	 */
 	private class PoolMouseListener implements MouseListener {
 
 		@Override
@@ -271,20 +316,22 @@ public class Pool extends JScrollPane {
 					}
 					tree.setSelectionPath(path);
 					showContextMenu(e, getSelectedResource());
+					tree.setSelectionPath(null);
 				}
 			}
 		}
 	}
 
+	/**
+	 * renderer
+	 */
 	private class PoolRenderer extends DefaultTreeCellRenderer {
 
 		private static final String TT = "PoolRenderer.";
 
 		private final Pool pool;
 		private final int ins = 4;
-		private int icon_sz = Pool.ROW_SZ - ins;
-
-		// Définition des bordures de couleur (épaisseur 2 pixels)
+		private final int icon_sz = Pool.ROW_SZ - ins;
 		private final Border BORDER_RED = BorderFactory.createLineBorder(Color.RED, 2),
 				BORDER_WHITE = BorderFactory.createLineBorder(Color.WHITE, 2),
 				BORDER_GREEN = BorderFactory.createLineBorder(Color.GREEN, 2);
@@ -298,8 +345,6 @@ public class Pool extends JScrollPane {
 				boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
 			Component comp = super.getTreeCellRendererComponent(tree, value, sel,
 					expanded, leaf, row, hasFocus);
-
-			// Extraction sécurisée du XmlPrintCell depuis le noeud
 			XmlPrintCell cell = null;
 			if (value instanceof PoolCell) {
 				cell = ((PoolCell) value).printCellGet();
@@ -309,8 +354,6 @@ public class Pool extends JScrollPane {
 					cell = (XmlPrintCell) userObj;
 				}
 			}
-
-			// Si on a trouvé une cellule, on applique le rendu graphique personnalisé[cite: 10]
 			if (cell != null) {
 				if (cell.isPhoto()) {
 					File fileCheck = cell.photoFileGet();
@@ -336,7 +379,6 @@ public class Pool extends JScrollPane {
 					setIcon(ImageUtil.createTextImage(txt, icon_sz - ins));
 				}
 				setText("");
-
 				Border colorBorder;
 				if (cell.pageGet() > 0) {
 					colorBorder = BORDER_GREEN;
@@ -345,14 +387,12 @@ public class Pool extends JScrollPane {
 				} else {
 					colorBorder = BORDER_WHITE;
 				}
-
 				setBorder(BorderFactory.createCompoundBorder(
 						BorderFactory.createEmptyBorder(ins, 0, ins, 0),
 						colorBorder
 				));
 				return comp;
 			} else {
-				// Pour les branches principales ("Photos" / "Textes")[cite: 10]
 				setBorder(null);
 				return comp;
 			}

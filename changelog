@@ -1,4 +1,4 @@
-jmop (all) unstable; urgency=low
+TPhotos (all) unstable; urgency=low
   * 0.01 : version initale
   * 1.00 : 06/09/2024
     - changement de JMPS en JMOP
@@ -8,4 +8,11 @@ jmop (all) unstable; urgency=low
   * 2.02 : 20/09/2024
     - redefinition de l'interface (panneau redimensionnable)
     - redimensionnement automatique de l'aperçu
- -- favdb <pas66430@free.fr>  Mon, 30 Sep 2024 18:39:33 +0000
+  * 2.03 : 19/10/2025
+    - nouveau nom TPhotos
+  * 2.04 : 27/01/2026
+  * 2.05 : 24/03/2026
+  * 3.01 : 27/05/2026
+  * 3.02 : 01/07/2026
+    - ajout du Print
+

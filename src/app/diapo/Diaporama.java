@@ -19,8 +19,11 @@ package app.diapo;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
-import app.album.AlbumTable;
 import app.MainFrame;
+import app.album.AlbumTable;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.file.FileUtil;
 import app.xml.XmlAlbumItem;
 import java.awt.Color;
 import java.awt.Container;
@@ -35,9 +38,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import app.resources.icons.ICONS;
-import app.resources.icons.IconUtil;
-import app.tools.file.FileUtil;
 
 /**
  * class for diaporama
@@ -119,7 +119,7 @@ public class Diaporama extends JFrame {
 	}
 
 	/**
-	 * update size of the given component
+	 * update size for the given component
 	 *
 	 * @param comp
 	 * @param sz

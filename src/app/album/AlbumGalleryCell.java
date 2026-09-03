@@ -100,7 +100,7 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	}
 
 	/**
-	 * the the color
+	 * set the border color
 	 *
 	 * @param sel
 	 */

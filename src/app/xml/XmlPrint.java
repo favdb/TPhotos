@@ -233,6 +233,7 @@ public class XmlPrint {
 				.append(XmlUtil.attributXml("numpage", numpage))
 				.append(">\n");
 		//save all pages
+		XmlPrintCell.sortByPage(cells);
 		b.append(XmlUtil.indent(2)).append("<pages>\n");
 		int page = 0;
 		for (XmlPrintCell c : cells) {
@@ -265,12 +266,31 @@ public class XmlPrint {
 		return cells;
 	}
 
-	public void addCell(XmlPrintCell cell) {
+	/**
+	 * add the given cell
+	 *
+	 * @param cell
+	 */
+	public void cellAdd(XmlPrintCell cell) {
+		//LOG.trace(TT+"cellAdd(cell="+cell.toString()+")");
 		cells.add(cell);
 	}
 
-	public void updateAll() {
-		//check all print item exists in XmlAlbumItem
+	/**
+	 * remove the given cell
+	 *
+	 * @param cell
+	 */
+	public void cellDelete(XmlPrintCell cell) {
+		//LOG.trace(TT + "cellDelete(cell=" + cell.toString() + ")");
+		cells.remove(cell);
+	}
+
+	/**
+	 * reload all cells and pages
+	 */
+	public void reloadAll() {
+		LOG.trace(TT + "updateAll()");
 		cells.clear();
 		pages.clear();
 		loadCells();
