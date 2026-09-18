@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.tools.file;
+package app.organize;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
@@ -23,10 +23,11 @@ import app.AbstractFrame;
 import app.App;
 import app.export.ExportImage;
 import app.i18n.I18N;
+import app.media.Jpeg;
+import app.media.MP4;
 import app.tools.Html;
 import app.tools.LOG;
-import app.tools.jpeg.Jpeg;
-import app.tools.jpeg.Webp;
+import app.tools.file.FileUtil;
 import app.xml.XmlAlbumItem;
 import java.awt.Dimension;
 import java.io.File;
@@ -41,7 +42,7 @@ import javax.swing.JProgressBar;
  *
  * @author favdb
  */
-public class CopyFileDlg extends JDialog {
+public class OrganizerCopyDlg extends JDialog {
 
 	private static final String TT = "CopyFileDlg.";
 
@@ -60,7 +61,7 @@ public class CopyFileDlg extends JDialog {
 	private int number = 0;
 
 	/**
-	 * CopyFIlesDlg
+	 * CopyFileDlg
 	 *
 	 * @param parent: parent JFrame
 	 * @param items
@@ -70,7 +71,7 @@ public class CopyFileDlg extends JDialog {
 	 * @param autoremove: remove file after copy
 	 * @param dim: new size for the image, may be null for no resize
 	 */
-	public CopyFileDlg(AbstractFrame parent,
+	public OrganizerCopyDlg(AbstractFrame parent,
 			List<XmlAlbumItem> items,
 			boolean withText,
 			File todir,
@@ -97,7 +98,7 @@ public class CopyFileDlg extends JDialog {
 	}
 
 	/**
-	 * set autorove option
+	 * set autoremove option
 	 */
 	public void setAutoremove() {
 		autoremove = true;
@@ -110,8 +111,8 @@ public class CopyFileDlg extends JDialog {
 		withText = true;
 	}
 
-	/*
-	set dim parameter
+	/**
+	 * set dim parameter
 	 */
 	public void setDim(Dimension dim) {
 		this.dim = dim;
@@ -130,19 +131,9 @@ public class CopyFileDlg extends JDialog {
 	 * initialize dialog
 	 */
 	private void initialize() {
-		/*LOG.trace(TT + "initialize()"
-				+ " items nb=" + items.size()
-				+ " withText=" + (withText ? "true" : "false")
-				+ " todir=" + todir
-				+ " sorter=" + sorter
-				+ " autoremove=" + (autoremove ? "true" : "false")
-				+ " dim=" + (dim == null ? "null" : dim.toString()));*/
 		setTitle(I18N.getMsg("organize.inprogress"));
 		setLayout(new MigLayout(MIG.WRAP1));
-		/*addReport(I18N.getMsg("photo.copy", new Object[]{
-			items.size(), I18N.getMsg(items.size() > 1 ? "files" : "file")
-		}) + "<br>");*/
-		add(new JLabel(/*Html.intoHtml(report.toString())*/));
+		add(new JLabel());
 		add(lbFile = new JLabel());
 		int c = App.fontGet().getSize();
 		lbFile.setMinimumSize(new Dimension(c * 32, c));
@@ -190,17 +181,14 @@ public class CopyFileDlg extends JDialog {
 	 * start copying
 	 */
 	public void start() {
-		//LOG.trace(TT + "start() todir=" + todir.getAbsolutePath());
 		running = true;
 		status = true;
 		setVisible(true);
-		File fout = null;
 		for (XmlAlbumItem item : items) {
-			if (!getOutfile(item.fileGet()).getParentFile().equals(fout)) {
-				fout = getOutfile(item.fileGet()).getParentFile();
-				if (sorter == 0 || sorter == 2) {
-					fout.mkdirs();
-				}
+			OrganizerPath target = getOutfile(item.fileGet());
+			File parentFolder = target.getDestination().getParentFile();
+			if (parentFolder != null && !parentFolder.exists()) {
+				parentFolder.mkdirs();
 			}
 		}
 		new Thread(new CopyAction(this)).start();
@@ -212,7 +200,6 @@ public class CopyFileDlg extends JDialog {
 	 * @param i
 	 */
 	private void nextFile(int i) {
-		//LOG.trace(TT + "nextFile() i=" + i);
 		XmlAlbumItem item = items.get(i);
 		File infile = item.fileGet();
 		if (!infile.exists()) {
@@ -223,19 +210,27 @@ public class CopyFileDlg extends JDialog {
 		pbar.setString(i + 1 + "/" + items.size());
 		pack();
 		setLocationRelativeTo(getParent());
-		File outfile = getOutfile(infile);
-		String outname = infile.getName();
+
+		OrganizerPath target = getOutfile(infile);
+		File outfile = target.getDestination();
+		String outname = outfile.getName();
 		boolean rc = false;
+
 		try {
 			if (sorter == 4) {
-				outname = String.format("%04d.jpg", i + 1);
+				String ext = FileUtil.getExtension(infile);
+				outname = String.format("%04d.%s", i + 1, ext.isEmpty() ? "jpg" : ext);
 				outfile = new File(todir, outname);
+			} else if (sorter == 1 || sorter == 3) {
+				outfile = new File(todir, infile.getName());
 			}
-			if (sorter == 1 || sorter == 3) {
-				outfile = new File(todir, outname);
-			}
+
 			if (withText) {
-				outfile = ExportImage.writeTo(infile, item.commentGet(), todir, outname, compress);
+				outfile = ExportImage.writeTo(infile,
+						item.commentGet(),
+						outfile.getParentFile(),
+						outname,
+						compress);
 			} else {
 				if (compress < 0f) {
 					if (!FileUtil.fileCopy(infile, outfile)) {
@@ -247,29 +242,29 @@ public class CopyFileDlg extends JDialog {
 						throw new Exception();
 					}
 				} else {
-					outfile = ExportImage.writeTo(infile, "", todir, outname, compress);
+					outfile = ExportImage.writeTo(infile, "",
+							outfile.getParentFile(),
+							outname,
+							compress);
 				}
 			}
 			number++;
 			rc = true;
 		} catch (Exception ex) {
-			addReport(Html.intoRed("*** image copy error ***") + "<br>");
-			LOG.err("CopyFileDlg.nextFile() error", ex);
+			addReport(Html.intoRed("*** file copy error ***") + "<br>");
+			LOG.err(TT + "nextFile() error", ex);
 			status = false;
 			done();
 		}
-		if (rc) {
-			/*addReport(Html.intoGreen(I18N.getMsg("photo.copy_ok",
-					new Object[]{
-						infile.getName(),
-						outfile.getAbsolutePath()})));*/
-		} else {
+
+		if (!rc) {
 			addReport(Html.intoRed(I18N.getMsg("photo.copy_error",
 					new Object[]{infile, outfile.getName()})));
 			addReport("<br>");
 		}
+
 		outfiles.add(outfile);
-		if (autoremove) {
+		if (autoremove && rc) {
 			infile.delete();
 		}
 	}
@@ -278,7 +273,6 @@ public class CopyFileDlg extends JDialog {
 	 * copy done
 	 */
 	public void done() {
-		//LOG.trace(TT + "done()");
 		addReport(I18N.getMsg("photo.copy_end", outfiles.size()) + "</p>");
 		running = false;
 		dispose();
@@ -288,8 +282,8 @@ public class CopyFileDlg extends JDialog {
 	/**
 	 * Validate and extract normalized date (YYYYMMDD_hhmmss).
 	 *
-	 * @param name file name without extent
-	 * @return a formated String YYYYMMDD_hhmmss if valide, else null
+	 * @param name file name without extension
+	 * @return a formated String YYYYMMDD_hhmmss if valid, else null
 	 */
 	private String parseDateFromName(String name) {
 		if (name == null) {
@@ -316,40 +310,63 @@ public class CopyFileDlg extends JDialog {
 				return null;
 			}
 			return formatted;
-		} catch (Exception ex) {
+		} catch (NumberFormatException ex) {
 			return null;
 		}
 	}
 
 	/**
-	 * get target file
+	 * Build OrganizerPath object containing source, target destination file, and triage
+ status.
 	 *
 	 * @param infile
-	 * @return
+	 * @return OrganizerPath object
 	 */
-	private File getOutfile(File infile) {
+	private OrganizerPath getOutfile(File infile) {
 		String nameWithoutExt = FileUtil.getFileNameWithoutExt(infile);
-		String date = parseDateFromName(nameWithoutExt);
-		if (date == null) {
-			String extension = FileUtil.getExtension(infile).toLowerCase();
-			if ("webp".equals(extension)) {
-				date = Webp.getDate(infile);
-			} else {
-				date = Jpeg.getDate(infile);
+		String ext = FileUtil.getExtension(infile);
+		String extSuffix = ext.isEmpty() ? "" : "." + ext;
+
+		String dateFromName = parseDateFromName(nameWithoutExt);
+		boolean isNameValid = (dateFromName != null);
+
+		// Check internal date (Exif / MP4) strictly without fallback to filesystem date
+		String internalDate = null;
+		if (Jpeg.hasEXIF(infile)) {
+			try {
+				Jpeg jpeg = new Jpeg(infile);
+				if (jpeg.exif != null) {
+					internalDate = jpeg.exif.getDate();
+				}
+			} catch (Exception ex) {
+				LOG.err(TT + "getOutfile(infile=" + infile.toString() + ")", ex);
 			}
+		} else if (MP4.hasMVHD(infile)) {
+			internalDate = MP4.getDate(infile);
 		}
+
+		String validDate = isNameValid ? dateFromName : internalDate;
+
 		if (sorter < 3) {
-			if (date != null && date.length() >= 8) {
-				String year = date.substring(0, 4);
-				String month = date.substring(4, 6);
-				String day = date.substring(6, 8);
+			if (validDate != null && validDate.length() >= 8) {
+				String year = validDate.substring(0, 4);
+				String month = validDate.substring(4, 6);
+				String day = validDate.substring(6, 8);
 				String relativePath = year + File.separator + month + File.separator + day;
-				boolean isNameValid = nameWithoutExt.matches("^(\\d{6}|\\d{8})_\\d{6}$");
-				String targetName = isNameValid ? infile.getName() : date + ".jpg";
-				return new File(todir, relativePath + File.separator + targetName);
+
+				// Keep current filename if valid, else rename to date + original extension
+				String targetName = isNameValid ? infile.getName() : validDate + extSuffix;
+				File destFile = new File(todir, relativePath + File.separator + targetName);
+				return new OrganizerPath(infile, destFile, false);
+			} else {
+				// Redirect to "Triage" directory without modifying the original filename
+				File triageDir = new File(todir, "Triage");
+				File destFile = new File(triageDir, infile.getName());
+				return new OrganizerPath(infile, destFile, true);
 			}
 		}
-		return new File(todir, infile.getName());
+
+		return new OrganizerPath(infile, new File(todir, infile.getName()), false);
 	}
 
 	public List<File> getOutfiles() {
@@ -376,9 +393,9 @@ public class CopyFileDlg extends JDialog {
 
 	public static class CopyAction implements Runnable {
 
-		private final CopyFileDlg dlg;
+		private final OrganizerCopyDlg dlg;
 
-		public CopyAction(CopyFileDlg dlg) {
+		public CopyAction(OrganizerCopyDlg dlg) {
 			this.dlg = dlg;
 		}
 

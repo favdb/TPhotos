@@ -1,8 +1,10 @@
 package app.diapo;
 
+import app.i18n.I18N;
+import app.tools.LOG;
+import app.tools.file.FileUtil;
 import app.xml.Xml;
 import app.xml.XmlUtil;
-import app.i18n.I18N;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -11,8 +13,6 @@ import java.util.Locale;
 import java.util.Map;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import app.tools.LOG;
-import app.tools.file.FileUtil;
 
 public class DiapoParam {
 

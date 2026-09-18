@@ -6,7 +6,7 @@
     <property name="java.version" value="1.8"/>
     <property name="name.app" value="TPhotos"/>
     <property name="name.package" value="tphotos"/>
-    <property name="version" value="3.02"/>
+    <property name="version" value="3.03"/>
     <property name="src.dir" value="src"/>
     <property name="build.dir" value="build"/>
     <property name="dist.dir" value="dist"/>
@@ -24,17 +24,35 @@
     
     <target name="-post-jar">
         <echo level="info" message="--- Fusion des libraries dans ${name.app}.jar"/>
-        <delete dir="${build.dir}/mergedjar"/>
-        <mkdir dir="${build.dir}/mergedjar"/>
-        <!-- On extrait d'abord le jar de l'appli : son MANIFEST.MF (Main-Class, etc.) est conservé -->
-        <unjar src="${dist.dir}/${name.app}.jar" dest="${build.dir}/mergedjar"/>
-        <delete file="${dist.dir}/${name.app}.jar"/>
+
+        <!-- 1. On récupère uniquement le manifest d'origine (le seul élément qu'on doit préserver) -->
+        <mkdir dir="${build.dir}/manifest-tmp"/>
+        <unjar src="${dist.dir}/${name.app}.jar" dest="${build.dir}/manifest-tmp">
+            <patternset>
+                <include name="META-INF/MANIFEST.MF"/>
+            </patternset>
+        </unjar>
+
+        <!-- 2. On met le jar principal de côté (on va le refondre) -->
+        <move file="${dist.dir}/${name.app}.jar" tofile="${build.dir}/${name.app}-orig.jar"/>
+
+        <!-- 3. Re-création directe du Fat-JAR : contenu du jar principal + contenu des libs,
+                fusionnés en un seul passage, avec le manifest d'origine imposé explicitement -->
         <jar destfile="${dist.dir}/${name.app}.jar"
-             basedir="${build.dir}/mergedjar"
-             manifest="${build.dir}/mergedjar/META-INF/MANIFEST.MF"/>
-        <delete dir="${build.dir}/mergedjar"/>
-        <!-- Le dossier dist/lib n'est plus utile puisque tout est dans le jar -->
-        <delete dir="${dist.dir}/lib"/>
+             manifest="${build.dir}/manifest-tmp/META-INF/MANIFEST.MF">
+            <!-- Contenu du jar principal (on exclut son propre manifest, déjà fourni ci-dessus) -->
+            <zipfileset src="${build.dir}/${name.app}-orig.jar" excludes="META-INF/MANIFEST.MF"/>
+            <!-- Contenu des dépendances, dépaqueté et fusionné automatiquement -->
+            <!-- On exclut les manifests et fichiers de signature des libs pour éviter tout conflit -->
+            <zipgroupfileset dir="libs" includes="*.jar"
+                              excludes="META-INF/MANIFEST.MF,META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+        </jar>
+
+        <delete dir="${build.dir}/manifest-tmp"/>
+        <delete file="${build.dir}/${name.app}-orig.jar"/>
+
+        <!-- Le dossier dist/lib n'est plus utile puisque tout est fusionné dans le JAR -->
+        <!--<delete dir="${dist.dir}/lib"/> -->
         <chmod perm="755" file="${dist.dir}/${name.app}.jar"/>
     </target>
 
@@ -179,7 +197,7 @@
     <!-- ===Cible globale pour tout construire============================= -->
     <target name="bd-all" 
             depends="clean, build-pre-compile, bd-prepare, bd-deb-prepare, bd-deb, bd-rpm, bd-mac, bd-windows, bd-zip, bd-zipsrc">
-        <echo level="info" message="--- move files from ${dist.dir} to ${distrib}"/>
+        <echo level="info" message="--- copy files from ${dist.dir} to ${distrib}"/>
         <copy todir="${distrib}" overwrite="true">
             <fileset dir="${dist.dir}"/>
         </copy>
@@ -196,4 +214,5 @@
         </propertyfile>
         <echo level="info" message="--- end of -pre-compile"/>
     </target>
+    
 </project>

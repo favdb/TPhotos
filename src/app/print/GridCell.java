@@ -27,7 +27,7 @@ public class GridCell extends JLabel {
 
 	private static final String TT = "GridCell.";
 
-	private XmlPrintCell cell;
+	private final XmlPrintCell cell;
 	private final Grid grid;
 	private boolean selected = false;
 
@@ -214,7 +214,7 @@ public class GridCell extends JLabel {
 		if (cell.isEmpty()) {
 			//create a text
 			JMenuItem edit = new JMenuItem(I18N.getMsg("print.text_create"));
-			edit.addActionListener(l -> grid.getPrint().textCreate(-1, cell.posGet()));
+			edit.addActionListener(l -> grid.getPrint().textCreate(-1, cellNum + ",1,1"));
 			menu.add(edit);
 		} else {
 			//call textEdit editor if text
@@ -245,8 +245,8 @@ public class GridCell extends JLabel {
 			menu.add(zoom);
 			//clear the cell
 			JMenuItem clearCell = new JMenuItem(I18N.getMsg("print.clear"));
-			clearCell.setEnabled(cell.photoIdGet() != -1
-					|| cell.textIdGet() != -1
+			clearCell.setEnabled(cell.photoIdGet() != "-1"
+					|| cell.textIdGet() != "-1"
 					|| (cell.textGet() != null && !cell.textGet().isEmpty()));
 			clearCell.addActionListener(al -> {
 				releaseCellInPool();

@@ -18,7 +18,6 @@
 package app.album;
 
 import app.App;
-import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.TableColumnAdjuster;
@@ -28,16 +27,11 @@ import app.xml.XmlAlbumItem;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import static java.awt.event.KeyEvent.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
 import javax.swing.JTable;
-import javax.swing.SwingUtilities;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.table.DefaultTableModel;
@@ -122,7 +116,6 @@ public class AlbumTable extends JTable {
 		TableColumnAdjuster tca = new TableColumnAdjuster(this);
 		tca.adjustColumns();
 		this.addKeyListener(new KeyListener(this));
-		this.addMouseListener(new TableMouse(this));
 	}
 
 	/**
@@ -134,7 +127,6 @@ public class AlbumTable extends JTable {
 		this.xml = xml;
 		DefaultTableModel model = (DefaultTableModel) getModel();
 		model.setRowCount(0);
-
 		if (xml != null && xml.albumGet() != null) {
 			XmlAlbum xmlAlbum = xml.albumGet();
 			photos = xmlAlbum.itemsGet();
@@ -149,6 +141,7 @@ public class AlbumTable extends JTable {
 		}
 		modified = false;
 		App.updateTitle();
+		album.btDiapo.setEnabled(!photos.isEmpty());
 	}
 
 	/**
@@ -165,7 +158,7 @@ public class AlbumTable extends JTable {
 		}
 		renumber();
 		this.clearSelection();
-		album.getGallery().refresh();
+		album.galleryGet().refresh();
 	}
 
 	/**
@@ -352,51 +345,6 @@ public class AlbumTable extends JTable {
 
 		@Override
 		public void keyReleased(KeyEvent e) {
-			// empty
-		}
-	}
-
-	/**
-	 * Mouse listener for contextual menu
-	 */
-	private static class TableMouse implements MouseListener {
-
-		private final AlbumTable table;
-
-		public TableMouse(AlbumTable albumTable) {
-			this.table = albumTable;
-		}
-
-		@Override
-		public void mouseClicked(MouseEvent e) {
-			if (SwingUtilities.isRightMouseButton(e)) {
-				if (table.getSelectedRows().length > 1) {
-					JPopupMenu popupMenu = new JPopupMenu();
-					JMenuItem item1 = new JMenuItem(I18N.getMsg("album.modify.comments"));
-					item1.addActionListener(act -> table.getAlbumPanel().changeComments());
-					popupMenu.add(item1);
-					popupMenu.show(e.getComponent(), e.getX(), e.getY());
-				}
-			}
-		}
-
-		@Override
-		public void mousePressed(MouseEvent e) {
-			// empty
-		}
-
-		@Override
-		public void mouseReleased(MouseEvent e) {
-			// empty
-		}
-
-		@Override
-		public void mouseEntered(MouseEvent e) {
-			// empty
-		}
-
-		@Override
-		public void mouseExited(MouseEvent e) {
 			// empty
 		}
 	}

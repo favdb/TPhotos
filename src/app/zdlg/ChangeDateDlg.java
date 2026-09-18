@@ -19,9 +19,16 @@ package app.zdlg;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
-import app.App;
 import app.album.Album;
 import app.i18n.I18N;
+import app.media.Media;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
+import app.tools.DateUtil;
+import app.tools.LOG;
+import app.tools.Ui;
+import app.tools.file.FileUtil;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.io.File;
 import java.text.ParseException;
@@ -30,19 +37,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import javax.swing.JComboBox;
+import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SwingUtilities;
-import app.resources.icons.ICONS;
-import app.resources.icons.IconUtil;
-import app.tools.DateUtil;
-import app.tools.Ui;
-import app.tools.file.FileUtil;
-import app.tools.jpeg.Jpeg;
 
 /**
  *
@@ -52,9 +55,8 @@ public class ChangeDateDlg extends JDialog {
 
 	private static final String TT = "ChangeDateDlg.";
 	private final Album album;
-	private File infile;
+	private final File infile;
 	private DateChooser tfDate;
-	private JComboBox cbMode;
 	private boolean cancel = true;
 
 	public ChangeDateDlg(Album album, File infile) {
@@ -69,8 +71,11 @@ public class ChangeDateDlg extends JDialog {
 		this.setModal(true);
 		this.setLayout(new MigLayout(MIG.WRAP + " 2"));
 		this.setTitle(I18N.getMsg("album.param.comment.date"));
-		add(new JLabel(I18N.getColonMsg("date.actual") + getDateOf(infile)), MIG.SPAN);
-		add(new JLabel(I18N.getColonMsg("date.new")), MIG.RIGHT);
+		add(new JLabel(getDateOf(infile)),
+				MIG.get(MIG.CENTER, MIG.SPAN));
+		add(new JLabel(I18N.getColonMsg("date.new")));
+
+		//todo à changer en JDatePicker
 		add(tfDate = new DateChooser());
 		try {
 			SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
@@ -79,14 +84,6 @@ public class ChangeDateDlg extends JDialog {
 		} catch (ParseException ex) {
 			//empty
 		}
-		add(new JLabel(I18N.getColonMsg("organize.by")), MIG.RIGHT);
-		add(cbMode = new JComboBox(new String[]{
-			I18N.getMsg("organize.by_year"),
-			I18N.getMsg("organize.by_month"),
-			I18N.getMsg("organize.by_day"),
-			I18N.getMsg("organize.by_none")
-		}));
-		cbMode.setSelectedIndex(App.pref.organizeTypeGet());
 
 		JPanel pok = new JPanel(new MigLayout());
 		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
@@ -99,14 +96,39 @@ public class ChangeDateDlg extends JDialog {
 		this.setLocationRelativeTo(getParent());
 	}
 
+	/**
+	 * OK action, check if valide date
+	 */
 	private void doOK() {
-		App.pref.organizeTypeSet(cbMode.getSelectedIndex());
+		tfDate.errorReset();
+		boolean err = false;
+		Date dateValue = (Date) tfDate.spDate.getValue();
+		Date hourValue = (Date) tfDate.spHour.getValue();
+		LocalDateTime minLdt = LocalDateTime.of(1900, 1, 1, 0, 0, 0);
+		Date minDate = Date.from(minLdt.atZone(ZoneId.systemDefault()).toInstant());
+		Date now = new Date();
+		if (dateValue.after(now) || dateValue.before(minDate)) {
+			tfDate.errorSet("date");
+			err = true;
+		}
+		LocalDateTime ldtHour = hourValue.toInstant()
+				.atZone(ZoneId.systemDefault()).toLocalDateTime();
+		int hh = ldtHour.getHour();
+		int mm = ldtHour.getMinute();
+		int ss = ldtHour.getSecond();
+		if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59) {
+			tfDate.errorSet("time");
+			err = true;
+		}
+		if (err) {
+			JOptionPane.showMessageDialog(this,
+					I18N.getMsg("date.error"),
+					I18N.getMsg("date"),
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 		cancel = false;
 		dispose();
-	}
-
-	public int getMode() {
-		return cbMode.getSelectedIndex();
 	}
 
 	public String getDate() {
@@ -121,12 +143,9 @@ public class ChangeDateDlg extends JDialog {
 		try {
 			StringBuilder b = new StringBuilder();
 			String str;
-			Jpeg jpeg = new Jpeg(file);
-			if (jpeg.exif != null) {
-				str = jpeg.exif.getDate();
-				if (str != null) {
-					b.append("EXIF=");
-				}
+			if (Media.whichDate(file) != null) {
+				str = Media.getDate(file);
+				b.append("Date ").append(Media.whichDate(file)).append("=");
 			} else {
 				str = FileUtil.removeExtension(file.getName());
 				b.append("Date fichier=");
@@ -140,7 +159,7 @@ public class ChangeDateDlg extends JDialog {
 
 	private class DateChooser extends JPanel {
 
-		private JSpinner spDate;
+		private JSpinner spDate, spHour;
 
 		public DateChooser() {
 			initialize();
@@ -149,18 +168,42 @@ public class ChangeDateDlg extends JDialog {
 		private void initialize() {
 			this.setLayout(new MigLayout());
 			add(spDate = new JSpinner(new SpinnerDateModel()));
-			JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(spDate, "dd/MM/yyyy HH:mm:ss");
+			JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(spDate, "dd/MM/yyyy");
 			spDate.setEditor(timeEditor);
+			add(spHour = new JSpinner(new SpinnerDateModel()));
+			JSpinner.DateEditor hourEditor = new JSpinner.DateEditor(spHour, "HH:mm:ss");
+			spHour.setEditor(hourEditor);
 		}
 
 		public void setDate(Date date) {
 			spDate.setValue(date);
+			spHour.setValue(date);
 		}
 
 		public String getDate() {
-			LocalDateTime lt = ((Date) spDate.getValue()).toInstant()
+			LocalDateTime ld = ((Date) spDate.getValue()).toInstant()
 					.atZone(ZoneId.systemDefault()).toLocalDateTime();
-			return lt.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+			LocalDateTime lh = ((Date) spHour.getValue()).toInstant()
+					.atZone(ZoneId.systemDefault()).toLocalDateTime();
+			String d = ld.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+			String h = lh.format(DateTimeFormatter.ofPattern("HHmmss"));
+			return d + "_" + h;
+		}
+
+		private void errorSet(String val) {
+			LOG.trace("DateChooser.errorSet(val=" + val + ")");
+			if (val.equals("date")) {
+				spDate.setBorder(BorderFactory.createLineBorder(Color.red));
+			}
+			if (val.equals("time")) {
+				spHour.setBorder(BorderFactory.createLineBorder(Color.red));
+			}
+		}
+
+		private void errorReset() {
+			JTextField tf = new JTextField();
+			spDate.setBorder(tf.getBorder());
+			spHour.setBorder(tf.getBorder());
 		}
 
 	}

@@ -17,10 +17,16 @@
  */
 package app.zdlg;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
+import app.MainFrame;
 import app.Pref;
 import app.i18n.I18N;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconButton;
+import app.tools.LaF;
+import app.tools.Ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -33,12 +39,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import app.resources.icons.ICONS;
-import app.resources.icons.IconButton;
-import app.tools.LaF;
-import api.mig.MIG;
-import app.tools.Ui;
-import app.MainFrame;
 
 /**
  *
@@ -60,7 +60,7 @@ public class PrefDlg extends JDialog {
 
 	private void initialize() {
 		setLayout(new MigLayout());
-		setTitle(I18N.getMsg("pref.zoom"));
+		setTitle(I18N.getMsg("zoom"));
 		original = App.pref.toString().hashCode();
 
 		if (App.isDev()) {
@@ -68,7 +68,7 @@ public class PrefDlg extends JDialog {
 		}
 
 		JPanel zoom = new JPanel(new MigLayout());
-		zoom.add(new JLabel(I18N.getColonMsg("pref.zoom.font")), MIG.SPAN);
+		zoom.add(new JLabel(I18N.getColonMsg("zoom.font")), MIG.SPAN);
 		zoom.add(fntDefault = new FontPanel(this, "default", App.fontGet()));
 		IconButton fontPlus = new IconButton("fontPlus", ICONS.K.PLUS, e -> increaseFont(1));
 		zoom.add(fontPlus, MIG.get(MIG.SPAN, MIG.SPLIT2));
@@ -78,9 +78,7 @@ public class PrefDlg extends JDialog {
 
 		JPanel pok = new JPanel(new MigLayout());
 		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
-		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> {
-			dispose();
-		}));
+		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()));
 		add(pok, MIG.get(MIG.SPAN, MIG.RIGHT));
 		pack();
 		this.setLocationRelativeTo(getParent());
@@ -93,9 +91,7 @@ public class PrefDlg extends JDialog {
 		JPanel theme = new JPanel(new MigLayout());
 		theme.add(new JLabel(I18N.getColonMsg("pref.theme")), MIG.SPAN);
 		rbNormal = new JRadioButton(I18N.getMsg("pref.theme.normal"));
-		//rbNormal.setEnabled(false);
 		rbDark = new JRadioButton(I18N.getMsg("pref.theme.dark"));
-		//rbDark.setEnabled(false);
 		rbDark.addChangeListener(e -> refreshAll());
 		ButtonGroup bg = new ButtonGroup();
 		bg.add(rbNormal);
@@ -104,6 +100,7 @@ public class PrefDlg extends JDialog {
 		theme.add(rbDark);
 		rbNormal.setSelected(!App.pref.darkGet());
 		rbDark.setSelected(App.pref.darkGet());
+		theme.setVisible(App.isDev());
 		return theme;
 	}
 
@@ -145,8 +142,8 @@ public class PrefDlg extends JDialog {
 			pref.darkSet(rbDark.isSelected());
 		}
 		JOptionPane.showMessageDialog(this,
-				I18N.getMsg("pref.zoom.restart"),
-				I18N.getMsg("pref.zoom"),
+				I18N.getMsg("zoom.restart"),
+				I18N.getMsg("zoom"),
 				JOptionPane.INFORMATION_MESSAGE);
 		dispose();
 		if (original != pref.toString().hashCode()) {

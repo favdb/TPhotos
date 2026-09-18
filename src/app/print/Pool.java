@@ -127,14 +127,14 @@ public class Pool extends JScrollPane {
 	/**
 	 * Contextual Menu
 	 */
-	private void showContextMenu(MouseEvent e, Object userObject) {
-		//LOG.trace(TT + "showContextMenu(...");
-		if (userObject == null) {
+	private void showContextMenu(MouseEvent e, Object obj) {
+		//LOG.trace(TT + "showContextMenu(e, obj=" + obj.toString() + ")");
+		if (obj == null) {
 			return;
 		}
 		JPopupMenu menu = new JPopupMenu();
-		if (userObject instanceof PoolCell) {
-			XmlPrintCell cell = ((PoolCell) userObject).printCellGet();
+		if (obj instanceof PoolCell) {
+			XmlPrintCell cell = ((PoolCell) obj).printCellGet();
 			if (cell.isPhoto()) {
 				JMenuItem openItem = new JMenuItem(I18N.getMsg("print.pool.open_photo"));
 				openItem.addActionListener(al -> openPreviewAction(cell));
@@ -269,6 +269,7 @@ public class Pool extends JScrollPane {
 
 		@Override
 		public void mouseClicked(MouseEvent e) {
+			//LOG.trace("PoolMouseListener.mouseClicked(e)");
 			TreePath path = tree.getPathForLocation(e.getX(), e.getY());
 			if (path == null) {
 				poolCellUnselect();
@@ -276,13 +277,13 @@ public class Pool extends JScrollPane {
 				tree.repaint();
 				return;
 			}
-			Object userObject = path.getLastPathComponent();
+			Object obj = path.getLastPathComponent();
 			clickDispatcher.dispatch(e,
 					() -> {
-						pendingClickedObject = userObject;
+						pendingClickedObject = obj;
 						handleSimpleClick();
 					},
-					() -> handleDoubleClick(userObject));
+					() -> handleDoubleClick(obj));
 		}
 
 		@Override
@@ -307,13 +308,7 @@ public class Pool extends JScrollPane {
 			if (e.isPopupTrigger()) {
 				TreePath path = tree.getPathForLocation(e.getX(), e.getY());
 				if (path != null) {
-					Object userObject = path.getLastPathComponent();
-					if (userObject instanceof PoolCell) {
-						XmlPrintCell cell = ((PoolCell) userObject).printCellGet();
-						if (cell.pageGet() > 0) {
-							return;
-						}
-					}
+					Object obj = path.getLastPathComponent();
 					tree.setSelectionPath(path);
 					showContextMenu(e, getSelectedResource());
 					tree.setSelectionPath(null);
@@ -366,7 +361,7 @@ public class Pool extends JScrollPane {
 								+ "text-align:center; "
 								+ "color:red; "
 								+ "font-size:9px;\">"
-								+ "<b>⚠️ [?]</b>" + filename + " not find"
+								+ "<b>⚠️</b>" + filename + " not find"
 								+ "</body>"
 								+ "</html>";
 						setIcon(ImageUtil.createTextImage(errorTxt, icon_sz - ins));

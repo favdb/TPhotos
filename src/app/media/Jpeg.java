@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.tools.jpeg;
+package app.media;
 
 import app.tools.LOG;
 import java.io.*;
@@ -29,8 +29,8 @@ import java.util.LinkedList;
 import javax.swing.SwingUtilities;
 
 /**
- * Jpeg class is used to store all information of a jpeg file. It contains all structures
- * of a jpeg. adapted from https://github.com/drewnoakes/metadata-extractor
+ * Jpeg class is used to store/load all information of a jpeg file. It contains all
+ * structures of a jpeg. adapted from https://github.com/drewnoakes/metadata-extractor
  */
 public class Jpeg {
 
@@ -44,6 +44,15 @@ public class Jpeg {
 			LOG.setTrace();
 			LOG.trace(TT + "main() date=" + getDate(new File("/xDev/AlbumPhoto/test.jpg")));
 		});
+	}
+
+	public static boolean hasEXIF(File file) {
+		try {
+			Jpeg jpeg = new Jpeg(file);
+			return jpeg.exif != null;
+		} catch (Exception ex) {
+		}
+		return false;
 	}
 
 	public byte[] jfif, exifMarker, exifData, compressedData;

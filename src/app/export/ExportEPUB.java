@@ -39,7 +39,7 @@ public class ExportEPUB {
 
 	public static void create(Export export, File dir) {
 		ExportEPUB epub = new ExportEPUB(export, dir);
-		epub.start(export.getItems());
+		epub.start(export.itemsGet());
 	}
 	private final String title;
 

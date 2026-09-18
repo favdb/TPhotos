@@ -15,13 +15,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.tools.jpeg;
+package app.media;
 
 import java.util.Arrays;
 
 /**
- * Class Entry stores the information contained in a IFD entry. Each Entry knows its tagNumber,
- * dataFormat, componentCount, offset, and value.
+ * Class Entry stores the information contained in a IFD entry. Each Entry knows its
+ * tagNumber, dataFormat, componentCount, offset, and value.
  */
 public class JpegExifEntry {
 
@@ -176,22 +176,24 @@ public class JpegExifEntry {
 		}
 	}
 
-	//return: tag number as hashcode
+	/**
+	 * return: tag number as hashcode
+	 */
+	@Override
 	public int hashCode() {
 		return Endian.Big.getInt16(tagNumber);
 	}
 
-	//Return: a String that represent the Directory. Format: tag number: **, data format: **, componentCount: **, offset value: **, value: **
+	/**
+	 * Return: a String that represent the Directory. Format: tag number: **, data format:
+	 * **, componentCount: **, offset value: **, value: **
+	 */
 	@Override
 	public String toString() {
 		String result = "tag number: "
-				+ String.format("%02x", (tagNumber[0] & 0xFF)) + String.format("%02x", (tagNumber[1] & 0xFF))
+				+ String.format("%02x", (tagNumber[0] & 0xFF))
+				+ String.format("%02x", (tagNumber[1] & 0xFF))
 				+ " \tformat: " + String.format("%s", JpegExifTag.getFormat(dataFormat)) + "\t";
-		//+ " component count: " + String.format("%-4d", componentCount)
-		//+ " offset value: "
-		//+ String.format("%08x", Endian.Big.getLong32(offset)
-		//);
-
 		//check data format and provide different print String.
 		if (dataFormat == 5 || dataFormat == 10) {
 			int[] castValue = (int[]) value;

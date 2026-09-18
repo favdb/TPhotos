@@ -18,14 +18,14 @@
 package app;
 
 import app.i18n.I18N;
+import app.tools.Html;
 import java.awt.Color;
 import java.awt.Cursor;
 import javax.swing.JFrame;
 import javax.swing.JTextPane;
-import app.tools.Html;
 
 /**
- * abstract clas for standard frame
+ * abstract class for standard copying frame
  *
  * @author favdb
  */
@@ -51,25 +51,35 @@ public abstract class AbstractFrame extends JFrame {
 	 */
 	public void taInfosAdd(String txt) {
 		//LOG.trace(TT + "setInfos(txt=" + txt + ")");
-		taInfos.setText(Html.intoHtml(taInfosGet() + txt));
+		taInfos.setText(Html.intoHtml(taInfosContentGet() + txt));
 		taInfos.setCaretPosition(taInfos.getDocument().getLength());
 		taInfos.repaint();
 	}
 
-	public JTextPane getInfosField() {
+	/**
+	 * get taInfos field
+	 *
+	 * @return
+	 */
+	public JTextPane taInfosGet() {
 		return taInfos;
 	}
 
 	/**
-	 * get only body part of infos
+	 * get only body part of taInfos
 	 *
 	 * @return
 	 */
-	public String taInfosGet() {
+	public String taInfosContentGet() {
 		//LOG.trace(TT+"getInfos()");
 		return Html.getBody(taInfos.getText());
 	}
 
+	/**
+	 * initialize taInfos
+	 *
+	 * @param msg
+	 */
 	public void taInfosInit(String msg) {
 		taInfos = new JTextPane();
 		taInfos.setEditable(false);
@@ -78,7 +88,7 @@ public abstract class AbstractFrame extends JFrame {
 	}
 
 	/**
-	 * set infos text
+	 * set taInfos text
 	 *
 	 * @param txt
 	 */
@@ -90,11 +100,17 @@ public abstract class AbstractFrame extends JFrame {
 		taInfos.repaint();
 	}
 
+	/**
+	 * set normal cursor
+	 */
 	public void setNormalCursor() {
 		taInfos.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		taInfos.setBackground(Color.white);
 	}
 
+	/**
+	 * set waiting cursor
+	 */
 	public void setWaitingCursor() {
 		taInfos.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 		taInfos.setBackground(Color.LIGHT_GRAY);

@@ -63,7 +63,7 @@ public class Diaporama extends JFrame {
 	 * initialize the class
 	 */
 	private void initialize() {
-		table = mainFrame.albumGet().getTable();
+		table = mainFrame.albumGet().tableGet();
 		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		this.setLayout(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.FILL, MIG.WRAP1)));
 		Container p = this.getContentPane();

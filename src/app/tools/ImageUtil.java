@@ -19,10 +19,10 @@ package app.tools;
 
 import app.App;
 import app.album.AlbumTree;
+import app.media.Jpeg;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.file.EnvUtil;
-import app.tools.jpeg.Jpeg;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -182,7 +182,7 @@ public class ImageUtil {
 			File original = imgFind(dir, thumb.getName());
 			if (original == null || !original.exists()) {
 				if (thumb.delete()) {
-					LOG.log("thumb : " + thumb.getName() + " deleted.");
+					//LOG.log("thumb : " + thumb.getName() + " deleted.");
 				}
 			}
 		}
@@ -301,7 +301,7 @@ public class ImageUtil {
 					bImg = orientedImage(bImg, orientation);
 					img = new ImageIcon(bImg);
 				}
-			} catch (Exception e) {
+			} catch (IOException e) {
 				LOG.err(TT + "getImage error reading " + fx.getAbsolutePath(), e);
 			}
 		}

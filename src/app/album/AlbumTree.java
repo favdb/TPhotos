@@ -137,6 +137,12 @@ public class AlbumTree extends JTree {
 			}
 			File file = (File) ((DefaultMutableTreeNode) paths[i]
 					.getLastPathComponent()).getUserObject();
+			if (file.getName().equals("Photos")) {
+				JOptionPane.showMessageDialog(album,
+						I18N.getMsg("action.delete_unable", file.getAbsolutePath()),
+						I18N.getMsg("action.delete"), JOptionPane.ERROR_MESSAGE);
+				return;
+			}
 			sb.append(file.getAbsolutePath());
 			filesToDelete.add(file);
 		}
@@ -162,7 +168,7 @@ public class AlbumTree extends JTree {
 			}
 		}
 		if (deleted > 0) {
-			album.getGallery().refresh();
+			album.galleryGet().refresh();
 		}
 	}
 
@@ -174,17 +180,14 @@ public class AlbumTree extends JTree {
 		DefaultTreeModel model = (DefaultTreeModel) getModel();
 		rootDir = new File(App.pref.photosDirGet());
 		rootNode.setUserObject(rootDir);
-
 		if (mode != Album.VIEW_MODE.NONE) {
 			buildVirtualTree(rootDir, rootNode, mode, 0);
 		}
-
 		model.reload();
 		expandPath(new TreePath(model.getRoot()));
 	}
 
 	/**
-	 * -
 	 * Build the treewith all normal directories and sub-directories) and all presonalized
 	 * sub-directories.
 	 *
@@ -344,6 +347,11 @@ public class AlbumTree extends JTree {
 		private void showMenu(MouseEvent e) {
 			TreePath path = tree.getPathForLocation(e.getX(), e.getY());
 			if (path != null) {
+				File file = (File) ((DefaultMutableTreeNode) path
+						.getLastPathComponent()).getUserObject();
+				if (file.getName().equals("Photos")) {
+					return;
+				}
 				tree.setSelectionPath(path);
 				JPopupMenu popup = new JPopupMenu();
 				JMenuItem itemAdd = new JMenuItem(I18N.getMsg("album.add"));

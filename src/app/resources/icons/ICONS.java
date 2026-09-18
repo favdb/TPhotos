@@ -30,6 +30,7 @@ public class ICONS {
 	}
 
 	public enum K {
+		AR_DOWN,
 		AR_RIGHT,
 		CALENDAR,
 		CANCEL,
@@ -48,7 +49,7 @@ public class ICONS {
 		NAV_NEXT, NAV_PREV,
 		OK,
 		OPTIONS,
-		PHOTO,
+		PHOTO, VIDEO,
 		PIC,
 		PREVIEW,
 		REFRESH,

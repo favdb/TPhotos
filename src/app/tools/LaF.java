@@ -37,6 +37,8 @@ public class LaF {
 
 	private static final String TT = "Laf.";
 
+	private static boolean DARK_THEME = false;
+
 	public static int getScreenWidth() {
 		return Toolkit.getDefaultToolkit().getScreenSize().width;
 	}
@@ -402,8 +404,6 @@ public class LaF {
 			SwingUtilities.updateComponentTreeUI(w);
 		}
 	}
-
-	private static boolean DARK_THEME = false;
 
 	public static boolean isDark() {
 		return DARK_THEME;

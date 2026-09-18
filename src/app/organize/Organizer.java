@@ -1,17 +1,27 @@
-package app;
+package app.organize;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
+import app.AbstractFrame;
 import app.App;
-import app.xml.XmlAlbumItem;
+import app.MainFrame;
 import app.i18n.I18N;
+import app.media.Media;
+import app.resources.icons.ICONS;
+import app.tools.GBC;
+import app.tools.Html;
+import app.tools.LOG;
+import app.tools.Ui;
+import app.tools.file.EnvUtil;
+import app.tools.file.FileUtil;
+import app.xml.XmlAlbumItem;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.awt.Toolkit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
@@ -21,15 +31,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import app.resources.icons.ICONS;
-import app.tools.Html;
-import app.tools.LOG;
-import app.tools.Ui;
-import app.tools.file.CopyFileDlg;
-import app.tools.file.EnvUtil;
 
 /**
- * class to organize the photos folder into a fixed AAAA/MM/JJ structure
+ * Class to organize the photos/videos folder into a fixed AAAA/MM/JJ structure
  *
  * @author favdb
  */
@@ -37,10 +41,10 @@ public class Organizer extends AbstractFrame {
 
 	private static final String TT = "Organizer.";
 
-	public JTextField tfFolder;
-	private JButton btOrganizer;
-	public JCheckBox ckRemove;
 	private final MainFrame mainFrame;
+	public JTextField tfFolder;
+	private JButton btStart;
+	public JCheckBox ckRemove, ckVideo;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public Organizer(MainFrame mainFrame) {
@@ -51,39 +55,58 @@ public class Organizer extends AbstractFrame {
 
 	@Override
 	public void initialize() {
-		setLayout(new MigLayout(MIG.FILL));
+		setLayout(new GridBagLayout());
 		setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
 		Container pane = this.getContentPane();
-		pane.add(initTfFolder(), MIG.get(MIG.SPAN, MIG.GROWX));
-		taInfosInit("organize.home");
+		pane.add(initTop(), new GBC("0,0, growx, wx 1.0, ins 5"));
+		taInfosInit("init");
+		taInfos.setText(FileUtil.readHtml("Organizer"));
 		JScrollPane scroll = new JScrollPane(taInfos);
 		scroll.setPreferredSize(new Dimension(1024, 768));
-		pane.add(scroll, MIG.get(MIG.SPAN, MIG.GROW, MIG.CENTER));
+		pane.add(scroll, new GBC("1,0, grow, wx 1.0, wy 1.0, ins 5"));
 	}
 
-	private JPanel initTfFolder() {
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS1, MIG.WRAP), "[][grow][]"));
-		//source folder
-		p.add(new JLabel(I18N.getColonMsg("organize.source")));
-		p.add(tfFolder = new JTextField(), MIG.GROW);
+	/**
+	 * initialize top part
+	 *
+	 * @return
+	 */
+	private JPanel initTop() {
+		JPanel p = new JPanel(new GridBagLayout());
+		// source folder
+		p.add(new JLabel(I18N.getColonMsg("organize.source")),
+				new GBC("0,0, left, ins 2"));
+		tfFolder = new JTextField();
 		tfFolder.setEditable(false);
-		p.add(Ui.initIconButton("btFolder", ICONS.K.FOLDER, e -> selectDest()));
-		//option and execute
-		JPanel r = new JPanel(new MigLayout(MIG.INS0));
-		r.add(ckRemove = new JCheckBox(I18N.getMsg("photo.remove")), MIG.RIGHT);
+		p.add(tfFolder, new GBC("0,1, growx, wx 1.0, ins 2"));
+		p.add(Ui.initIconButton("directory.select", ICONS.K.FOLDER,
+				e -> selectFolder()), new GBC("0,2, ins 2"));
+		JPanel r = new JPanel(new GridBagLayout());
+		// option to include videos
+		ckVideo = new JCheckBox(I18N.getMsg("organize.video"));
+		ckVideo.setSelected(App.pref.organizeVideoGet());
+		r.add(ckVideo, new GBC("0,0, right, ins 2"));
+		// option to remove original files (photos or videos)
+		ckRemove = new JCheckBox(I18N.getMsg("organize.remove"));
 		ckRemove.setSelected(App.pref.organizeDeleteGet());
-		r.add(btOrganizer = Ui.initButton("app.organizer", ICONS.K.COGS, e -> copyBegin()));
-		btOrganizer.setEnabled(!tfFolder.getText().isEmpty());
-		p.add(r, MIG.get(MIG.SPAN, MIG.RIGHT));
+		r.add(ckRemove, new GBC("0,1, right, ins 2"));
+		// execute button
+		btStart = Ui.initButton("organize.start", ICONS.K.COGS, e -> copyBegin());
+		btStart.setEnabled(!tfFolder.getText().isEmpty());
+		r.add(btStart, new GBC("0,2, right, ins 2"));
+		p.add(r, new GBC("1,0, gw 3, right, ins 2"));
 		return p;
 	}
 
-	private void selectDest() {
-		String dir = tfFolder.getText();
-		if (dir.isEmpty()) {
-			dir = EnvUtil.getHomeDir().getAbsolutePath();
+	/**
+	 * select the source folder
+	 */
+	private void selectFolder() {
+		String srcDir = tfFolder.getText();
+		if (srcDir.isEmpty()) {
+			srcDir = EnvUtil.getHomeDir().getAbsolutePath();
 		}
-		JFileChooser chooser = new JFileChooser(dir);
+		JFileChooser chooser = new JFileChooser(srcDir);
 		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 		if (chooser.showOpenDialog(null) != 0) {
 			return;
@@ -93,35 +116,26 @@ public class Organizer extends AbstractFrame {
 			file = file.getParentFile();
 		}
 		if (file.exists()) {
-			String ndir = file.getAbsolutePath();
-			if (tfFolder.getText().equals(ndir)) {
-				return;
-			}
-			tfFolder.setText(ndir);
-			int nb = App.jpegCount(file);
-			String nbs = I18N.getMsg((nb > 1 ? "files" : "file"));
-			taInfosAdd(Html.intoP(String.format("%s : %d %s",
-					file.getAbsolutePath(), nb, nbs)));
+			tfFolder.setText(file.getAbsolutePath());
+			refreshFiles();
 		} else {
 			tfFolder.setText("");
 		}
-		btOrganizer.setEnabled(!tfFolder.getText().isEmpty());
+		btStart.setEnabled(!tfFolder.getText().isEmpty());
 	}
 
+	/**
+	 * refresh files to count number of files (photos or videos)
+	 */
 	public void refreshFiles() {
 		if (tfFolder == null || tfFolder.getText().isEmpty()) {
 			return;
 		}
 		File dir = new File(tfFolder.getText());
-		int nb = App.jpegCount(dir);
-		String line = I18N.getMsg("dir.contains",
-				new String[]{dir.getAbsolutePath(), nb + ""});
-		if (nb == 0) {
-			line = Html.intoRed(I18N.getMsg("dir.contains_nophoto",
-					dir.getAbsolutePath()));
-		}
-		taInfosAdd(Html.intoP(line));
-		btOrganizer.setEnabled(nb > 0);
+		Media.MediaCount mc = Media.count(dir);
+		taInfosAdd(Html.intoP(String.format("%s : %d photos, %d vidéos",
+				dir.getAbsolutePath(), mc.jpegCount, mc.mp4Count)));
+		btStart.setEnabled(mc.totalGet() > 0);
 	}
 
 	//****************************************
@@ -134,11 +148,9 @@ public class Organizer extends AbstractFrame {
 	 */
 	private static class ProgressInfo {
 
-		final String currentDir;
 		final int count;
 
 		ProgressInfo(String currentDir, int count) {
-			this.currentDir = currentDir;
 			this.count = count;
 		}
 	}
@@ -152,20 +164,21 @@ public class Organizer extends AbstractFrame {
 			return;
 		}
 		File dir = new File(tfFolder.getText());
-		btOrganizer.setEnabled(false);
+		btStart.setEnabled(false);
 		setWaitingCursor();
 		taInfosAdd(Html.intoP("<b>" + I18N.getMsg("organize.scan") + " : "
 				+ dir.getAbsolutePath() + " ...</b>"));
+		final boolean includeVideo = ckVideo.isSelected();
 		new SwingWorker<List<File>, ProgressInfo>() {
 
 			@Override
 			protected List<File> doInBackground() throws Exception {
 				List<File> allFiles = new ArrayList<>();
-				scanRecursive(dir, allFiles);
+				scanRecursive(dir, allFiles, includeVideo);
 				return allFiles;
 			}
 
-			private void scanRecursive(File currentDir, List<File> allFiles) {
+			private void scanRecursive(File currentDir, List<File> allFiles, boolean includeVideo) {
 				if (currentDir.exists() && currentDir.isDirectory()) {
 					publish(new ProgressInfo(currentDir.getAbsolutePath(), allFiles.size()));
 					File[] fls = currentDir.listFiles();
@@ -174,9 +187,11 @@ public class Organizer extends AbstractFrame {
 					}
 					for (File f : fls) {
 						if (f.isDirectory()) {
-							scanRecursive(f, allFiles);
-						} else if (f.isFile() && App.jpegIs(f)) {
-							allFiles.add(f);
+							scanRecursive(f, allFiles, includeVideo);
+						} else if (f.isFile()) {
+							if (Media.jpegIs(f) || (includeVideo && Media.mp4Is(f))) {
+								allFiles.add(f);
+							}
 						}
 					}
 				}
@@ -205,20 +220,21 @@ public class Organizer extends AbstractFrame {
 							+ "</b>"));
 					if (files.isEmpty()) {
 						setNormalCursor();
-						btOrganizer.setEnabled(true);
+						btStart.setEnabled(true);
+						return;
 					}
 					continueToOrganize(files, dir);
-				} catch (Exception e) {
+				} catch (InterruptedException | ExecutionException e) {
 					LOG.err(I18N.getMsg("organize.scan_error"), e);
 					setNormalCursor();
-					btOrganizer.setEnabled(true);
+					btStart.setEnabled(true);
 				}
 			}
 		}.execute();
 	}
 
 	/**
-	 * copy given list of files to the given folder
+	 * step 2 - copy given list of files to the target folder structure
 	 *
 	 * @param files
 	 * @param dir
@@ -229,7 +245,6 @@ public class Organizer extends AbstractFrame {
 					dir.getAbsolutePath()))));
 			return;
 		}
-		//sort files by absolute path
 		Collections.sort(files, (File f1, File f2)
 				-> f1.getAbsolutePath().compareTo(f2.getAbsolutePath()));
 		List<XmlAlbumItem> ls = new ArrayList<>();
@@ -237,19 +252,15 @@ public class Organizer extends AbstractFrame {
 		for (File f : files) {
 			ls.add(new XmlAlbumItem("" + (id++), f.getAbsolutePath(), ""));
 		}
-
 		File destDir = new File(App.pref.photosDirGet());
 		taInfosAdd(Html.intoP(I18N.getMsg("organize.inprogress")));
 		setWaitingCursor();
-		Collections.sort(ls, (XmlAlbumItem f1, XmlAlbumItem f2)
-				-> f1.fileGet().getAbsolutePath().compareTo(f2.fileGet().getAbsolutePath()));
 		SwingUtilities.invokeLater(() -> {
-			// Mode 2 passe la structure cible en AAAA/MM/JJ obligatoire
-			CopyFileDlg cpf = new CopyFileDlg(this, ls, false, destDir,
+			OrganizerCopyDlg cpf = new OrganizerCopyDlg(this, ls, false, destDir,
 					0, ckRemove.isSelected(), null);
 			cpf.start();
 		});
-		btOrganizer.setEnabled(false);
+		btStart.setEnabled(false);
 	}
 
 	/**
@@ -259,15 +270,6 @@ public class Organizer extends AbstractFrame {
 	public void copyEnd() {
 		mainFrame.albumGet().refreshAll();
 		setNormalCursor();
-	}
-
-	/**
-	 * get the autoremove status
-	 *
-	 * @return
-	 */
-	public boolean autoremoveGet() {
-		return ckRemove.isSelected();
 	}
 
 }

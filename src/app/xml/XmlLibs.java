@@ -17,7 +17,6 @@
  */
 package app.xml;
 
-import app.tools.LOG;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,9 +98,9 @@ public class XmlLibs {
 	 * @param id index to modify
 	 * @param value new text to set
 	 */
-	public void libUpdate(int id, String value) {
+	public void libUpdate(String id, String value) {
 		for (XmlLib l : libs) {
-			if (l.getId().equals("" + id)) {
+			if (l.getId().equals(id)) {
 				l.setText(value);
 				break;
 			}
@@ -124,7 +123,7 @@ public class XmlLibs {
 	 * @param value
 	 * @return
 	 */
-	public int libAdd(String value) {
+	public String libAdd(String value) {
 		int n = 0;
 		for (XmlLib l : libs) {
 			int id = Integer.parseInt(l.getId());
@@ -132,7 +131,7 @@ public class XmlLibs {
 		}
 		int id = n + 1;
 		libs.add(new XmlLib(id, value));
-		return id;
+		return id + "";
 	}
 
 	/**
@@ -140,11 +139,10 @@ public class XmlLibs {
 	 *
 	 * @param value
 	 */
-	public void libDelete(int value) {
-		LOG.trace(TT + "libDelete(" + "id=" + value + ")");
+	public void libDelete(String value) {
+		//LOG.trace(TT + "libDelete(" + "id=" + value + ")");
 		for (XmlLib l : libs) {
-			int id = Integer.parseInt(l.getId());
-			if (id == value) {
+			if (l.getId().equals(value)) {
 				libs.remove(l);
 				break;
 			}
@@ -180,6 +178,7 @@ public class XmlLibs {
 			this.text = value;
 		}
 
+		@Override
 		public String toString() {
 			return id + "," + text;
 		}

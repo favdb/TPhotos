@@ -50,6 +50,14 @@ public class I18N {
 	private static String propFileName;
 	private static char msgType = '0';//0=not init, i=internal, x=external, f=file
 
+	public static final String getWarning() {
+		return "\u26A0 " + I18N.getMsg("msg.warning");
+	}
+
+	public static final String getError() {
+		return "\u2716 " + I18N.getMsg("msg.error");
+	}
+
 	public static String getCountryLanguage(Locale locale) {
 		return locale.getLanguage() + "_" + locale.getCountry();
 	}

@@ -17,16 +17,18 @@
  */
 package app.album;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.App;
 import app.MainFrame;
+import app.media.Media;
 import app.resources.icons.ICONS;
+import app.tools.GBC;
 import app.tools.ImageUtil;
 import app.tools.LOG;
 import app.tools.Ui;
-import app.tools.file.FileUtil;
+import app.xml.XmlAlbumItem;
 import java.awt.Desktop;
+import java.awt.FontMetrics;
+import java.awt.GridBagLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseEvent;
@@ -86,6 +88,19 @@ public class AlbumGallery extends JPanel {
 	}
 
 	/**
+	 * Calcule la largeur d'une cellule en fonction de la taille du texte de la date
+	 * (JJ/MM/AAAA)
+	 *
+	 * @return largeur minimale calculée
+	 */
+	public int imgSzGet() {
+		FontMetrics fm = getFontMetrics(getFont());
+		int textWidth = fm != null ? fm.stringWidth("99/99/9999") : 100;
+		// Ajout de marges et de la bordure (2px * 2) pour s'assurer que le texte ne soit pas tronqué
+		return Math.max(120, textWidth + 16);
+	}
+
+	/**
 	 * get the MainFrame
 	 *
 	 * @return
@@ -99,14 +114,12 @@ public class AlbumGallery extends JPanel {
 	 */
 	private void initialize() {
 		//LOG.trace(TT+"initialize()");
-		setLayout(new MigLayout(MIG.get(MIG.INS0, MIG.GAP1)));
-		int nbcols = nbColsGet();
+		setLayout(new GridBagLayout());
 		if (pGallery == null) {
 			pGallery = new JPanel();
 		}
 		pGallery.removeAll();
-		pGallery.setLayout(new MigLayout(MIG.get("al left top", /*MIG.FILL,*/
-				MIG.INS0, MIG.GAP + " 6", MIG.WRAP + " " + nbcols)));
+		pGallery.setLayout(new GridBagLayout());
 		if (scroller == null) {
 			scroller = new JScrollPane(pGallery);
 			scroller.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -116,7 +129,7 @@ public class AlbumGallery extends JPanel {
 		} else {
 			remove(scroller);
 		}
-		add(scroller, MIG.get(MIG.GROW, MIG.PUSH, "top, left"));
+		add(scroller, new GBC("0, 0, fill b, wx 1.0, wy 1.0"));
 		photosLoad();
 		if (resizeListener != null) {
 			removeComponentListener(resizeListener);
@@ -136,12 +149,12 @@ public class AlbumGallery extends JPanel {
 	 * @return
 	 */
 	private int nbColsGet() {
-		int textwidth = Ui.getTextWidth(" 99/99/9999 ", this.getFont());
+		int cellwidth = imgSzGet();
 		int currentWidth = this.getWidth();
 		if (currentWidth <= 0) {
 			currentWidth = 800;
 		}
-		return Math.max(1, currentWidth / (textwidth + 10));
+		return Math.max(1, (currentWidth / (cellwidth + 4)));
 	}
 
 	/**
@@ -183,11 +196,23 @@ public class AlbumGallery extends JPanel {
 			collectPhotos(rootdir, filesToLoad);
 			Collections.sort(filesToLoad, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
 		}
+		int nbCols = nbColsGet();
+		int row = 0;
+		int col = 0;
 		for (File f : filesToLoad) {
 			AlbumGalleryCell il = new AlbumGalleryCell(this, f, "", table == null);
+			if (!Media.jpegIs(f)) {
+				il.selAllow(false);
+			}
 			galleryCells.add(il);
-			pGallery.add(il);
+			pGallery.add(il, new GBC(row + ", " + col + ", anchor nw, ins 3 3 3 3"));
+			col++;
+			if (col >= nbCols) {
+				col = 0;
+				row++;
+			}
 		}
+		pGallery.add(new JPanel(), new GBC(row + 1 + ", 0, width " + nbCols + ", wx 1.0, wy 1.0"));
 		pGallery.revalidate();
 		pGallery.repaint();
 		currentWorker = new SwingWorker<Void, Integer>() {
@@ -209,7 +234,7 @@ public class AlbumGallery extends JPanel {
 					for (Integer index : chunks) {
 						galleryCells.get(index).repaint();
 					}
-					inDiapoSet();
+					initDiapoSet();
 				} catch (Exception ex) {
 				}
 			}
@@ -231,41 +256,12 @@ public class AlbumGallery extends JPanel {
 		for (File f : files) {
 			if (f.isDirectory()) {
 				collectPhotos(f, result);
-			} else if (App.jpegIs(f)) {
+			} else if (Media.jpegIs(f)) {
+				result.add(f);
+			} else if (Media.mp4Is(f)) {
 				result.add(f);
 			}
 		}
-	}
-
-	/**
-	 * parse to find JPEG files
-	 *
-	 * @param dir folder to parse
-	 * @param result target List
-	 * @param isRoot true si c'est le dossier sélectionné dans l'arbre
-	 */
-	private void collectPhotos(File dir, List<File> result, boolean isRoot) {
-		File[] files = dir.listFiles();
-		if (files == null) {
-			return;
-		}
-		for (File f : files) {
-			if (f.isDirectory()) {
-				if (!isNormedDir(f) || isRoot) {
-					collectPhotos(f, result, false);
-				}
-			} else if (App.jpegIs(f)) {
-				result.add(f);
-			}
-		}
-	}
-
-	/**
-	 * Check if given directory name is standard (Year / Month / Day)
-	 */
-	private boolean isNormedDir(File dir) {
-		String name = dir.getName();
-		return name.matches("\\d+");
 	}
 
 	/**
@@ -293,19 +289,20 @@ public class AlbumGallery extends JPanel {
 	/**
 	 * set the AlbumGalleryCell to SEL_ALBUM when file is in diapo
 	 */
-	public void inDiapoSet() {
-		//LOG.trace(TT + "inDiapoSet()");
+	public void initDiapoSet() {
+		//LOG.trace(TT + "initDiapoSet()");
 		if (rootdir != null && rootdir.isDirectory()) {
-			List<File> falbum = new ArrayList<>();
-			TableModel model = album.getTable().getModel();
+			List<XmlAlbumItem> falbum = new ArrayList<>();
+			TableModel model = album.tableGet().getModel();
 			for (int row = 0; row < model.getRowCount(); row++) {
-				File file = (File) model.getValueAt(row, 1);
+				XmlAlbumItem file = (XmlAlbumItem) model.getValueAt(row, 1);
 				falbum.add(file);
 			}
-			for (File f : falbum) {
+			for (XmlAlbumItem f : falbum) {
 				for (AlbumGalleryCell lb : galleryCells) {
-					if (f.getName().equals(lb.fileGet().getName())) {
-						lb.setSel(AlbumGalleryCell.SEL_ALBUM);
+					if (f.fileGet().getName().equals(lb.fileGet().getName())) {
+						lb.selSet(AlbumGalleryCell.SEL_ALBUM);
+						lb.repaint();
 					}
 				}
 			}
@@ -324,10 +321,10 @@ public class AlbumGallery extends JPanel {
 	 * update the add button
 	 */
 	public void btAddUpdate() {
-		album.updateBtAdd(false);
+		album.btAddUpdate(false);
 		for (AlbumGalleryCell il : galleryCells) {
-			if (il.getSel() == AlbumGalleryCell.SEL) {
-				album.updateBtAdd(true);
+			if (il.selGet() == AlbumGalleryCell.SEL) {
+				album.btAddUpdate(true);
 				break;
 			}
 		}
@@ -339,35 +336,64 @@ public class AlbumGallery extends JPanel {
 	 * @param e
 	 * @param il
 	 */
-	public void popupShow(MouseEvent e, AlbumGalleryCell il) {
-		//LOG.trace(TT + "popupShow(il=" + il.toString() + ")");
-		JPopupMenu popupMenu = new JPopupMenu();
-		popupMenu.add(Ui.initMenuItem(ICONS.K.PHOTO, "menu.file_album_open",
-				act -> {
-					try {
-						Desktop.getDesktop().open(il.fileGet());
-					} catch (IOException ex) {
-						LOG.err("unable to open file", ex);
-					}
-				}));
-		if (table == null) {
-			if (il.getSel() != AlbumGalleryCell.SEL_ALBUM) {
-				popupMenu.add(Ui.initMenuItem(ICONS.K.PLUS, "album.add",
-						act -> album.photoAdd(il)));
-				popupMenu.add(new JSeparator());
-				popupMenu.add(Ui.initMenuItem(ICONS.K.CALENDAR, "date.change",
-						act -> album.changeDate(il.fileGet())));
-				popupMenu.add(Ui.initMenuItem(ICONS.K.CANCEL, "action.delete",
-						act -> {
-							File parent = il.fileGet().getParentFile();
-							il.fileGet().delete();
-							FileUtil.dirRemove(parent);
-							album.refreshAll();
-						}));
-			} else {
-				popupMenu.add(Ui.initMenuItem(ICONS.K.MINUS, "album.remove",
-						act -> album.photoRemove(il)));
+	public void showPopup(MouseEvent e, AlbumGalleryCell il) {
+		LOG.trace(TT + "popupShow(il=" + il.toString() + ")");
+		List<AlbumGalleryCell> cx = new ArrayList<>();
+		for (AlbumGalleryCell cell : galleryCells) {
+			if (cell.selGet() == AlbumGalleryCell.SEL) {
+				cx.add(cell);
 			}
+		}
+		if (cx.size() > 1) {
+			showPopupMulti(e, cx);
+		} else {
+			JPopupMenu popupMenu = new JPopupMenu();
+			popupMenu.add(Ui.initMenuItem(ICONS.K.PHOTO, "menu.file_album_open",
+					act -> {
+						try {
+							Desktop.getDesktop().open(il.fileGet());
+						} catch (IOException ex) {
+							LOG.err("unable to open file", ex);
+						}
+					}));
+			if (!Media.mp4Is(il.fileGet())) {
+				if (table == null) {
+					if (il.selGet() != AlbumGalleryCell.SEL_ALBUM) {
+						popupMenu.add(Ui.initMenuItem(ICONS.K.PLUS, "album.add",
+								act -> album.photoAdd(il)));
+						popupMenu.add(new JSeparator());
+						popupMenu.add(Ui.initMenuItem(ICONS.K.CALENDAR, "date.change",
+								act -> {
+									album.dateChange(il.fileGet());
+								}));
+						popupMenu.add(Ui.initMenuItem(ICONS.K.CANCEL, "action.delete",
+								act -> album.photoDelete(il)));
+					} else {
+						popupMenu.add(Ui.initMenuItem(ICONS.K.MINUS, "album.remove",
+								act -> album.photoRemove(il)));
+					}
+				}
+			}
+			popupMenu.show(e.getComponent(), e.getX(), e.getY());
+		}
+	}
+
+	/**
+	 * show popup menu for multi selection
+	 *
+	 * @param e
+	 * @param il
+	 */
+	public void showPopupMulti(MouseEvent e, List<AlbumGalleryCell> list) {
+		LOG.trace(TT + "popupShow(list nb=" + list.size() + ")");
+		JPopupMenu popupMenu = new JPopupMenu();
+		if (album != null) {
+			popupMenu.add(Ui.initMenuItem(ICONS.K.PLUS, "album.add",
+					act -> album.photoAdd(list)));
+			popupMenu.add(Ui.initMenuItem(ICONS.K.CALENDAR, "date.change",
+					act -> album.dateChange(list)));
+			popupMenu.add(Ui.initMenuItem(ICONS.K.CANCEL, "action.delete",
+					act -> album.photoDelete(list)));
 		}
 		popupMenu.show(e.getComponent(), e.getX(), e.getY());
 	}

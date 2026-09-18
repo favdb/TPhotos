@@ -27,10 +27,8 @@ import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.FFmpeg;
-import app.tools.Html;
 import app.tools.LOG;
 import app.tools.Ui;
-import app.tools.file.CopyDlg;
 import app.tools.file.EnvUtil;
 import app.tools.file.FileUtil;
 import app.xml.Xml;
@@ -60,7 +58,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.JTextPane;
 
 /**
  * JDialog to copy multiple images to a destination folder
@@ -73,12 +70,12 @@ public class Export extends AbstractFrame {
 
 	private final AlbumTable table;
 	private JTextField tfFolder;
-	private JButton btExec;
+	public JButton btExec;
 	private JComboBox cbFormat, cbCompress;
-	private File dirDest;
+	public File dirDest;
 	private final MainFrame mainFrame;
 	private Container pane;
-	private CopyDlg copyDlg;
+	public ExportCopyDlg copyDlg;
 	private List<XmlAlbumItem> items;
 	public static final String FORMAT_SIMPLE = I18N.getMsg("export.format.simple"),
 			FORMAT_HTML = I18N.getMsg("export.format.html"),
@@ -93,9 +90,9 @@ public class Export extends AbstractFrame {
 		I18N.getMsg("export.compress.mini"),
 		I18N.getMsg("export.compress.maxi")
 	};
-	private int tempo = 5;
+	public int tempo = 5;
 	private JTextField tfTempo;
-	private JCheckBox ckGeneric;
+	public JCheckBox ckGeneric;
 	private JPanel pTempo, pFolder, pCompress;
 
 	/**
@@ -107,7 +104,7 @@ public class Export extends AbstractFrame {
 	public Export(MainFrame mainFrame) {
 		super();
 		this.mainFrame = mainFrame;
-		this.table = mainFrame.albumGet().getTable();
+		this.table = mainFrame.albumGet().tableGet();
 		initialize();
 	}
 
@@ -120,16 +117,14 @@ public class Export extends AbstractFrame {
 	 */
 	@Override
 	public void initialize() {
-		//LOG.trace(TT + "initialize()");
+		//LOG.trace(TT + "initialize()");*
 		this.setLayout(new MigLayout(MIG.FILL));
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setMaximumSize(sz);
 		pane = this.getContentPane();
-		pane.add(initTop(), MIG.get(MIG.SPAN, MIG.GROWX));
-		taInfos = new JTextPane();
-		taInfos.setContentType("text/html");
-		taInfos.setEditable(false);
-		initInfos(I18N.getMsg("export.home"));
+		pane.add(topInit(), MIG.get(MIG.SPAN, MIG.GROWX));
+		taInfosInit("init");
+		taInfos.setText(FileUtil.readHtml("Export"));
 		JScrollPane scroll = new JScrollPane(taInfos);
 		scroll.setPreferredSize(new Dimension(1024, 768));
 		pane.add(scroll, MIG.get(MIG.SPAN, MIG.GROW, MIG.CENTER));
@@ -150,15 +145,15 @@ public class Export extends AbstractFrame {
 	 *
 	 * @return
 	 */
-	private JPanel initTop() {
+	private JPanel topInit() {
 		//LOG.trace(TT + "initTop()");
 		JPanel p = new JPanel(new MigLayout(
 				MIG.get(MIG.HIDEMODE3, MIG.FILL, MIG.INS0, MIG.GAP1))
 		);
-		p.add(initFormat(), MIG.get(MIG.SPAN, MIG.SPLIT2));
-		p.add(pCompress = initCompress(), MIG.get(MIG.SPAN));
-		p.add(pTempo = initTempo(), MIG.SPAN);
-		p.add(pFolder = initFolder(), MIG.SPAN);
+		p.add(formatInit(), MIG.get(MIG.SPAN, MIG.SPLIT2));
+		p.add(pCompress = compressInit(), MIG.get(MIG.SPAN));
+		p.add(pTempo = tempoInit(), MIG.SPAN);
+		p.add(pFolder = folderInit(), MIG.SPAN);
 		JPanel p2 = new JPanel(new MigLayout(MIG.get(MIG.HIDEMODE3, MIG.INS0)));
 		ckGeneric = new JCheckBox(I18N.getMsg("export.format.mpeg_generic"));
 		p2.add(ckGeneric, MIG.RIGHT);
@@ -176,7 +171,7 @@ public class Export extends AbstractFrame {
 	 *
 	 * @return
 	 */
-	private JPanel initFolder() {
+	private JPanel folderInit() {
 		//LOG.trace(TT + "initFolder()");
 		JPanel p2 = new JPanel(new MigLayout());
 		p2.add(new JLabel(I18N.getColonMsg("export.dest")),
@@ -186,7 +181,7 @@ public class Export extends AbstractFrame {
 		tfFolder.setEditable(false);
 		tfFolder.setText(App.pref.exportLastGet());
 		p2.add(tfFolder);
-		JButton bt = Ui.initIconButton("btFolder", ICONS.K.FOLDER,
+		JButton bt = Ui.initIconButton("directory.select", ICONS.K.FOLDER,
 				(ActionEvent evt) -> {
 					String dir = tfFolder.getText();
 					if (dir.isEmpty()) {
@@ -216,7 +211,7 @@ public class Export extends AbstractFrame {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private JPanel initFormat() {
+	private JPanel formatInit() {
 		//LOG.trace(TT + "initFormat()");
 		JPanel p0 = new JPanel(new MigLayout(MIG.HIDEMODE3));
 		p0.add(new JLabel(I18N.getColonMsg("export.format")));
@@ -227,22 +222,22 @@ public class Export extends AbstractFrame {
 		return p0;
 	}
 
-	private JPanel initTempo() {
+	private JPanel tempoInit() {
 		//LOG.trace(TT + "initTempo()");
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0)));
 		p.add(new JLabel(I18N.getColonMsg("export.format.mpeg_tempo")));
 		JButton btminus;
 		p.add(btminus = Ui.initButton("minus", ICONS.K.NONE,
-				e -> addTempo(-1)));
+				e -> tempoAdd(-1)));
 		btminus.setText("▼");
 		p.add(tfTempo = new JTextField());
 		tfTempo.setColumns(2);
 		tfTempo.setHorizontalAlignment(JTextField.CENTER);
 		JButton btplus;
 		p.add(btplus = Ui.initButton("plus", ICONS.K.NONE,
-				e -> addTempo(1)));
+				e -> tempoAdd(1)));
 		btplus.setText("▲");
-		addTempo(0);
+		tempoAdd(0);
 		p.setVisible(false);
 		return p;
 	}
@@ -252,7 +247,7 @@ public class Export extends AbstractFrame {
 	 *
 	 * @param value
 	 */
-	private void addTempo(int value) {
+	private void tempoAdd(int value) {
 		//LOG.trace(TT + "addTempo()");
 		tempo += value;
 		if (tempo < 1) {
@@ -267,7 +262,7 @@ public class Export extends AbstractFrame {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private JPanel initCompress() {
+	private JPanel compressInit() {
 		//LOG.trace(TT + "initCompress()");
 		JPanel p = new JPanel(new MigLayout());
 		p.add(new JLabel(I18N.getColonMsg("export.compress")));
@@ -276,41 +271,11 @@ public class Export extends AbstractFrame {
 	}
 
 	/**
-	 * set infos text
-	 *
-	 * @param txt
-	 */
-	public void initInfos(String txt) {
-		//LOG.trace(TT + "initInfos(txt)");
-		taInfos.setText(Html.intoHtml(txt));
-		taInfos.setCaretPosition(taInfos.getDocument().getLength());
-	}
-
-	/**
-	 * add text to infos
-	 *
-	 * @param text
-	 */
-	public void addInfos(String text) {
-		initInfos(getInfos() + text);
-		taInfos.revalidate();
-	}
-
-	/**
-	 * get the infos body
-	 *
-	 * @return
-	 */
-	public String getInfos() {
-		return Html.getBody(taInfos.getText());
-	}
-
-	/**
 	 * get the list of AlbumItem
 	 *
 	 * @return
 	 */
-	public List<XmlAlbumItem> getItems() {
+	public List<XmlAlbumItem> itemsGet() {
 		return items;
 	}
 
@@ -330,7 +295,7 @@ public class Export extends AbstractFrame {
 		}
 		dirDest.mkdirs();
 		if (format.equals(FORMAT_MPEG) && ckGeneric.isSelected()) {
-			makeFFmpegBegin();
+			FFmpeg.begin(this);
 		}
 		items = new ArrayList<>();
 		for (XmlAlbumItem src : mainFrame.albumGet().xmlGet().albumGet().itemsGet()) {
@@ -340,7 +305,7 @@ public class Export extends AbstractFrame {
 		boolean withText = (cbFormat.getSelectedItem().equals(FORMAT_MPEG)), isremove = false;
 		btExec.setEnabled(false);
 		setWaitingCursor();
-		copyDlg = new CopyDlg(this,
+		copyDlg = new ExportCopyDlg(this,
 				items,
 				withText,
 				dirDest,
@@ -360,7 +325,7 @@ public class Export extends AbstractFrame {
 		if (!copyDlg.isOK()) {
 			return;
 		}
-		initInfos(getInfos() + copyDlg.getReport());
+		taInfosInit(taInfosContentGet() + copyDlg.getReport());
 		String format = (String) cbFormat.getSelectedItem();
 		if (FORMAT_SIMPLE.equals(format)) {
 			makeSimple();
@@ -372,10 +337,13 @@ public class Export extends AbstractFrame {
 			try {
 				String fx = FileUtil.removeExtension(mainFrame.albumGet().diapoNameGet());
 				File mp4 = new File(dirDest.getParentFile(), fx + ".mp4");
-				makeFFmpeg(dirDest.getParentFile(), mp4.getAbsolutePath());
+				setWaitingCursor();
+				FFmpeg ffmpeg = new FFmpeg();
+				ffmpeg.start(this, dirDest.getParentFile(), mp4.getAbsolutePath());
 			} catch (IOException ex) {
 				LOG.err(TT + "getName() makeFFmpeg error", ex);
 			}
+			setNormalCursor();
 		}
 	}
 
@@ -384,11 +352,11 @@ public class Export extends AbstractFrame {
 	 */
 	private void makeEPUB() {
 		//LOG.trace(TT + "makeEPUB()");
-		addInfos("<br>" + I18N.getMsg("export.format.epub_make"));
+		taInfosAdd("<br>" + I18N.getMsg("export.format.epub_make"));
 		dirDest = new File(tfFolder.getText());
 		String fx = FileUtil.removeExtension(mainFrame.albumGet().diapoNameGet());
 		ExportEPUB.create(this, dirDest);
-		addInfos(" " + I18N.getMsg("task.ok") + "</p>");
+		taInfosAdd(" " + I18N.getMsg("task.ok") + "</p>");
 		setNormalCursor();
 		btExec.setEnabled(true);
 	}
@@ -400,38 +368,14 @@ public class Export extends AbstractFrame {
 	 * @param outfile
 	 * @throws IOException
 	 */
-	public void makeFFmpeg(File dir, String outfile) throws IOException {
-		//LOG.trace(TT + "makeFFmpeg(dir=" + dir.getAbsolutePath() + ", outfile=" + outfile + ")");
-		File file = new File(dirDest, String.format("%04d.jpg", copyDlg.getNumber() + 1));
-		makeFFmpegEnd(file, I18N.getMsg("export.end"));
-		String command = String.format(
-				"ffmpeg "
-				+ "-framerate 1/" + tempo + " "
-				+ "-pattern_type glob "
-				+ "-i '%s/*.jpg' "
-				+ "-c:v libx264 "
-				+ "-crf 28 " // Compression visuelle optimisée (gain de taille ~40%)
-				+ "-preset slow " // Meilleure efficacité de compression
-				+ "-r 15 " // 15 fps suffisent amplement pour des images fixes
-				+ "-vf \""
-				+ "scale=1280:720:force_original_aspect_ratio=decrease,"
-				+ "pad=1280:720:(ow-iw)/2:(oh-ih)/2"
-				+ "\" "
-				+ "-pix_fmt yuv420p %s -y",
-				dirDest.getAbsolutePath(), outfile);
-		addInfos("<p>" + I18N.getMsg("export.format.mpeg_make") /*+ ":<br>" + command*/ + " ... ");
-		ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", command);
-		setWaitingCursor();
-		Process process = processBuilder.start();
+	public void makeFFmpeg(File dir, String outfile) {
+		//LOG.trace(TT + "makeFFmpeg(dir=" + dir + ", outfile=" + outfile + ")");
 		try {
-			process.waitFor();
-			FileUtil.dirDelete(dirDest);
-			addInfos(I18N.getMsg("task.ok") + "</p>");
-			btExec.setEnabled(true);
-		} catch (InterruptedException e) {
-			LOG.err(TT + "makeFFmpeg(...) call error\n", e);
-			addInfos(I18N.getMsg("task.error", e.getLocalizedMessage()) + "</p>");
-			btExec.setEnabled(true);
+			setWaitingCursor();
+			FFmpeg ffmpeg = new FFmpeg();
+			ffmpeg.start(this, dir, outfile);
+		} catch (IOException e) {
+
 		}
 		setNormalCursor();
 	}
@@ -491,20 +435,20 @@ public class Export extends AbstractFrame {
 	 */
 	private void makeHTML() {
 		//LOG.trace(TT + "makeHTML()");
-		addInfos("<br>" + I18N.getMsg("export.format.html_make"));
+		taInfosAdd("<br>" + I18N.getMsg("export.format.html_make"));
 		ExportHTML html = new ExportHTML(this, dirDest);
 		html.begin(items);
-		addInfos(I18N.getMsg("task.ok") + "</p>");
+		taInfosAdd(I18N.getMsg("task.ok") + "</p>");
 		setNormalCursor();
 		btExec.setEnabled(true);
 	}
 
 	/**
-	 * add an album with a XML file
+	 * make an album with a XML file
 	 */
 	private void makeSimple() {
 		//LOG.trace(TT + "makeSimple()");
-		addInfos("<br>" + I18N.getMsg("export.format.simple_make"));
+		taInfosAdd("<br>" + I18N.getMsg("export.format.simple_make"));
 		String fx = FileUtil.removeExtension(mainFrame.albumGet().diapoNameGet());
 		File outfile = new File(dirDest, fx + ".xml");
 		StringBuilder b = new StringBuilder(Xml.getHeader())
@@ -520,7 +464,7 @@ public class Export extends AbstractFrame {
 		b.append(XmlUtil.INDENT).append("<list>\n");
 		b.append("</album>");
 		FileUtil.fileWriteString(outfile, b.toString());
-		addInfos(" " + I18N.getMsg("task.ok") + "</p>");
+		taInfosAdd(" " + I18N.getMsg("task.ok") + "</p>");
 		setNormalCursor();
 		btExec.setEnabled(true);
 	}

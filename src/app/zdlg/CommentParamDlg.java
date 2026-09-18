@@ -22,15 +22,15 @@ import api.mig.swing.MigLayout;
 import app.album.Album;
 import app.diapo.DiapoParam;
 import app.i18n.I18N;
+import app.resources.icons.ICONS;
+import app.tools.LOG;
+import app.tools.Ui;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import app.resources.icons.ICONS;
-import app.tools.LOG;
-import app.tools.Ui;
 
 /**
  *
@@ -47,7 +47,7 @@ public class CommentParamDlg extends JDialog {
 	}
 	private final Album album;
 	private JTextField tfComment;
-	private DiapoParam param;
+	private final DiapoParam param;
 	private JComboBox cbDate;
 	private JButton btAdd;
 	private boolean canceled = true, saveComment = true;
@@ -76,10 +76,12 @@ public class CommentParamDlg extends JDialog {
 		add(new JLabel(I18N.getColonMsg("album.param.comment.date")));
 		cbDate = new JComboBox(ls);
 		add(cbDate, MIG.get(MIG.SPAN, MIG.SPLIT2));
-		add(btAdd = Ui.initIconButton("btAdd", ICONS.K.COGS, e -> {
-			String str = tfComment.getText() + "{" + cbDate.getSelectedItem() + "}";
-			tfComment.setText(str);
-		}), MIG.WRAP);
+		add(btAdd = Ui.initIconButton("btAdd", ICONS.K.AR_DOWN,
+				e -> {
+					String str = tfComment.getText()
+					+ "{" + cbDate.getSelectedItem() + "}";
+					tfComment.setText(str);
+				}), MIG.WRAP);
 		btAdd.setToolTipText(I18N.getMsg("album.param.adddate"));
 		// param for comments
 		add(new JLabel(I18N.getColonMsg("album.param.comment")));
@@ -110,7 +112,7 @@ public class CommentParamDlg extends JDialog {
 			param.setComment(tfComment.getText());
 			album.xmlGet().albumGet().setPrefComment(tfComment.getText());
 			//album.xmlGet().save();
-			album.getTable().setModified();
+			album.tableGet().setModified();
 		}
 		canceled = false;
 		dispose();

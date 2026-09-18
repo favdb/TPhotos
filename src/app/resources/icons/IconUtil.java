@@ -208,6 +208,7 @@ public class IconUtil {
 	 * @return
 	 */
 	public static Icon getIconLarge(ICONS.K key, int size) {
+		//LOG.trace("IconUtil.getIconLarge(key=" + key.toString() + ",size=" + size + ")");
 		Icon ic = getIcon(LARGE + key.toString());
 		return resizeIcon((ImageIcon) ic, size);
 	}
@@ -251,9 +252,9 @@ public class IconUtil {
 	 */
 	public static Icon getIcon(ICONS.K key, int size) {
 		if (size == 0) {
-			return (getIcon(key.toString()));
+			return getIconLarge(key);
 		}
-		return (getIcon(key.toString(), size, size));
+		return getIconLarge(key, size);
 	}
 
 	/**

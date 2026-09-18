@@ -15,15 +15,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package app.tools.file;
+package app.export;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
+import app.AbstractFrame;
 import app.App;
 import app.export.ExportImage;
-import app.AbstractFrame;
-import app.xml.XmlAlbumItem;
 import app.i18n.I18N;
+import app.media.Jpeg;
+import app.tools.Html;
+import app.tools.LOG;
+import app.tools.file.FileUtil;
+import app.xml.XmlAlbumItem;
 import java.awt.Dimension;
 import java.io.File;
 import java.util.ArrayList;
@@ -31,17 +35,13 @@ import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
-import app.tools.Html;
-import app.tools.LOG;
-import app.tools.jpeg.Jpeg;
-import app.tools.jpeg.Webp;
 
 /**
  * copy files dialog
  *
  * @author favdb
  */
-public class CopyDlg extends JDialog {
+public class ExportCopyDlg extends JDialog {
 
 	private static final String TT = "CopyDlg.";
 
@@ -72,7 +72,7 @@ public class CopyDlg extends JDialog {
 	 * @param autoremove: remove file after copy
 	 * @param dim: new size for the image, may be null for no resize
 	 */
-	public CopyDlg(AbstractFrame parent,
+	public ExportCopyDlg(AbstractFrame parent,
 			List<XmlAlbumItem> items,
 			boolean withText,
 			File todir,
@@ -351,12 +351,7 @@ public class CopyDlg extends JDialog {
 		String nameWithoutExt = FileUtil.getFileNameWithoutExt(file);
 		String date = parseDateFromName(nameWithoutExt);
 		if (date == null) {
-			String extension = FileUtil.getExtension(file).toLowerCase();
-			if ("webp".equals(extension)) {
-				date = Webp.getDate(file);
-			} else {
-				date = Jpeg.getDate(file);
-			}
+			date = Jpeg.getDate(file);
 		}
 		if (sorter == 0 || sorter == 2) {
 			if (date != null && date.length() >= 8) {
@@ -396,9 +391,9 @@ public class CopyDlg extends JDialog {
 
 	public static class CopyAction implements Runnable {
 
-		private final CopyDlg dlg;
+		private final ExportCopyDlg dlg;
 
-		public CopyAction(CopyDlg dlg) {
+		public CopyAction(ExportCopyDlg dlg) {
 			this.dlg = dlg;
 		}
 

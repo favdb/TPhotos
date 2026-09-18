@@ -19,6 +19,9 @@ package app.tools.file;
 
 import app.App;
 import app.i18n.I18N;
+import app.media.Media;
+import app.resources.MainResources;
+import app.tools.Html;
 import app.tools.LOG;
 import java.awt.Component;
 import java.awt.Image;
@@ -51,6 +54,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -374,7 +378,7 @@ public class FileUtil {
 				if (f.isDirectory()) {
 					ls.addAll(computeList(f));
 				} else if (f.isFile()) {
-					if (App.jpegIs(f)) {
+					if (Media.jpegIs(f)) {
 						ls.add(f);
 					}
 				}
@@ -487,6 +491,9 @@ public class FileUtil {
 	 * @param parent
 	 */
 	public static void dirRemove(File dir) {
+		if (dir.getName().equals("Photos")) {
+			return;
+		}
 		File current = dir;
 		while (current != null && current.exists() && current.isDirectory()) {
 			String[] content = current.list();
@@ -500,6 +507,38 @@ public class FileUtil {
 			} else {
 				break;
 			}
+		}
+	}
+
+	/**
+	 * get a resource file text as a HTML String
+	 *
+	 * @param value
+	 * @return
+	 */
+	public static String readHtml(String value) {
+		try {
+			String lang = "_" + Locale.getDefault().getLanguage()
+					+ "_" + Locale.getDefault().getCountry();
+			if (!App.getLang().isEmpty()) {
+				lang = "_" + App.getLang();
+			}
+			boolean b = true;
+			String in = "html/" + value + lang + ".html";
+			while (b) {
+				if (MainResources.exists(in, MainResources.class)) {
+					break;
+				}
+				if (lang.contains("_")) {
+					lang = lang.substring(0, lang.lastIndexOf("_"));
+				}
+				if (lang.isEmpty()) {
+					b = false;
+				}
+			}
+			return Html.intoHtml(FileUtil.resourceRead(in, MainResources.class));
+		} catch (Exception ex) {
+			return "no " + value + ".html";
 		}
 	}
 

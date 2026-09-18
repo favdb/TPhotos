@@ -17,42 +17,55 @@
  */
 package app.album;
 
+import app.media.Media;
+import app.resources.icons.ICONS;
+import app.resources.icons.IconUtil;
 import app.tools.DateUtil;
 import app.tools.ImageUtil;
 import app.tools.LOG;
 import app.tools.file.FileUtil;
 import app.zdlg.ShowPhoto;
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.IOException;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 /**
- * class for a JLabel of an image
+ * Class for a gallery cell panel containing an image thumbnail and date label.
  *
  * @author favdb
  */
-public class AlbumGalleryCell extends JLabel implements MouseListener {
+public class AlbumGalleryCell extends JPanel implements MouseListener {
 
 	private static final String TT = "ImageLabel.";
 
-	private static final int IMG_SZ = 128;
 	public static final Color UNSELECTED = Color.LIGHT_GRAY,
 			SELECTED = Color.RED, IN_ALBUM = Color.BLUE;
+	// selection type:0=no selection, R=selected, B=is in albumTable
 	public static final char SEL_NO = '0', SEL = 'R', SEL_ALBUM = 'B';
+
 	private File file;
 	private String comment;
 	private char sel = '0';
 	private boolean allowSel;
-	private AlbumGallery gallery;
+	private final AlbumGallery gallery;
 	private Timer clickTimer;
 
+	private JLabel lbImage;
+	private JLabel lbText;
+
 	public AlbumGalleryCell(AlbumGallery gallery, File file, String comment, boolean allowed) {
+		super();
 		this.gallery = gallery;
 		this.file = file;
 		this.comment = comment;
@@ -65,15 +78,27 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 * initialize
 	 */
 	private void initialize() {
-		setVerticalTextPosition(JLabel.BOTTOM);
-		setHorizontalTextPosition(JLabel.CENTER);
+		setLayout(new BorderLayout(0, 0));
+		setOpaque(false);
+		lbImage = new JLabel();
+		lbImage.setHorizontalAlignment(SwingConstants.CENTER);
+		lbImage.setVerticalAlignment(SwingConstants.CENTER);
+		lbText = new JLabel();
+		lbText.setHorizontalAlignment(SwingConstants.CENTER);
+		lbText.setVerticalAlignment(SwingConstants.CENTER);
+		lbText.setBorder(BorderFactory.createEmptyBorder(-4, 0, 0, 0));
+		add(lbImage, BorderLayout.CENTER);
+		add(lbText, BorderLayout.SOUTH);
 		fileSet(file);
-		setComment(comment);
-		setSel(sel);
+		commentSet(comment);
+		selSet(sel);
 		addMouseListener(this);
-		int height = (int) (IMG_SZ * 1.5);
-		setMinimumSize(new Dimension(IMG_SZ, height));
-		setPreferredSize(new Dimension(IMG_SZ, height));
+		lbImage.addMouseListener(this);
+		lbText.addMouseListener(this);
+		int width = gallery.imgSzGet();
+		int height = (int) (width * 1.5);
+		setMinimumSize(new Dimension(width, height));
+		setPreferredSize(new Dimension(width, height));
 		clickTimer = new Timer(250, e -> actionSimpleClick());
 		clickTimer.setRepeats(false);
 	}
@@ -85,14 +110,14 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 		if (allowSel) {
 			switch (sel) {
 				case 'R':
-					setSel('0');
+					selSet('0');
 					break;
 				case 'G':
 					break;
 				case 'B':
 					break;
 				case '0':
-					setSel('R');
+					selSet('R');
 					break;
 			}
 			gallery.btAddUpdate();
@@ -104,7 +129,7 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 *
 	 * @param sel
 	 */
-	private void setColor(char sel) {
+	private void colorSet(char sel) {
 		Color c = UNSELECTED;
 		switch (sel) {
 			case 'r':
@@ -139,15 +164,24 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 */
 	public void fileSet(File file) {
 		this.file = file;
-		String n = DateUtil.toFormatted(FileUtil.removeExtension(file.getName())).replace(" ", "<br>");
-		setText("<html><p style=\"text-align: center;\">" + n + "</p></html>");
+		String n = DateUtil.toFormatted(FileUtil
+				.removeExtension(file.getName())).replace(" ", "<br>");
+		if (n.equals("???")) {
+			lbText.setText(file.getName());
+		} else {
+			lbText.setText("<html><center>" + n + "</center></html>");
+		}
 	}
 
 	/**
-	 * load the thumnails
+	 * load the thumbnails
 	 */
 	public void loadThumbnail() {
-		this.setIcon(ImageUtil.getThumb(this.file, IMG_SZ));
+		if (Media.mp4Is(file)) {
+			lbImage.setIcon(IconUtil.getIconLarge(ICONS.K.VIDEO, gallery.imgSzGet()));
+		} else {
+			lbImage.setIcon(ImageUtil.getThumb(this.file, gallery.imgSzGet()));
+		}
 	}
 
 	/**
@@ -164,10 +198,12 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 *
 	 * @param comment
 	 */
-	public void setComment(String comment) {
+	public void commentSet(String comment) {
 		this.comment = comment;
 		if (comment != null && !comment.isEmpty()) {
 			setToolTipText(comment);
+			lbImage.setToolTipText(comment);
+			lbText.setToolTipText(comment);
 		}
 	}
 
@@ -176,7 +212,7 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 *
 	 * @return
 	 */
-	public char getSel() {
+	public char selGet() {
 		return sel;
 	}
 
@@ -185,9 +221,9 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 *
 	 * @param sel
 	 */
-	public void setSel(char sel) {
+	public void selSet(char sel) {
 		this.sel = sel;
-		setColor(sel);
+		colorSet(sel);
 	}
 
 	/**
@@ -195,7 +231,7 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 *
 	 * @param b
 	 */
-	public void setAllowedSel(boolean b) {
+	public void selAllow(boolean b) {
 		this.allowSel = b;
 	}
 
@@ -204,12 +240,12 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	 *
 	 * @param e
 	 */
-	private void checkForPopup(MouseEvent e) {
+	private void popupCheckFor(MouseEvent e) {
 		if (e.isPopupTrigger()) {
 			if (clickTimer != null && clickTimer.isRunning()) {
 				clickTimer.stop();
 			}
-			gallery.popupShow(e, this);
+			gallery.showPopup(e, this);
 			e.consume();
 		}
 	}
@@ -217,7 +253,7 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 	//** mouse actions **//
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		//LOG.trace(TT + "mouseClicked(e)");
+		LOG.trace(TT + "mouseClicked(e)");
 		if (SwingUtilities.isLeftMouseButton(e)) {
 			if (e.getClickCount() == 1) {
 				clickTimer.start();
@@ -226,6 +262,13 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 					clickTimer.stop();
 				}
 				try {
+					if (Media.mp4Is(file)) {
+						try {
+							Desktop.getDesktop().open(fileGet());
+						} catch (IOException ex) {
+							LOG.err("unable to open MP4 file", ex);
+						}
+					}
 					ShowPhoto.show(file, gallery.cellListGet());
 				} catch (Exception ex) {
 					LOG.err(TT + "show photo error", ex);
@@ -236,12 +279,12 @@ public class AlbumGalleryCell extends JLabel implements MouseListener {
 
 	@Override
 	public void mousePressed(MouseEvent e) {
-		checkForPopup(e);
+		popupCheckFor(e);
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		checkForPopup(e);
+		popupCheckFor(e);
 	}
 
 	@Override

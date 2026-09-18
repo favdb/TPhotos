@@ -17,9 +17,12 @@
  */
 package app.diapo;
 
+import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.MainFrame;
 import app.i18n.I18N;
+import app.resources.icons.ICONS;
+import app.tools.Ui;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import javax.swing.JButton;
@@ -28,22 +31,20 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import app.resources.icons.ICONS;
-import api.mig.MIG;
-import app.tools.Ui;
 
 /**
- * dialog for Diaporama options
+ * dialog for Diaporama options, used only for testing
  *
  * @author favdb
  */
 public class DiapoDlg extends JDialog {
 
 	private static final String TT = "DiapoParamDlg.";
+
 	private final MainFrame mainFrame;
 	private final DiapoParam param;
 	private JComboBox cbMode;
-	private String[] modes = {
+	private final String[] modes = {
 		I18N.getMsg("album.param.mode_none"),
 		I18N.getMsg("album.param.mode_dissolve"),
 		I18N.getMsg("album.param.mode_fade")

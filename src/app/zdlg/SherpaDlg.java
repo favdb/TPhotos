@@ -64,17 +64,17 @@ public class SherpaDlg extends JDialog {
 	private void initialize() {
 		this.setFont(App.fontGet());
 		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP1)));
-		this.setPreferredSize(new Dimension(940, 480));
+		this.setPreferredSize(new Dimension(800, 480));
 		add(editor = new SHERPA(), MIG.GROW);
-		editor.setPreferredSize(new Dimension(1024, 480));
+		editor.setPreferredSize(new Dimension(940, 480));
 		editor.setFont(App.fontGet());
 		editor.htmlContentSet(text);
 		JPanel pok = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0)));
-		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
 		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> {
 			dispose();
 		}));
 		add(pok, MIG.get(MIG.SPAN, MIG.RIGHT));
+		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
 		this.pack();
 		for (Component c : editor.getComponents()) {
 			c.setFont(App.fontGet());

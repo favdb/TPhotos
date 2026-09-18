@@ -23,7 +23,6 @@ import app.MainFrame;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.tools.Html;
-import app.tools.LOG;
 import app.tools.Ui;
 import app.xml.Xml;
 import app.xml.XmlPrint;
@@ -46,7 +45,7 @@ import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 
 /**
- * Configuration interface for the print layout.
+ * Class for the print panel.
  *
  * @author favdb
  */
@@ -64,14 +63,26 @@ public class Print extends JPanel {
 	 * this 5x3 / 3x5 layout was hard-coded independently in Grid.setDim(),
 	 * Print.actionReinit() and Print.paperOrientationChange().
 	 */
-	public static final int GRID_ROWS_PORTRAIT = 5, GRID_COLS_PORTRAIT = 3;
+	public static final int GRID_ROWS = 5, GRID_COLS = 3;
 
+	/**
+	 * get grid rows depending on the given orientation
+	 *
+	 * @param orientation
+	 * @return
+	 */
 	public static int gridRowsFor(String orientation) {
-		return PORTRAIT.equalsIgnoreCase(orientation) ? GRID_ROWS_PORTRAIT : GRID_COLS_PORTRAIT;
+		return PORTRAIT.equalsIgnoreCase(orientation) ? GRID_ROWS : GRID_COLS;
 	}
 
+	/**
+	 * get grid cols depending on the given orientation
+	 *
+	 * @param orientation
+	 * @return
+	 */
 	public static int gridColsFor(String orientation) {
-		return PORTRAIT.equalsIgnoreCase(orientation) ? GRID_COLS_PORTRAIT : GRID_ROWS_PORTRAIT;
+		return PORTRAIT.equalsIgnoreCase(orientation) ? GRID_COLS : GRID_ROWS;
 	}
 
 	private final MainFrame mainFrame;
@@ -98,12 +109,17 @@ public class Print extends JPanel {
 		initialize();
 	}
 
+	/**
+	 * get the mainFrame
+	 *
+	 * @return
+	 */
 	public MainFrame getMainFrame() {
 		return mainFrame;
 	}
 
 	/**
-	 * initialize this JPanel
+	 * initialize the JPanel
 	 */
 	private void initialize() {
 		//LOG.trace(TT + "initialize()");
@@ -122,10 +138,21 @@ public class Print extends JPanel {
 		refresh();
 	}
 
+	/**
+	 * get cells list
+	 *
+	 * @return
+	 */
 	public List<XmlPrintCell> getCells() {
 		return cells;
 	}
 
+	/**
+	 * get the XmlPrintCell of the given index
+	 *
+	 * @param i
+	 * @return
+	 */
 	public XmlPrintCell printCellFind(int i) {
 		for (XmlPrintCell p : cells) {
 			if (p.cellNumGet() == i) {
@@ -138,6 +165,11 @@ public class Print extends JPanel {
 //***************************************************
 //** manage the Pool
 //***************************************************
+	/**
+	 * get the Pool
+	 *
+	 * @return
+	 */
 	public Pool poolGet() {
 		return pPool;
 	}
@@ -157,7 +189,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Refresh the photos pool
+	 * Refresh the Pool
 	 */
 	private void poolRefresh() {
 		//LOG.trace(TT + "poolRefresh()");
@@ -177,7 +209,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * get the grid panel
+	 * get the Grid panel
 	 *
 	 * @return
 	 */
@@ -204,7 +236,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Add all Photos to the current Grid
+	 * Add all Photos to the current Grid, add pages when needed
 	 */
 	private void gridAddAll() {
 		if (pGrid == null) {
@@ -258,6 +290,9 @@ public class Print extends JPanel {
 		}
 	}
 
+	/**
+	 * clear all cells in the Grid
+	 */
 	private void gridClearAll() {
 		for (XmlPrintCell cell : cells) {
 			cell.pageSet(0);
@@ -283,8 +318,6 @@ public class Print extends JPanel {
 			gridGet().setDim(paperFormatGet(), paperOrientationGet());
 			gridRefresh();
 		});
-		//p.libAdd(cbFormat);
-
 		String orList[] = {I18N.getMsg("print.orientation_portrait"),
 			I18N.getMsg("print.orientation_landscape")};
 		cbOrientation = new JComboBox(orList);
@@ -293,40 +326,51 @@ public class Print extends JPanel {
 			this.paperOrientationChange();
 		});
 		p.add(cbOrientation);
-		p.add(Ui.initIconButton("btRefresh", ICONS.K.REFRESH, "print.refresh", e -> refresh()));
-		p.add(Ui.initIconButton("btAddAll", ICONS.K.AR_RIGHT, "print.add_all", e -> gridAddAll()));
-		p.add(Ui.initIconButton("btRemoveAll", ICONS.K.CANCEL, "print.clear_all",
+		p.add(Ui.initIconButton("print.refresh", ICONS.K.REFRESH,
+				e -> refresh()));
+		p.add(Ui.initIconButton("print.add_all", ICONS.K.AR_RIGHT,
+				e -> gridAddAll()));
+		p.add(Ui.initIconButton("print.clear_all", ICONS.K.CANCEL,
 				e -> gridClearAll()));
-
+		// nav panel
 		JPanel pNav = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.RIGHT)));
-		btPagePrev = Ui.initIconButton("btPagePrev", ICONS.K.NAV_PREV, e -> gridNavigation(-1));
+		btPagePrev = Ui.initIconButton("nav.previous", ICONS.K.NAV_PREV,
+				e -> gridNavigation(-1));
 		pNav.add(btPagePrev);
 		lbPage = new JLabel(I18N.getMsg("print.page") + " 1 / 1");
 		pNav.add(lbPage, "gapx 1 1");
-		btPageNext = Ui.initIconButton("btPageNext", ICONS.K.NAV_NEXT, e -> gridNavigation(1));
+		btPageNext = Ui.initIconButton("nav.next", ICONS.K.NAV_NEXT,
+				e -> gridNavigation(1));
 		pNav.add(btPageNext);
 		// add and remove button
-		pNav.add(Ui.initIconButton("btPageAdd", ICONS.K.PLUS, "print.page_add", e -> gridPageAdd()));
-		btPageRemove = Ui.initIconButton("btPageRemove", ICONS.K.MINUS,
-				"print.page_remove", e -> gridPageRemove());
+		pNav.add(Ui.initIconButton("print.page_add", ICONS.K.PLUS,
+				e -> gridPageAdd()));
+		btPageRemove = Ui.initIconButton("print.page_remove", ICONS.K.MINUS,
+				e -> gridPageRemove());
 		pNav.add(btPageRemove);
-
 		p.add(pNav, MIG.get(MIG.SPAN, MIG.RIGHT));
-
 		return p;
 	}
 
-	private void changePage() {
+	/**
+	 * change the page
+	 */
+	private void pageChange() {
 		xmlPrint.numpageSet(ckPage.isSelected());
 		xml.save();
 	}
 
+	/**
+	 * get current page number
+	 *
+	 * @return
+	 */
 	public boolean pagenumGet() {
 		return xmlPrint.numpageGet();
 	}
 
 	/**
-	 * libAdd a page to the grid
+	 * Add a page to the grid
 	 */
 	private void gridPageAdd() {
 		//LOG.trace(TT + "gridPageAdd()");
@@ -336,10 +380,20 @@ public class Print extends JPanel {
 		refresh();
 	}
 
+	/**
+	 * get the paper format
+	 *
+	 * @return
+	 */
 	public String paperFormatGet() {
 		return (String) cbFormat.getSelectedItem();
 	}
 
+	/**
+	 * get the paper orientation
+	 *
+	 * @return
+	 */
 	public String paperOrientationGet() {
 		return (cbOrientation.getSelectedIndex() == 0 ? PORTRAIT : LANDSCAPE);
 	}
@@ -451,9 +505,9 @@ public class Print extends JPanel {
 		return xmlPrint;
 	}
 
-//***************************************************
-//** main actions
-//***************************************************
+	//***************************************************
+	//** main actions
+	//***************************************************
 	/**
 	 * action for previewing in default browser as a HTML
 	 */
@@ -467,7 +521,7 @@ public class Print extends JPanel {
 
 	/**
 	 * action for close (return to the default album panel). Currently unused: the close
-	 * button is commented out in bottomInit(). Kept for when that button is reinstated.
+	 * button is commented out in bottomInit(). Kept for when that button is reinstalled.
 	 */
 	private void actionClose() {
 		mainFrame.printHide();
@@ -538,14 +592,15 @@ public class Print extends JPanel {
 	 * @param item
 	 */
 	public void textCreate(int page, String pos) {
+		//LOG.trace(TT + "textCreate(page=" + page + ", pos=" + pos + ")");
 		SherpaDlg dlg = new SherpaDlg(mainFrame, "", "print.text_create");
 		if (dlg.isOK()) {
 			String txt = dlg.getHtmlContent();
 			if (Html.htmlToText(txt).isEmpty()) {
 				return;
 			}
-			int id = xml.libsGet().libAdd(txt);
-			XmlPrintCell cell = new XmlPrintCell(id, txt,
+			String textId = xml.libsGet().libAdd(txt);
+			XmlPrintCell cell = new XmlPrintCell(cells.size(), textId, txt,
 					(page == -1 ? currentPage : page), pos);
 			xmlPrint.cellAdd(cell);
 			xml.save();
@@ -553,21 +608,26 @@ public class Print extends JPanel {
 		}
 	}
 
+	/**
+	 * Delete a text bloc
+	 *
+	 * @param cell
+	 */
 	public void textDelete(XmlPrintCell cell) {
-		LOG.trace(TT + "textDelete(" + cell.toString() + ")");
+		//LOG.trace(TT + "textDelete(" + cell.toString() + ")");
 		Object[] options = {I18N.getMsg("ask.yes"), I18N.getMsg("ask.no")};
-		int choice = JOptionPane.showOptionDialog(this,
+		if (JOptionPane.showOptionDialog(this,
 				I18N.getMsg("ask.delete", Html.htmlToText(cell.textGet())),
 				I18N.getMsg("ask.confirm"),
 				JOptionPane.YES_NO_OPTION,
-				JOptionPane.QUESTION_MESSAGE,
-				null, options, options[1]);
-		if (choice != JOptionPane.YES_OPTION) {
+				JOptionPane.QUESTION_MESSAGE, null, options, options[1])
+				!= JOptionPane.YES_OPTION) {
 			return;
 		}
-		xmlPrint.cellDelete(cell);
 		xml.libsGet().libDelete(cell.textIdGet());
+		cells.remove(cell);
 		xml.save();
+		poolRefresh();
 		refresh();
 	}
 
@@ -577,7 +637,7 @@ public class Print extends JPanel {
 	private XmlPrintCell pendingCellToPlace = null;
 
 	/**
-	 * Define the Pool cell waiting for placement on the Grid
+	 * Define the Pool cell waiting for placement into the Grid
 	 *
 	 * @param cell
 	 */
@@ -586,7 +646,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Get the waiting cell to be placed
+	 * Get the pending cell to be placed
 	 *
 	 * @return
 	 */
@@ -595,7 +655,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Reinit current selection
+	 * Reinit current pending selection
 	 */
 	public void pendingCellClear() {
 		if (pendingCellToPlace != null) {
@@ -607,8 +667,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Supprime la page courante si elle est vide et renumérote les pages/cellules
-	 * suivantes.
+	 * Delete current page if empty and renumber other pages/cells.
 	 */
 	private void gridPageRemove() {
 		if (currentPage <= 1 || isPageOccupied(currentPage)) {
@@ -633,7 +692,7 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Vérifie si la page passée en paramètre contient au moins une cellule assignée.
+	 * Check if the given page contains an assigned cell.
 	 */
 	private boolean isPageOccupied(int pageNum) {
 		for (XmlPrintCell cell : cells) {

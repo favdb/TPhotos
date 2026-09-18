@@ -72,7 +72,7 @@ public class StringUtil {
 		String[] k = str.split("_");
 		StringBuilder b = new StringBuilder();
 		for (String s : k) {
-			b.append(s.substring(0, 1).toUpperCase() + s.substring(1));
+			b.append(s.substring(0, 1).toUpperCase()).append(s.substring(1));
 		}
 		return b.toString();
 	}
@@ -357,8 +357,8 @@ public class StringUtil {
 	/**
 	 * check if the given String is a time value
 	 *
-	 * @param time : as "DD/MM/AAAA hh:mm:ss"<br> where DD/MM/AAAA and hh:mm:jj are optional but one
-	 * of them is mandatory
+	 * @param time : as "DD/MM/AAAA hh:mm:ss"<br> where DD/MM/AAAA and hh:mm:jj are
+	 * optional but one of them is mandatory
 	 *
 	 * @return true if the value is OK
 	 */
@@ -412,8 +412,8 @@ public class StringUtil {
 	}
 
 	/**
-	 * Decode a text that is encoded as a Java string literal. The Java properties file format and
-	 * Java source code format is supported.
+	 * Decode a text that is encoded as a Java string literal. The Java properties file
+	 * format and Java source code format is supported.
 	 *
 	 * @param s the encoded string
 	 * @return the string
@@ -507,8 +507,9 @@ public class StringUtil {
 	private static final char[] HEX = "0123456789abcdef".toCharArray();
 
 	/**
-	 * Convert a string to a Java literal using the correct escape sequences. The literal is not
-	 * enclosed in double quotes. The result can be used in properties files or in Java source code.
+	 * Convert a string to a Java literal using the correct escape sequences. The literal
+	 * is not enclosed in double quotes. The result can be used in properties files or in
+	 * Java source code.
 	 *
 	 * @param s the text to convert
 	 * @param buff the Java representation to return

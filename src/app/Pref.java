@@ -17,6 +17,8 @@
  */
 package app;
 
+import app.tools.LOG;
+import app.tools.file.EnvUtil;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.io.BufferedReader;
@@ -30,8 +32,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import app.tools.LOG;
-import app.tools.file.EnvUtil;
 
 /**
  *
@@ -53,8 +53,9 @@ public class Pref {
 		ICON_SIZE("IconSize", "0"),
 		ICON_SCREEN("IconScreen", "0"),
 		LAFDARK("LafDark", "0"),
-		ORGANIZE_TYPE("OrganizeType", "0"),
+		//ORGANIZE_TYPE("OrganizeType", "0"),
 		ORGANIZE_DELETE("OrganizeDelete", "0"),
+		ORGANIZE_VIDEO("OrganizeVideo", "0"),
 		PHOTOS_DIR("PhotosDir", EnvUtil.getPhotosDir().getAbsolutePath()),
 		VERSION("Version", Const.getVersion()),
 		IMAGE_LATSDIR("ImageLastDir", "");
@@ -165,8 +166,8 @@ public class Pref {
 	 *
 	 * @param value
 	 */
-	public void albumLastSet(String value) {
-		setString(KEY.ALBUM_LAST, value);
+	public void albumLastSet(File file) {
+		setString(KEY.ALBUM_LAST, file.getName());
 		save();
 	}
 
@@ -253,13 +254,13 @@ public class Pref {
 		return getBoolean(KEY.ORGANIZE_DELETE);
 	}
 
-	public void organizeTypeSet(Integer value) {
-		setInteger(KEY.ORGANIZE_TYPE, value);
+	public void organizeVideoSet(boolean value) {
+		setBoolean(KEY.ORGANIZE_VIDEO, value);
 		save();
 	}
 
-	public Integer organizeTypeGet() {
-		return getInteger(KEY.ORGANIZE_TYPE);
+	public boolean organizeVideoGet() {
+		return getBoolean(KEY.ORGANIZE_VIDEO);
 	}
 
 	public void darkSet(boolean value) {
@@ -440,6 +441,7 @@ public class Pref {
 		setString(KEY.FONT_SIZE, "Dialog,plain," + sz);
 	}
 
+	@Override
 	public String toString() {
 		StringBuilder b = new StringBuilder();
 		for (PrefValue p : preferences) {

@@ -36,7 +36,7 @@ public class XmlPrint {
 	private final Xml xml;
 	private String format = "A4", orientation = PORTRAIT;
 	private final List<XmlPrintPage> pages = new ArrayList<>();
-	private List<XmlPrintCell> cells = new ArrayList<>();
+	private final List<XmlPrintCell> cells = new ArrayList<>();
 	private boolean numpage;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
@@ -79,13 +79,13 @@ public class XmlPrint {
 					Element el = (Element) cellnodes.item(ii);
 
 					String type = XmlUtil.stringGet(el, "type");
-					int ref = XmlUtil.integerGet(el, "ref");
+					String ref = XmlUtil.stringGet(el, "ref");
 					int page = XmlUtil.integerGet(el, "page");
 					String pos = XmlUtil.stringGet(el, "pos");
 
 					// 3. Search real existing cell
 					for (XmlPrintCell target : cells) {
-						int cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
+						String cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
 						if ((target.typeGet().equals(type)
 								|| target.typeGet().startsWith(type)) && cId == ref) {
 							target.pageSet(pageId);
@@ -181,11 +181,11 @@ public class XmlPrint {
 		List<XmlAlbumItem> xphotos = xml.albumGet().itemsGet();
 		for (XmlAlbumItem x : xphotos) {
 			int cellid = Integer.parseInt(x.idGet());
-			cells.add(new XmlPrintCell(cellid, cellid, x.photoGet(), x.commentGet(), 0));
+			cells.add(new XmlPrintCell(cellid, x.idGet(), x.photoGet(), x.commentGet(), 0));
 		}
 		int nid = 1;
 		for (XmlLib x : xml.libsGet().getAll()) {
-			XmlPrintCell cell = new XmlPrintCell(nid++, x.getText(), 0);
+			XmlPrintCell cell = new XmlPrintCell(nid++, x.getId(), x.getText(), 0);
 			cells.add(cell);
 		}
 	}
@@ -245,7 +245,7 @@ public class XmlPrint {
 					b.append(XmlUtil.indent(3)).append("</page>\n");
 				}
 				page = c.pageGet();
-				b.append(XmlUtil.indent(3)).append("<page id=\"" + page + "\">\n");
+				b.append(XmlUtil.indent(3)).append("<page id=\"").append(page).append("\">\n");
 			}
 			b.append(c.toXml());
 		}
@@ -282,7 +282,7 @@ public class XmlPrint {
 	 * @param cell
 	 */
 	public void cellDelete(XmlPrintCell cell) {
-		//LOG.trace(TT + "cellDelete(cell=" + cell.toString() + ")");
+		LOG.trace(TT + "cellDelete(cell=" + cell.toString() + ")");
 		cells.remove(cell);
 	}
 
@@ -290,7 +290,7 @@ public class XmlPrint {
 	 * reload all cells and pages
 	 */
 	public void reloadAll() {
-		LOG.trace(TT + "updateAll()");
+		//LOG.trace(TT + "reloadAll()");
 		cells.clear();
 		pages.clear();
 		loadCells();
@@ -301,7 +301,7 @@ public class XmlPrint {
 	 */
 	public void pagesClear() {
 		cells.clear();
-		pages.clear();;
+		pages.clear();
 	}
 
 	public void pageClear(int page) {

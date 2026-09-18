@@ -20,7 +20,6 @@ package app.tools;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ActionListener;
@@ -95,23 +94,28 @@ public class Ui {
 	 * @param action
 	 * @return
 	 */
-	public static JButton initIconButton(String name, ICONS.K icon, ActionListener action) {
+	public static JButton initIconButton(String name, ICONS.K icon,
+			ActionListener action) {
 		JButton bt = new JButton();
 		bt.setIcon(icon.getIcon());
 		bt.setName(name);
-		setToolTipText(bt);
-		bt.setMaximumSize(new Dimension((int) (IconUtil.getDefSize() * 1.3),
-				(int) (IconUtil.getDefSize() * 1.3)));
+		bt.setMargin(new Insets(0, 0, 0, 0));
+		bt.setToolTipText(I18N.getMsg(name));
+		bt.setMaximumSize(IconUtil.getDefDim());
 		bt.addActionListener(action);
 		return bt;
 	}
 
-	public static JButton initIconButton(String name, ICONS.K icon, String tt, ActionListener action) {
-		JButton bt = initIconButton(name, icon, action);
-		bt.setToolTipText(I18N.getMsg(tt));
-		return bt;
-	}
-
+	/**
+	 * initialize a standard JButton
+	 *
+	 * @param name
+	 * @param text
+	 * @param icon
+	 * @param tooltip
+	 * @param act
+	 * @return
+	 */
 	public static JButton initButton(String name, String text, ICONS.K icon,
 			String tooltip, ActionListener... act) {
 		//LOG.trace(TT+"initButton(name=" + name + ",
@@ -282,7 +286,7 @@ public class Ui {
 	}
 
 	public static JComboBox<String> initComboBox(String paperlist, String[] list, String sel) {
-		JComboBox<String> cb = new JComboBox<String>(list);
+		JComboBox<String> cb = new JComboBox<>(list);
 		if (!sel.isEmpty()) {
 			cb.setSelectedItem(sel);
 		}

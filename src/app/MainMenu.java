@@ -43,7 +43,7 @@ public class MainMenu {
 
 	private JMenuBar menuBar;
 	public JToggleButton btSorter, btAlbum, btExport, btShow, btPrint;
-	public JButton btDiapo, btPhotos, btAbout;
+	public JButton btPhotos, btAbout;
 
 	public MainMenu() {
 		initialize();
@@ -67,7 +67,7 @@ public class MainMenu {
 		JToolBar tb = new JToolBar();
 		tb.setFloatable(false);
 		p.add(initActions());
-		p.add(btAbout = Ui.initIconButton(" menu.help_about",
+		p.add(btAbout = Ui.initIconButton("menu.help_about",
 				ICONS.K.HELP, e -> App.aboutDo()), MIG.RIGHT);
 		return p;
 	}
@@ -81,7 +81,7 @@ public class MainMenu {
 		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.FILLX)));
 		p.setOpaque(false);
 		String space = "   ";
-		p.add(btPhotos = Ui.initIconButton("menu.file", ICONS.K.OPTIONS, null));
+		p.add(btPhotos = Ui.initIconButton("menu.tools", ICONS.K.OPTIONS, null));
 		btPhotos.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
@@ -90,8 +90,6 @@ public class MainMenu {
 		});
 		p.add(btSorter = Ui.initToggleButton("app.organizer", true, e -> App.sorterDo()));
 		p.add(btAlbum = Ui.initToggleButton("app.album", false, e -> App.albumDo()));
-		p.add(btDiapo = Ui.initButton("app.diapo", ICONS.K.PIC, e -> App.diapoDo()));
-		btDiapo.setVisible(false);
 		p.add(btPrint = Ui.initToggleButton("print", ICONS.K.F_PRINT, false, e -> App.printDo()));
 		btPrint.setVisible(false);
 		p.add(btExport = Ui.initToggleButton("export", ICONS.K.F_EXPORT, false, e -> App.exportDo()));
@@ -121,7 +119,7 @@ public class MainMenu {
 		filePopup.add(menuAlbum);
 		//---------------------Zoom option
 		JMenuItem zoom = Ui.initMenuItem(K.COGS,
-				"pref.zoom", evt -> App.zoom());
+				"zoom", evt -> App.zoom());
 		filePopup.add(zoom);
 		return filePopup;
 	}

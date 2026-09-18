@@ -23,6 +23,7 @@ import app.xml.XmlPrintCell;
 import app.xml.XmlPrintPage;
 import java.awt.Desktop;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
@@ -226,7 +227,7 @@ public class BuilderHtml {
 					&& Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
 				Desktop.getDesktop().browse(outfile.toURI());
 			}
-		} catch (Exception e) {
+		} catch (IOException e) {
 			LOG.err("generateHTML error", e);
 		}
 	}

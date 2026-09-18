@@ -1,9 +1,6 @@
-api.shef:
-- novaworx.jar et sam.jar à supprimer 
-- rsyntaxarea à ajouter
-
-app
-- changer la gestion du Xml: fichier .tpht (Xml compressé)
-
-app.print:
-
+dossier "A trier" 
+lors du changement de date vérifier la validité OK
+Maintenir la gallerie et le pool après suppréssion d'une photo. OK
+Vérifier qu'on ne peut pas supprimer le root (Photos). OK
+Refaire le gallerie pour mieux gérer le cadrage OK
+Si multisélection traiter par click droit (changement date, ajouter à l'album, supprimer) NO

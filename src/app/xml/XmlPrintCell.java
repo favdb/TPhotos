@@ -29,19 +29,23 @@ import java.util.List;
  */
 public class XmlPrintCell {
 
+	private static final String TT = "XmlPrintCell.";
+
 	public enum CellType {
 		EMPTY,
 		PHOTO,
 		TEXT
 	}
 
-	public int id, page, photoId = -1, textId = -1, zoom = 0;
+	public int id, page, zoom = 0;
+	public String photoId = "-1", textId = "-1";
 	private final int spanH = 1, spanV = 1;
 	public String type = "text", comment = "", photoName = "", text = "";
 	private final POSITION pos = new POSITION();
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public XmlPrintCell(int id, int photo_id, String photo, String comment, int page, int... span) {
+	public XmlPrintCell(int id, String photo_id,
+			String photo, String comment, int page, int... span) {
 		this.id = id;
 		this.comment = comment;
 		this.photoId = photo_id;
@@ -55,23 +59,18 @@ public class XmlPrintCell {
 	}
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public XmlPrintCell(int id, String text, int page, int... span) {
+	public XmlPrintCell(int id, String textId, String text, int page, String... pos) {
+		/*LOG.trace(TT + "(id=" + id
+				+ ", textId=" + textId + ", text=" + text
+				+ ", page=" + page + ", span=" + pos + ")");*/
 		this.id = id;
 		this.type = "text";
-		this.textId = id;
+		this.textId = textId;
 		this.text = text;
 		this.page = page;
-		this.spanSet(span);
-	}
-
-	@SuppressWarnings("OverridableMethodCallInConstructor")
-	public XmlPrintCell(int id, String text, int page, String span) {
-		this.id = id;
-		this.type = "text";
-		this.textId = id;
-		this.text = text;
-		this.page = page;
-		this.spanSet(span);
+		if (pos != null && pos.length > 0) {
+			this.posSet(pos[0]);
+		}
 	}
 
 	/**
@@ -172,7 +171,7 @@ public class XmlPrintCell {
 	 *
 	 * @param value
 	 */
-	public void photoIdSet(int value) {
+	public void photoIdSet(String value) {
 		this.type = "photo";
 		this.photoId = value;
 		this.text = "";
@@ -183,7 +182,7 @@ public class XmlPrintCell {
 	 *
 	 * @return
 	 */
-	public int photoIdGet() {
+	public String photoIdGet() {
 		return photoId;
 	}
 
@@ -196,7 +195,7 @@ public class XmlPrintCell {
 		try {
 			this.photoName = value.trim();
 		} catch (Exception e) {
-			this.photoId = -1;
+			this.photoId = "-1";
 			this.photoName = "";
 		}
 	}
@@ -235,7 +234,7 @@ public class XmlPrintCell {
 	public void textSet(String value) {
 		this.type = "text";
 		this.text = value;
-		this.photoId = -1;
+		this.photoId = "-1";
 	}
 
 	public String textGet() {
@@ -449,7 +448,7 @@ public class XmlPrintCell {
 	 *
 	 * @param refId
 	 */
-	public void textIdSet(int refId) {
+	public void textIdSet(String refId) {
 		textId = refId;
 	}
 
@@ -458,7 +457,7 @@ public class XmlPrintCell {
 	 *
 	 * @return
 	 */
-	public int textIdGet() {
+	public String textIdGet() {
 		return textId;
 	}
 
@@ -467,9 +466,9 @@ public class XmlPrintCell {
 	 */
 	public void clear() {
 		this.type = "unknown";
-		this.photoId = -1;
+		this.photoId = "-1";
 		this.photoName = "";
-		this.textId = -1;
+		this.textId = "-1";
 		this.text = "";
 		this.comment = "";
 	}
@@ -484,9 +483,9 @@ public class XmlPrintCell {
 			return;
 		}
 		String tempType = this.type;
-		int tempPhotoId = this.photoId;
+		String tempPhotoId = this.photoId;
 		String tempPhotoFile = this.photoName;
-		int tempTextId = this.textId;
+		String tempTextId = this.textId;
 		String tempText = this.text;
 		String tempComment = this.comment;
 		this.type = old.type;

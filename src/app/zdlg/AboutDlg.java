@@ -19,7 +19,6 @@ package app.zdlg;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
-import app.App;
 import app.i18n.I18N;
 import app.resources.MainResources;
 import app.resources.icons.ICONS;
@@ -32,7 +31,6 @@ import java.awt.Dimension;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Locale;
 import java.util.Properties;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -69,7 +67,8 @@ public class AboutDlg extends JDialog {
 		JPanel pVersions = initVersions();
 		tb.addTab(I18N.getMsg("about.versions"), pVersions);
 		add(tb, MIG.get(MIG.SPAN, MIG.GROW));
-		add(Ui.initButton("ask.close", ICONS.K.OK, e -> dispose()), MIG.get(MIG.SPAN, MIG.CENTER));
+		add(Ui.initButton("ask.close", ICONS.K.OK,
+				e -> dispose()), MIG.get(MIG.SPAN, MIG.CENTER));
 		pack();
 		this.setLocationRelativeTo(getParent());
 	}
@@ -84,25 +83,7 @@ public class AboutDlg extends JDialog {
 		JTextPane tx = new JTextPane();
 		tx.setContentType("text/html");
 		tx.setEditable(false);
-		String lang = "_" + Locale.getDefault().getLanguage()
-				+ "_" + Locale.getDefault().getCountry();
-		if (!App.getLang().isEmpty()) {
-			lang = "_" + App.getLang();
-		}
-		boolean b = true;
-		while (b) {
-			if (MainResources.exists("html/About" + lang + ".html", MainResources.class)) {
-				break;
-			}
-			if (lang.contains("_")) {
-				lang = lang.substring(0, lang.lastIndexOf("_"));
-			}
-			if (lang.isEmpty()) {
-				b = false;
-			}
-		}
-		String str = FileUtil.resourceRead("html/About" + lang + ".html", MainResources.class);
-		tx.setText(Html.intoHtml(str));
+		tx.setText(FileUtil.readHtml("About"));
 		tx.addHyperlinkListener(evt -> openBrowser(evt));
 		tx.setPreferredSize(new Dimension(680, 650));
 		tx.setCaretPosition(0);

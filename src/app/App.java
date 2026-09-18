@@ -182,9 +182,9 @@ public class App {
 			Object obj = newKeys.nextElement();
 			Object current = UIManager.get(obj);
 			if (current instanceof FontUIResource) {
-				UIManager.put(obj, new FontUIResource(fontGet()));
+				UIManager.put(obj, new FontUIResource(fontDef));
 			} else if (current instanceof Font) {
-				UIManager.put(obj, fontGet());
+				UIManager.put(obj, fontDef);
 			}
 		}
 	}
@@ -226,45 +226,6 @@ public class App {
 	 */
 	public static void close() {
 		//empty
-	}
-
-	/**
-	 * check if given file is JPEG
-	 *
-	 * @param f
-	 * @return
-	 */
-	public static boolean jpegIs(File f) {
-		if (!f.isFile()) {
-			return false;
-		}
-		String str = f.getName().toLowerCase();
-		return (str.endsWith(".jpg") || str.endsWith(".jpeg") || str.endsWith(".webp"));
-	}
-
-	/**
-	 * count the number of JPEG files in given directory
-	 *
-	 * @param dir
-	 * @return
-	 */
-	public static int jpegCount(File dir) {
-		//LOG.trace(TT + "countJPEG(dir=" + dir.getAbsolutePath() + ")");
-		File[] files = dir.listFiles();
-		if (files == null || files.length == 0) {
-			return 0;
-		}
-		int nb = 0;
-		for (File f : files) {
-			if (f.isDirectory()) {
-				nb += jpegCount(f);
-			} else {
-				if (App.jpegIs(f)) {
-					nb++;
-				}
-			}
-		}
-		return nb;
 	}
 
 	/**
@@ -343,7 +304,7 @@ public class App {
 			return;
 		}
 		mainFrame.fileSet(chooser.getSelectedFile());
-		pref.setString(Pref.KEY.ALBUM_LAST, chooser.getSelectedFile().getAbsolutePath());
+		pref.albumLastSet(chooser.getSelectedFile());
 	}
 
 	/**
@@ -381,25 +342,17 @@ public class App {
 	public static void updateTitle() {
 		if (mainFrame != null) {
 			mainFrame.titleUpdate();
-			diapoEnable();
+			printEnable();
 		}
-	}
-
-	/**
-	 * do th diaporama
-	 */
-	public static void diapoDo() {
-		mainFrame.doDiaporama();
 	}
 
 	/**
 	 * enable the diaporama
 	 */
-	public static void diapoEnable() {
+	public static void printEnable() {
 		if (mainFrame != null) {
-			boolean b = mainFrame.albumGet().getTable().getRowCount() > 0;
-			if (mainFrame.appMenu.btDiapo != null) {
-				mainFrame.appMenu.btDiapo.setVisible(b);
+			boolean b = mainFrame.albumGet().tableGet().getRowCount() > 0;
+			if (mainFrame.appMenu.btPrint != null) {
 				mainFrame.appMenu.btPrint.setVisible(b);
 				mainFrame.appMenu.btExport.setVisible(b);
 			}

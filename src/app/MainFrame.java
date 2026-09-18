@@ -17,6 +17,7 @@
  */
 package app;
 
+import app.organize.Organizer;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.album.Album;
@@ -87,14 +88,15 @@ public class MainFrame extends JFrame {
 		if (afile.exists()) {
 			album.fileSet(afile);
 		}
-		album.loadTable();
-		if (album.getTable().xml.isOpened()) {
-			album.loadParam();
+		album.tableLoad();
+		if (album.tableGet().xml.isOpened()) {
+			album.paramLoad();
 		}
-		if (appMenu.btDiapo != null) {
-			appMenu.btDiapo.setVisible(album.getTable().getRowCount() > 0);
-			appMenu.btPrint.setVisible(album.getTable().getRowCount() > 0);
-			appMenu.btExport.setVisible(album.getTable().getRowCount() > 0);
+		if (appMenu.btPrint != null) {
+			appMenu.btPrint.setVisible(album.tableGet().getRowCount() > 0);
+		}
+		if (appMenu.btExport != null) {
+			appMenu.btExport.setVisible(album.tableGet().getRowCount() > 0);
 		}
 		setPreferredSize(new Dimension(1024, 768));
 		pack();
@@ -107,7 +109,7 @@ public class MainFrame extends JFrame {
 	 */
 	private void doExit() {
 		//LOG.trace(TT + "doExit()");
-		if (album.getTable().isModified()) {
+		if (album.tableGet().isModified()) {
 			album.save();
 		}
 		dispose();
@@ -151,7 +153,7 @@ public class MainFrame extends JFrame {
 	 */
 	public void titleUpdate() {
 		StringBuilder b = new StringBuilder();
-		String modif = " ";//album.getTable().isModified() ? "*" : " ";
+		String modif = " ";//album.tableGet().isModified() ? "*" : " ";
 		b.append(modif);
 		b.append(Const.getFullName()).append(" ");
 		if (appMenu.btSorter != null) {
@@ -184,7 +186,7 @@ public class MainFrame extends JFrame {
 	public DiapoParam diapoParamGet() {
 		if (album.diapoParamGet() == null) {
 			LOG.trace(TT + "albumParamGet() albumParam is null, create new");
-			album.diapoParamCreate();
+			album.paramDiapoCreate();
 		}
 		return album.diapoParamGet();
 	}
@@ -202,7 +204,7 @@ public class MainFrame extends JFrame {
 	 * do the diaporama
 	 */
 	public void doDiaporama() {
-		if (album.getTable().getRowCount() < 1) {
+		if (album.tableGet().getRowCount() < 1) {
 			return;
 		}
 		album.save();
@@ -219,6 +221,7 @@ public class MainFrame extends JFrame {
 	public void fileSet(File file) {
 		this.file = file;
 		album.fileSet(file);
+		App.pref.albumLastSet(file);
 	}
 
 	/**
@@ -236,7 +239,7 @@ public class MainFrame extends JFrame {
 	 * @param file
 	 */
 	public void photosDirSet(File file) {
-		album.setPhotosDir(file);
+		album.photosDirSet(file);
 		album.refreshAll();
 	}
 
@@ -293,7 +296,7 @@ public class MainFrame extends JFrame {
 	}
 
 	public JTextPane getInfosField() {
-		return organizer.getInfosField();
+		return organizer.taInfosGet();
 	}
 
 }
