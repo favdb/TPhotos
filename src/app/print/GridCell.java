@@ -30,6 +30,8 @@ public class GridCell extends JLabel {
 	private final XmlPrintCell cell;
 	private final Grid grid;
 	private boolean selected = false;
+	private int offsetValue;
+	private int rotateValue;
 
 	/**
 	 * a cell for Print
@@ -282,6 +284,22 @@ public class GridCell extends JLabel {
 				grid.setSpanV(cell, -1);
 			});
 			sub.add(decSpanV);
+			if (cell.isPhoto()) {
+				JMenuItem rotate = new JMenuItem(I18N.getMsg("photo.rotate"));
+				rotate.addActionListener(al -> {
+					if (++rotateValue > 3) {
+						rotateValue = 0;
+					}
+					grid.rotateSet(cell, rotateValue);
+				});
+				menu.add(rotate);
+				JMenuItem offset = new JMenuItem(I18N.getMsg("photo.offset"));
+				offset.addActionListener(al -> {
+					//todo drag'ndrop the photo
+					grid.offsetSet(cell);
+				});
+				menu.add(offset);
+			}
 		}
 		menu.show(e.getComponent(), e.getX(), e.getY());
 	}

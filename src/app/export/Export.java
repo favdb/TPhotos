@@ -17,8 +17,6 @@
  */
 package app.export;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.AbstractFrame;
 import app.App;
 import app.MainFrame;
@@ -27,6 +25,7 @@ import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.FFmpeg;
+import app.tools.GBC;
 import app.tools.LOG;
 import app.tools.Ui;
 import app.tools.file.EnvUtil;
@@ -40,6 +39,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -117,17 +117,20 @@ public class Export extends AbstractFrame {
 	 */
 	@Override
 	public void initialize() {
-		//LOG.trace(TT + "initialize()");*
-		this.setLayout(new MigLayout(MIG.FILL));
+		//LOG.trace(TT + "initialize()");
+		this.setLayout(new GridBagLayout());
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setMaximumSize(sz);
 		pane = this.getContentPane();
-		pane.add(topInit(), MIG.get(MIG.SPAN, MIG.GROWX));
+		pane.setLayout(new GridBagLayout());
+		pane.add(topInit(), new GBC("0, 0, growx, wx 1.0, ins 2"));
+		
 		taInfosInit("init");
 		taInfos.setText(FileUtil.readHtml("Export"));
 		JScrollPane scroll = new JScrollPane(taInfos);
 		scroll.setPreferredSize(new Dimension(1024, 768));
-		pane.add(scroll, MIG.get(MIG.SPAN, MIG.GROW, MIG.CENTER));
+		pane.add(scroll, new GBC("1, 0, grow, wx 1.0, wy 1.0, ins 2"));
+
 		cbFormat.addItemListener((ItemEvent e) -> {
 			pTempo.setVisible(true);
 			ckGeneric.setVisible(false);
@@ -147,22 +150,29 @@ public class Export extends AbstractFrame {
 	 */
 	private JPanel topInit() {
 		//LOG.trace(TT + "initTop()");
-		JPanel p = new JPanel(new MigLayout(
-				MIG.get(MIG.HIDEMODE3, MIG.FILL, MIG.INS0, MIG.GAP1))
-		);
-		p.add(formatInit(), MIG.get(MIG.SPAN, MIG.SPLIT2));
-		p.add(pCompress = compressInit(), MIG.get(MIG.SPAN));
-		p.add(pTempo = tempoInit(), MIG.SPAN);
-		p.add(pFolder = folderInit(), MIG.SPAN);
-		JPanel p2 = new JPanel(new MigLayout(MIG.get(MIG.HIDEMODE3, MIG.INS0)));
+		JPanel p = new JPanel(new GridBagLayout());
+		
+		p.add(formatInit(), new GBC("0, 0, left, ins 2"));
+		pCompress = compressInit();
+		p.add(pCompress, new GBC("0, 1, left, ins 2"));
+		
+		pTempo = tempoInit();
+		p.add(pTempo, new GBC("1, 0, gw 2, left, ins 2"));
+		
+		pFolder = folderInit();
+		p.add(pFolder, new GBC("2, 0, gw 2, growx, wx 1.0, ins 2"));
+
+		JPanel p2 = new JPanel(new GridBagLayout());
 		ckGeneric = new JCheckBox(I18N.getMsg("export.format.mpeg_generic"));
-		p2.add(ckGeneric, MIG.RIGHT);
-		btExec = new JButton(I18N.getMsg("export"));
+		p2.add(ckGeneric, new GBC("0, 0, right, ins 2"));
+
+		btExec = new JButton(I18N.getMsg("export.start"));
 		btExec.setIcon(IconUtil.getIconSmall(ICONS.K.COGS));
 		btExec.setEnabled(!tfFolder.getText().isEmpty());
 		btExec.addActionListener(e -> copyBegin());
-		p2.add(btExec, MIG.get(MIG.SPAN, MIG.RIGHT));
-		p.add(p2, MIG.RIGHT);
+		p2.add(btExec, new GBC("0, 1, right, ins 2"));
+
+		p.add(p2, new GBC("3, 0, gw 2, right, ins 2"));
 		return p;
 	}
 
@@ -173,14 +183,15 @@ public class Export extends AbstractFrame {
 	 */
 	private JPanel folderInit() {
 		//LOG.trace(TT + "initFolder()");
-		JPanel p2 = new JPanel(new MigLayout());
-		p2.add(new JLabel(I18N.getColonMsg("export.dest")),
-				MIG.get(MIG.SPAN, MIG.SPLIT + " 3"));
+		JPanel p2 = new JPanel(new GridBagLayout());
+		p2.add(new JLabel(I18N.getColonMsg("export.dest")), new GBC("0, 0, left, ins 2"));
+
 		tfFolder = new JTextField();
 		tfFolder.setColumns(32);
 		tfFolder.setEditable(false);
 		tfFolder.setText(App.pref.exportLastGet());
-		p2.add(tfFolder);
+		p2.add(tfFolder, new GBC("0, 1, growx, wx 1.0, ins 2"));
+
 		JButton bt = Ui.initIconButton("directory.select", ICONS.K.FOLDER,
 				(ActionEvent evt) -> {
 					String dir = tfFolder.getText();
@@ -201,7 +212,7 @@ public class Export extends AbstractFrame {
 					btExec.setEnabled(!tfFolder.getText().isEmpty());
 				});
 		bt.setMargin(new Insets(0, 0, 0, 0));
-		p2.add(bt);
+		p2.add(bt, new GBC("0, 2, ins 2"));
 		return p2;
 	}
 
@@ -213,9 +224,10 @@ public class Export extends AbstractFrame {
 	@SuppressWarnings("unchecked")
 	private JPanel formatInit() {
 		//LOG.trace(TT + "initFormat()");
-		JPanel p0 = new JPanel(new MigLayout(MIG.HIDEMODE3));
-		p0.add(new JLabel(I18N.getColonMsg("export.format")));
-		p0.add(cbFormat = new JComboBox(FORMAT));
+		JPanel p0 = new JPanel(new GridBagLayout());
+		p0.add(new JLabel(I18N.getColonMsg("export.format")), new GBC("0, 0, left, ins 2"));
+		cbFormat = new JComboBox(FORMAT);
+		p0.add(cbFormat, new GBC("0, 1, left, ins 2"));
 		if (!FFmpeg.isInstalled()) {
 			cbFormat.removeItemAt(3);
 		}
@@ -224,19 +236,22 @@ public class Export extends AbstractFrame {
 
 	private JPanel tempoInit() {
 		//LOG.trace(TT + "initTempo()");
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0)));
-		p.add(new JLabel(I18N.getColonMsg("export.format.mpeg_tempo")));
-		JButton btminus;
-		p.add(btminus = Ui.initButton("minus", ICONS.K.NONE,
-				e -> tempoAdd(-1)));
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(new JLabel(I18N.getColonMsg("export.format.mpeg_tempo")), new GBC("0, 0, left, ins 2"));
+
+		JButton btminus = Ui.initButton("minus", ICONS.K.NONE, e -> tempoAdd(-1));
 		btminus.setText("▼");
-		p.add(tfTempo = new JTextField());
+		p.add(btminus, new GBC("0, 1, ins 1"));
+
+		tfTempo = new JTextField();
 		tfTempo.setColumns(2);
 		tfTempo.setHorizontalAlignment(JTextField.CENTER);
-		JButton btplus;
-		p.add(btplus = Ui.initButton("plus", ICONS.K.NONE,
-				e -> tempoAdd(1)));
+		p.add(tfTempo, new GBC("0, 2, ins 1"));
+
+		JButton btplus = Ui.initButton("plus", ICONS.K.NONE, e -> tempoAdd(1));
 		btplus.setText("▲");
+		p.add(btplus, new GBC("0, 3, ins 1"));
+
 		tempoAdd(0);
 		p.setVisible(false);
 		return p;
@@ -264,9 +279,10 @@ public class Export extends AbstractFrame {
 	@SuppressWarnings("unchecked")
 	private JPanel compressInit() {
 		//LOG.trace(TT + "initCompress()");
-		JPanel p = new JPanel(new MigLayout());
-		p.add(new JLabel(I18N.getColonMsg("export.compress")));
-		p.add(cbCompress = new JComboBox(COMPRESS));
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(new JLabel(I18N.getColonMsg("export.compress")), new GBC("0, 0, left, ins 2"));
+		cbCompress = new JComboBox(COMPRESS);
+		p.add(cbCompress, new GBC("0, 1, left, ins 2"));
 		return p;
 	}
 

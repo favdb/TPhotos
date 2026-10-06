@@ -17,12 +17,12 @@
  */
 package app.diapo;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.MainFrame;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
+import app.tools.GBC;
 import app.tools.Ui;
+import java.awt.GridBagLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import javax.swing.JButton;
@@ -60,14 +60,18 @@ public class DiapoDlg extends JDialog {
 
 	@SuppressWarnings("unchecked")
 	private void initialize() {
-		setLayout(new MigLayout(MIG.WRAP + " 2"));
+		setLayout(new GridBagLayout());
 		setTitle(I18N.getMsg("album.param.diapo_tips"));
-		add(new JLabel(I18N.getColonMsg("album.param.mode")), MIG.RIGHT);
+
+		// Umurongo wa 0: Mode
+		add(new JLabel(I18N.getColonMsg("album.param.mode")), new GBC("0, 0, right, ins 2"));
 		cbMode = new JComboBox(modes);
 		cbMode.setSelectedIndex(param.getMode());
 		cbMode.addItemListener(e -> tfTempo.setEnabled(cbMode.getSelectedIndex() > 0));
-		add(cbMode);
-		add(new JLabel(I18N.getColonMsg("album.param.mode_tempo")), MIG.RIGHT);
+		add(cbMode, new GBC("0, 1, left, ins 2"));
+
+		// Umurongo wa 1: Tempo
+		add(new JLabel(I18N.getColonMsg("album.param.mode_tempo")), new GBC("1, 0, right, ins 2"));
 		tfTempo = new JTextField(param.getTempo().toString());
 		tfTempo.addKeyListener(new KeyAdapter() {
 			@Override
@@ -80,14 +84,20 @@ public class DiapoDlg extends JDialog {
 			}
 		});
 		tfTempo.setColumns(5);
-		add(tfTempo);
+		add(tfTempo, new GBC("1, 1, left, ins 2"));
 		tfTempo.setEnabled(cbMode.getSelectedIndex() > 0);
-		add(new JLabel(I18N.getMsg("album.param.mode_tempo_tips")), MIG.SKIP + " 1");
-		JPanel p = new JPanel(new MigLayout());
-		p.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()));
+
+		// Umurongo wa 2: Inshoberamahanga / Tips
+		add(new JLabel(I18N.getMsg("album.param.mode_tempo_tips")), new GBC("2, 1, left, ins 2"));
+
+		// Umurongo wa 3: Ingofero z'ibutoni Cancel / OK
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()), new GBC("0, 0, ins 2"));
 		JButton btOK;
-		p.add(btOK = Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
-		add(p, MIG.get(MIG.SPAN, MIG.RIGHT));
+		p.add(btOK = Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()), new GBC("0, 1, ins 2"));
+		
+		add(p, new GBC("3, 0, gw 2, right, ins 5"));
+
 		pack();
 		this.setLocationRelativeTo(mainFrame);
 		this.getRootPane().setDefaultButton(btOK);

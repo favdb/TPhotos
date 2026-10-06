@@ -17,15 +17,15 @@
  */
 package app.zdlg;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import api.sherpa.SHERPA;
 import app.App;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
+import app.tools.GBC;
 import app.tools.Ui;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.awt.Window;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -33,6 +33,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 /**
+ * JDialog to edit a text with SHERPA
  *
  * @author favdb
  */
@@ -63,18 +64,23 @@ public class SherpaDlg extends JDialog {
 	 */
 	private void initialize() {
 		this.setFont(App.fontGet());
-		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP1)));
+		setLayout(new GridBagLayout());
 		this.setPreferredSize(new Dimension(800, 480));
-		add(editor = new SHERPA(), MIG.GROW);
+
+		editor = new SHERPA();
 		editor.setPreferredSize(new Dimension(940, 480));
 		editor.setFont(App.fontGet());
 		editor.htmlContentSet(text);
-		JPanel pok = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS0)));
-		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> {
-			dispose();
-		}));
-		add(pok, MIG.get(MIG.SPAN, MIG.RIGHT));
-		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
+		add(editor, new GBC("0, 0, grow, wx 1.0, wy 1.0, ins 5"));
+
+		JPanel pok = new JPanel(new GridBagLayout());
+		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()),
+				new GBC("0, 0, right, ins 2"));
+		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()),
+				new GBC("0, 1, right, ins 2"));
+
+		add(pok, new GBC("1, 0, growx, right, ins 5"));
+
 		this.pack();
 		for (Component c : editor.getComponents()) {
 			c.setFont(App.fontGet());

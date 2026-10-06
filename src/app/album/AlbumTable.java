@@ -325,22 +325,24 @@ public class AlbumTable extends JTable {
 
 		@Override
 		public void keyTyped(KeyEvent e) {
+			//empty
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
 			int key = e.getKeyCode();
 			char keychar = e.getKeyChar();
 			if (key == VK_DELETE || keychar == 0x007F) {
 				table.removeSelectedRows();
 			}
-			if (keychar == '-' && e.isControlDown()) {
-				table.mouveUp();
+			if (e.isControlDown()) {
+				if (keychar == '-' || key == VK_UP) {
+					table.mouveUp();
+				}
+				if (keychar == '+' || key == VK_DOWN) {
+					table.moveDown();
+				}
 			}
-			if (keychar == '+' && e.isControlDown()) {
-				table.moveDown();
-			}
-		}
-
-		@Override
-		public void keyPressed(KeyEvent e) {
-			// empty
 		}
 
 		@Override

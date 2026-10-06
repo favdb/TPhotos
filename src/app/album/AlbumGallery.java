@@ -53,7 +53,7 @@ import javax.swing.table.TableModel;
  */
 public class AlbumGallery extends JPanel {
 
-	private static final String TT = "Gallery.";
+	private static final String TT = "AlbumGallery.";
 
 	private static String T_ALBUM = "album", T_TABLE = "table";
 	private String type = T_ALBUM;
@@ -337,7 +337,7 @@ public class AlbumGallery extends JPanel {
 	 * @param il
 	 */
 	public void showPopup(MouseEvent e, AlbumGalleryCell il) {
-		LOG.trace(TT + "popupShow(il=" + il.toString() + ")");
+		//LOG.trace(TT + "showPopup(il=" + il.toString() + ")");
 		List<AlbumGalleryCell> cx = new ArrayList<>();
 		for (AlbumGalleryCell cell : galleryCells) {
 			if (cell.selGet() == AlbumGalleryCell.SEL) {

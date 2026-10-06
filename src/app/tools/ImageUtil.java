@@ -105,6 +105,13 @@ public class ImageUtil {
 		return createTextImage(htmlText, new Dimension(width, width));
 	}
 
+	/**
+	 * get a thumb image
+	 *
+	 * @param srce
+	 * @param size
+	 * @return
+	 */
 	public static ImageIcon getThumb(File srce, int size) {
 		File cacheDir = new File(CACHE_PATH);
 		if (!cacheDir.exists()) {
@@ -117,6 +124,13 @@ public class ImageUtil {
 		return new ImageIcon(thumb.getAbsolutePath());
 	}
 
+	/**
+	 * create a thumb image
+	 *
+	 * @param srce
+	 * @param dest
+	 * @param size
+	 */
 	private static void createThumb(File srce, File dest, int size) {
 		try {
 			BufferedImage srcImg = ImageIO.read(srce);
@@ -142,7 +156,6 @@ public class ImageUtil {
 			}
 			BufferedImage thumbImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
 			Graphics2D g2 = thumbImg.createGraphics();
-			// Correction : sécurisation de la libération des ressources de g2
 			try {
 				g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
 						RenderingHints.VALUE_INTERPOLATION_BILINEAR);

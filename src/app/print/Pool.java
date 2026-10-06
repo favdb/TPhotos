@@ -23,6 +23,7 @@ import app.xml.XmlPrintCell;
 import app.zdlg.ShowPhoto;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
@@ -87,7 +88,8 @@ public class Pool extends JScrollPane {
 		tree.setShowsRootHandles(true);
 		tree.setCellRenderer(new PoolRenderer(this));
 		tree.addMouseListener(new PoolMouseListener());
-		this.setViewportView(tree);
+		setViewportView(tree);
+		setMinimumSize(new Dimension(256, 256));
 	}
 
 	/**

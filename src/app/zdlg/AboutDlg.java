@@ -17,17 +17,17 @@
  */
 package app.zdlg;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.i18n.I18N;
 import app.resources.MainResources;
 import app.resources.icons.ICONS;
+import app.tools.GBC;
 import app.tools.Html;
 import app.tools.LOG;
 import app.tools.Ui;
 import app.tools.file.FileUtil;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -59,16 +59,18 @@ public class AboutDlg extends JDialog {
 	 */
 	private void initialize() {
 		this.setTitle(I18N.getMsg("about"));
-		setLayout(new MigLayout(MIG.FLOWY, "[center]"));
+		setLayout(new GridBagLayout());
 		setPreferredSize(new Dimension(680, 650));
+
 		JTabbedPane tb = new JTabbedPane();
 		JPanel pInfo = initInfos();
 		tb.addTab(I18N.getMsg("about.infos"), pInfo);
 		JPanel pVersions = initVersions();
 		tb.addTab(I18N.getMsg("about.versions"), pVersions);
-		add(tb, MIG.get(MIG.SPAN, MIG.GROW));
-		add(Ui.initButton("ask.close", ICONS.K.OK,
-				e -> dispose()), MIG.get(MIG.SPAN, MIG.CENTER));
+
+		add(tb, new GBC("0, 0, grow, wx 1.0, wy 1.0"));
+		add(Ui.initButton("ask.close", ICONS.K.OK, e -> dispose()), new GBC("1, 0, center, ins 5"));
+
 		pack();
 		this.setLocationRelativeTo(getParent());
 	}
@@ -79,7 +81,7 @@ public class AboutDlg extends JDialog {
 	 * @return
 	 */
 	private JPanel initInfos() {
-		JPanel p = new JPanel(new MigLayout());
+		JPanel p = new JPanel(new GridBagLayout());
 		JTextPane tx = new JTextPane();
 		tx.setContentType("text/html");
 		tx.setEditable(false);
@@ -88,7 +90,7 @@ public class AboutDlg extends JDialog {
 		tx.setPreferredSize(new Dimension(680, 650));
 		tx.setCaretPosition(0);
 		JScrollPane scroll = new JScrollPane(tx);
-		p.add(scroll, MIG.GROW);
+		p.add(scroll, new GBC("0, 0, grow, wx 1.0, wy 1.0"));
 		return p;
 	}
 
@@ -98,7 +100,7 @@ public class AboutDlg extends JDialog {
 	 * @return
 	 */
 	private JPanel initVersions() {
-		JPanel p = new JPanel(new MigLayout(MIG.FILL));
+		JPanel p = new JPanel(new GridBagLayout());
 		getBuildDate();
 		JTextPane tx = new JTextPane();
 		tx.setContentType("text/html");
@@ -110,7 +112,7 @@ public class AboutDlg extends JDialog {
 		tx.setPreferredSize(new Dimension(680, 650));
 		tx.setCaretPosition(0);
 		JScrollPane scroll = new JScrollPane(tx);
-		p.add(scroll, MIG.GROW);
+		p.add(scroll, new GBC("0, 0, grow, wx 1.0, wy 1.0"));
 		return p;
 	}
 

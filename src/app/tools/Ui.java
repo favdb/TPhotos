@@ -285,8 +285,9 @@ public class Ui {
 		return (int) font.getStringBounds(str, frc).getWidth();
 	}
 
-	public static JComboBox<String> initComboBox(String paperlist, String[] list, String sel) {
+	public static JComboBox<String> initComboBox(String name, String[] list, String sel) {
 		JComboBox<String> cb = new JComboBox<>(list);
+		cb.setName(name);
 		if (!sel.isEmpty()) {
 			cb.setSelectedItem(sel);
 		}

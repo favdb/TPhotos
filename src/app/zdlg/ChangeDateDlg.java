@@ -17,19 +17,20 @@
  */
 package app.zdlg;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
+import api.jdatechooser.calendar.JDateChooser;
 import app.album.Album;
 import app.i18n.I18N;
 import app.media.Media;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
 import app.tools.DateUtil;
+import app.tools.GBC;
 import app.tools.LOG;
 import app.tools.Ui;
 import app.tools.file.FileUtil;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,12 +39,12 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
-import javax.swing.JTextField;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SwingUtilities;
 
@@ -58,6 +59,7 @@ public class ChangeDateDlg extends JDialog {
 	private final File infile;
 	private DateChooser tfDate;
 	private boolean cancel = true;
+	private Date date;
 
 	public ChangeDateDlg(Album album, File infile) {
 		super(SwingUtilities.windowForComponent(album));
@@ -69,28 +71,33 @@ public class ChangeDateDlg extends JDialog {
 	@SuppressWarnings("unchecked")
 	private void initialize() {
 		this.setModal(true);
-		this.setLayout(new MigLayout(MIG.WRAP + " 2"));
+		this.setLayout(new GridBagLayout());
 		this.setTitle(I18N.getMsg("album.param.comment.date"));
-		add(new JLabel(getDateOf(infile)),
-				MIG.get(MIG.CENTER, MIG.SPAN));
-		add(new JLabel(I18N.getColonMsg("date.new")));
 
-		//todo à changer en JDatePicker
-		add(tfDate = new DateChooser());
+		// Ligne 0 : Informations date fichier (centré, largeur 2 colonnes)
+		add(new JLabel(getDateOf(infile)), new GBC("0, 0, center, gw 2, insets 5 5 5 5"));
+
+		// Ligne 1, Col 0 : Label "Nouvelle date :"
+		add(new JLabel(I18N.getColonMsg("date.new")), new GBC("1, 0, left, insets 0 5 5 5"));
+
+		// Ligne 1, Col 1 : Composant DateChooser
+		add(tfDate = new DateChooser(), new GBC("1, 1, left, insets 0 0 5 5"));
+
 		try {
 			SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
-			Date date = formatter.parse(infile.getName());
+			date = formatter.parse(infile.getName());
 			tfDate.setDate(date);
 		} catch (ParseException ex) {
 			//empty
 		}
 
-		JPanel pok = new JPanel(new MigLayout());
-		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
-		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> {
-			dispose();
-		}));
-		add(pok, MIG.get(MIG.SPAN, MIG.RIGHT));
+		// Ligne 2 : Panneau de boutons OK / Annuler (aligné à droite, largeur 2 colonnes)
+		JPanel pok = new JPanel(new GridBagLayout());
+		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()), new GBC("0, 0, insets 0 0 0 5"));
+		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()), new GBC("0, 1"));
+
+		add(pok, new GBC("2, 0, right, gw 2, insets 5 5 5 5"));
+
 		tfDate.setMinimumSize(new Dimension(IconUtil.getDefSize() * 8, IconUtil.getDefSize()));
 		pack();
 		this.setLocationRelativeTo(getParent());
@@ -99,34 +106,62 @@ public class ChangeDateDlg extends JDialog {
 	/**
 	 * OK action, check if valide date
 	 */
+	/**
+	 * OK action, check if valid date
+	 */
 	private void doOK() {
 		tfDate.errorReset();
-		boolean err = false;
-		Date dateValue = (Date) tfDate.spDate.getValue();
+		StringBuilder errorMsg = new StringBuilder();
+
+		Date dateValue = tfDate.dateChooser.getDate();
 		Date hourValue = (Date) tfDate.spHour.getValue();
-		LocalDateTime minLdt = LocalDateTime.of(1900, 1, 1, 0, 0, 0);
-		Date minDate = Date.from(minLdt.atZone(ZoneId.systemDefault()).toInstant());
-		Date now = new Date();
-		if (dateValue.after(now) || dateValue.before(minDate)) {
+
+		// 1. Vérification de la présence de la date
+		if (dateValue == null) {
 			tfDate.errorSet("date");
-			err = true;
+			errorMsg.append("- ").append(I18N.getMsg("error.date.missing")).append("\n");
+		} else {
+			// 2. Vérification de l'intervalle de date (1900 à aujourd'hui)
+			LocalDateTime minLdt = LocalDateTime.of(1900, 1, 1, 0, 0, 0);
+			Date minDate = Date.from(minLdt.atZone(ZoneId.systemDefault()).toInstant());
+			Date now = new Date();
+
+			if (dateValue.after(now)) {
+				//tfDate.errorSet("date");
+				errorMsg.append("- ").append(I18N.getMsg("error.date.future")).append("\n");
+			} else if (dateValue.before(minDate)) {
+				//tfDate.errorSet("date");
+				errorMsg.append("- ").append(I18N.getMsg("error.date.too_old")).append("\n");
+			}
 		}
-		LocalDateTime ldtHour = hourValue.toInstant()
-				.atZone(ZoneId.systemDefault()).toLocalDateTime();
-		int hh = ldtHour.getHour();
-		int mm = ldtHour.getMinute();
-		int ss = ldtHour.getSecond();
-		if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59) {
+
+		// 3. Vérification de l'heure
+		if (hourValue == null) {
 			tfDate.errorSet("time");
-			err = true;
+			errorMsg.append("- ").append(I18N.getMsg("error.time.invalid")).append("\n");
+		} else {
+			LocalDateTime ldtHour = hourValue.toInstant()
+					.atZone(ZoneId.systemDefault()).toLocalDateTime();
+			int hh = ldtHour.getHour();
+			int mm = ldtHour.getMinute();
+			int ss = ldtHour.getSecond();
+			if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59) {
+				tfDate.errorSet("time");
+				errorMsg.append("- ").append(I18N.getMsg("error.time.invalid")).append("\n");
+			}
 		}
-		if (err) {
+
+		// Affichage du message détaillé si au moins une erreur est détectée
+		if (errorMsg.length() > 0) {
 			JOptionPane.showMessageDialog(this,
-					I18N.getMsg("date.error"),
+					I18N.getMsg("error.date") + " :\n" + errorMsg.toString(),
 					I18N.getMsg("date"),
 					JOptionPane.ERROR_MESSAGE);
+			//tfDate = new DateChooser();
+			//tfDate.setDate(date);
 			return;
 		}
+
 		cancel = false;
 		dispose();
 	}
@@ -159,33 +194,46 @@ public class ChangeDateDlg extends JDialog {
 
 	private class DateChooser extends JPanel {
 
-		private JSpinner spDate, spHour;
+		private JSpinner spHour;
+		private JDateChooser dateChooser;
+		private javax.swing.border.Border defaultTfBorder;
+		private javax.swing.border.Border defaultSpBorder;
 
 		public DateChooser() {
 			initialize();
 		}
 
 		private void initialize() {
-			this.setLayout(new MigLayout());
-			add(spDate = new JSpinner(new SpinnerDateModel()));
-			JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(spDate, "dd/MM/yyyy");
-			spDate.setEditor(timeEditor);
-			add(spHour = new JSpinner(new SpinnerDateModel()));
+			this.setLayout(new GridBagLayout());
+			dateChooser = new JDateChooser();
+			dateChooser.setDateFormatString("dd/MM/yyyy");
+
+			spHour = new JSpinner(new SpinnerDateModel());
 			JSpinner.DateEditor hourEditor = new JSpinner.DateEditor(spHour, "HH:mm:ss");
 			spHour.setEditor(hourEditor);
+
+			// Sauvegarde des bordures d'origine des composants éditables
+			if (dateChooser.getDateEditor().getUiComponent() instanceof JComponent) {
+				defaultTfBorder = ((JComponent) dateChooser
+						.getDateEditor().getUiComponent()).getBorder();
+			}
+			defaultSpBorder = spHour.getBorder();
+
+			add(dateChooser, new GBC("0, 0, left, insets 0 0 0 5"));
+			add(spHour, new GBC("0, 1, left"));
 		}
 
 		public void setDate(Date date) {
-			spDate.setValue(date);
+			dateChooser.setDate(date);
 			spHour.setValue(date);
 		}
 
 		public String getDate() {
-			LocalDateTime ld = ((Date) spDate.getValue()).toInstant()
+			LocalDateTime cd = ((Date) dateChooser.getDate()).toInstant()
 					.atZone(ZoneId.systemDefault()).toLocalDateTime();
 			LocalDateTime lh = ((Date) spHour.getValue()).toInstant()
 					.atZone(ZoneId.systemDefault()).toLocalDateTime();
-			String d = ld.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+			String d = cd.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 			String h = lh.format(DateTimeFormatter.ofPattern("HHmmss"));
 			return d + "_" + h;
 		}
@@ -193,7 +241,10 @@ public class ChangeDateDlg extends JDialog {
 		private void errorSet(String val) {
 			LOG.trace("DateChooser.errorSet(val=" + val + ")");
 			if (val.equals("date")) {
-				spDate.setBorder(BorderFactory.createLineBorder(Color.red));
+				if (dateChooser.getDateEditor().getUiComponent() instanceof JComponent) {
+					((JComponent) dateChooser.getDateEditor().getUiComponent())
+							.setBorder(BorderFactory.createLineBorder(Color.red));
+				}
 			}
 			if (val.equals("time")) {
 				spHour.setBorder(BorderFactory.createLineBorder(Color.red));
@@ -201,9 +252,11 @@ public class ChangeDateDlg extends JDialog {
 		}
 
 		private void errorReset() {
-			JTextField tf = new JTextField();
-			spDate.setBorder(tf.getBorder());
-			spHour.setBorder(tf.getBorder());
+			if (dateChooser.getDateEditor().getUiComponent() instanceof JComponent) {
+				((JComponent) dateChooser.getDateEditor().getUiComponent())
+						.setBorder(defaultTfBorder);
+			}
+			spHour.setBorder(defaultSpBorder);
 		}
 
 	}

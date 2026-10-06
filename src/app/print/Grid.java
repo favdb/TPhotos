@@ -20,8 +20,8 @@ package app.print;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.App;
-import app.tools.LaF;
 import static app.print.Print.*;
+import app.tools.LaF;
 import app.xml.XmlPrintCell;
 import app.xml.XmlPrintPage;
 import java.awt.Dimension;
@@ -51,7 +51,7 @@ public class Grid extends JPanel {
 	public void setDim(String format, String orientation) {
 		int pH = (LaF.getScreenHeight() - (App.fontGet().getSize() * 12) - 5);
 		int pW = (LaF.getScreenWidth() - 256) - 5;
-		boolean isPortrait = PORTRAIT.equalsIgnoreCase(orientation);
+		String vx[] = print.xmlPrintGet().sizeGet().split(",");
 		rows = Print.gridRowsFor(orientation);
 		cols = Print.gridColsFor(orientation);
 		cellConf = new Dimension(cols, rows);
@@ -406,6 +406,14 @@ public class Grid extends JPanel {
 		item.zoomSet(value);
 		setModified();
 		refresh();
+	}
+
+	void offsetSet(XmlPrintCell cell) {
+		//todo
+	}
+
+	void rotateSet(XmlPrintCell cell, int rotateValue) {
+		//todo
 	}
 
 }

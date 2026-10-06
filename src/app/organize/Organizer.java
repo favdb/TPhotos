@@ -1,5 +1,7 @@
 package app.organize;
 
+import api.mig.MIG;
+import api.mig.swing.MigLayout;
 import app.AbstractFrame;
 import app.App;
 import app.MainFrame;
@@ -53,17 +55,20 @@ public class Organizer extends AbstractFrame {
 		initialize();
 	}
 
+	/**
+	 * initialization
+	 */
 	@Override
 	public void initialize() {
-		setLayout(new GridBagLayout());
+		setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP1, MIG.INS1, MIG.GAP1)));
 		setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
 		Container pane = this.getContentPane();
-		pane.add(initTop(), new GBC("0,0, growx, wx 1.0, ins 5"));
+		pane.add(topInit(), MIG.GROWX);
 		taInfosInit("init");
 		taInfos.setText(FileUtil.readHtml("Organizer"));
 		JScrollPane scroll = new JScrollPane(taInfos);
 		scroll.setPreferredSize(new Dimension(1024, 768));
-		pane.add(scroll, new GBC("1,0, grow, wx 1.0, wy 1.0, ins 5"));
+		pane.add(scroll, MIG.GROW);
 	}
 
 	/**
@@ -71,7 +76,7 @@ public class Organizer extends AbstractFrame {
 	 *
 	 * @return
 	 */
-	private JPanel initTop() {
+	private JPanel topInit() {
 		JPanel p = new JPanel(new GridBagLayout());
 		// source folder
 		p.add(new JLabel(I18N.getColonMsg("organize.source")),
@@ -156,7 +161,7 @@ public class Organizer extends AbstractFrame {
 	}
 
 	/**
-	 * begin copying, step 1 collect files
+	 * begin copying, step 1 - collect files
 	 */
 	@Override
 	public void copyBegin() {
@@ -257,14 +262,14 @@ public class Organizer extends AbstractFrame {
 		setWaitingCursor();
 		SwingUtilities.invokeLater(() -> {
 			OrganizerCopyDlg cpf = new OrganizerCopyDlg(this, ls, false, destDir,
-					0, ckRemove.isSelected(), null);
+					ckRemove.isSelected(), null);
 			cpf.start();
 		});
 		btStart.setEnabled(false);
 	}
 
 	/**
-	 * end copying
+	 * step 3 - end copying
 	 */
 	@Override
 	public void copyEnd() {

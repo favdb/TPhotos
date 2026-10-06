@@ -17,19 +17,20 @@
  */
 package app.organize;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.AbstractFrame;
 import app.App;
 import app.export.ExportImage;
 import app.i18n.I18N;
 import app.media.Jpeg;
 import app.media.MP4;
+import app.media.Media;
+import app.tools.GBC;
 import app.tools.Html;
 import app.tools.LOG;
 import app.tools.file.FileUtil;
 import app.xml.XmlAlbumItem;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,8 +52,7 @@ public class OrganizerCopyDlg extends JDialog {
 	private JLabel lbFile;
 	private JProgressBar pbar;
 	private boolean autoremove;
-	private int sorter;
-	private Dimension dim;
+	private final Dimension dim;
 	private final List<File> outfiles = new ArrayList<>();
 	private boolean status = true;
 	public List<XmlAlbumItem> items;
@@ -61,13 +61,12 @@ public class OrganizerCopyDlg extends JDialog {
 	private int number = 0;
 
 	/**
-	 * CopyFileDlg
+	 * OrganizeCopyFileDlg
 	 *
 	 * @param parent: parent JFrame
 	 * @param items
 	 * @param withText
 	 * @param todir: destination directory
-	 * @param sorter: 0,1,2,3,4 for date subdirectories if needed
 	 * @param autoremove: remove file after copy
 	 * @param dim: new size for the image, may be null for no resize
 	 */
@@ -75,14 +74,12 @@ public class OrganizerCopyDlg extends JDialog {
 			List<XmlAlbumItem> items,
 			boolean withText,
 			File todir,
-			int sorter,
 			boolean autoremove,
 			Dimension dim) {
 		super(parent, false);
 		this.items = items;
 		this.todir = todir;
 		this.withText = withText;
-		this.sorter = sorter;
 		this.autoremove = autoremove;
 		this.dim = dim;
 		initialize();
@@ -93,38 +90,22 @@ public class OrganizerCopyDlg extends JDialog {
 	 *
 	 * @param items
 	 */
-	public void setItems(List<XmlAlbumItem> items) {
+	public void itemsSet(List<XmlAlbumItem> items) {
 		this.items = items;
 	}
 
 	/**
 	 * set autoremove option
 	 */
-	public void setAutoremove() {
+	public void autoremoveSet() {
 		autoremove = true;
 	}
 
 	/**
-	 * set text parameter
+	 * set withText parameter
 	 */
-	public void setWithText() {
+	public void withTextSet() {
 		withText = true;
-	}
-
-	/**
-	 * set dim parameter
-	 */
-	public void setDim(Dimension dim) {
-		this.dim = dim;
-	}
-
-	/**
-	 * set sorter mode
-	 *
-	 * @param mode
-	 */
-	public void setSorter(int mode) {
-		this.sorter = mode;
 	}
 
 	/**
@@ -132,16 +113,22 @@ public class OrganizerCopyDlg extends JDialog {
 	 */
 	private void initialize() {
 		setTitle(I18N.getMsg("organize.inprogress"));
-		setLayout(new MigLayout(MIG.WRAP1));
-		add(new JLabel());
-		add(lbFile = new JLabel());
+		setLayout(new GridBagLayout());
+
+		add(new JLabel(), new GBC("0, 0, left, ins 2"));
+
+		lbFile = new JLabel();
 		int c = App.fontGet().getSize();
 		lbFile.setMinimumSize(new Dimension(c * 32, c));
-		add(pbar = new JProgressBar(), MIG.GROW);
+		add(lbFile, new GBC("1, 0, left, ins 2"));
+
+		pbar = new JProgressBar();
 		pbar.setMaximum(items.size());
 		pbar.setMinimumSize(new Dimension(c * 20, c));
 		pbar.setStringPainted(true);
 		pbar.setString("0/" + items.size());
+		add(pbar, new GBC("2, 0, growx, wx 1.0, ins 5"));
+
 		pack();
 		setLocationRelativeTo(getParent());
 	}
@@ -162,10 +149,6 @@ public class OrganizerCopyDlg extends JDialog {
 	 */
 	public boolean isOK() {
 		return status;
-	}
-
-	public String getReport() {
-		return "";
 	}
 
 	/**
@@ -210,21 +193,11 @@ public class OrganizerCopyDlg extends JDialog {
 		pbar.setString(i + 1 + "/" + items.size());
 		pack();
 		setLocationRelativeTo(getParent());
-
 		OrganizerPath target = getOutfile(infile);
 		File outfile = target.getDestination();
 		String outname = outfile.getName();
 		boolean rc = false;
-
 		try {
-			if (sorter == 4) {
-				String ext = FileUtil.getExtension(infile);
-				outname = String.format("%04d.%s", i + 1, ext.isEmpty() ? "jpg" : ext);
-				outfile = new File(todir, outname);
-			} else if (sorter == 1 || sorter == 3) {
-				outfile = new File(todir, infile.getName());
-			}
-
 			if (withText) {
 				outfile = ExportImage.writeTo(infile,
 						item.commentGet(),
@@ -256,13 +229,11 @@ public class OrganizerCopyDlg extends JDialog {
 			status = false;
 			done();
 		}
-
 		if (!rc) {
 			addReport(Html.intoRed(I18N.getMsg("photo.copy_error",
 					new Object[]{infile, outfile.getName()})));
 			addReport("<br>");
 		}
-
 		outfiles.add(outfile);
 		if (autoremove && rc) {
 			infile.delete();
@@ -316,8 +287,7 @@ public class OrganizerCopyDlg extends JDialog {
 	}
 
 	/**
-	 * Build OrganizerPath object containing source, target destination file, and triage
- status.
+	 * Build path object containing source, target file, and triage status.
 	 *
 	 * @param infile
 	 * @return OrganizerPath object
@@ -326,11 +296,11 @@ public class OrganizerCopyDlg extends JDialog {
 		String nameWithoutExt = FileUtil.getFileNameWithoutExt(infile);
 		String ext = FileUtil.getExtension(infile);
 		String extSuffix = ext.isEmpty() ? "" : "." + ext;
-
+		if (Media.jpegIs(infile)) {
+			extSuffix = ".jpg";
+		}
 		String dateFromName = parseDateFromName(nameWithoutExt);
 		boolean isNameValid = (dateFromName != null);
-
-		// Check internal date (Exif / MP4) strictly without fallback to filesystem date
 		String internalDate = null;
 		if (Jpeg.hasEXIF(infile)) {
 			try {
@@ -344,35 +314,36 @@ public class OrganizerCopyDlg extends JDialog {
 		} else if (MP4.hasMVHD(infile)) {
 			internalDate = MP4.getDate(infile);
 		}
-
 		String validDate = isNameValid ? dateFromName : internalDate;
-
-		if (sorter < 3) {
-			if (validDate != null && validDate.length() >= 8) {
-				String year = validDate.substring(0, 4);
-				String month = validDate.substring(4, 6);
-				String day = validDate.substring(6, 8);
-				String relativePath = year + File.separator + month + File.separator + day;
-
-				// Keep current filename if valid, else rename to date + original extension
-				String targetName = isNameValid ? infile.getName() : validDate + extSuffix;
-				File destFile = new File(todir, relativePath + File.separator + targetName);
-				return new OrganizerPath(infile, destFile, false);
-			} else {
-				// Redirect to "Triage" directory without modifying the original filename
-				File triageDir = new File(todir, "Triage");
-				File destFile = new File(triageDir, infile.getName());
-				return new OrganizerPath(infile, destFile, true);
-			}
+		boolean triage = true;
+		File triageDir = new File(todir, "Triage");
+		File destFile = new File(triageDir, infile.getName());
+		if (validDate != null && validDate.length() >= 8) {
+			String year = validDate.substring(0, 4);
+			String month = validDate.substring(4, 6);
+			String day = validDate.substring(6, 8);
+			String relativePath = year + File.separator + month + File.separator + day;
+			String targetName = isNameValid ? infile.getName() : validDate + extSuffix;
+			destFile = new File(todir, relativePath + File.separator + targetName);
+			triage = false;
 		}
-
-		return new OrganizerPath(infile, new File(todir, infile.getName()), false);
+		return new OrganizerPath(infile, destFile, triage);
 	}
 
+	/**
+	 * get the outfiles
+	 *
+	 * @return
+	 */
 	public List<File> getOutfiles() {
 		return outfiles;
 	}
 
+	/**
+	 * set compress value
+	 *
+	 * @param value
+	 */
 	public void setCompress(int value) {
 		switch (value) {
 			case 1:
@@ -387,10 +358,18 @@ public class OrganizerCopyDlg extends JDialog {
 		}
 	}
 
+	/**
+	 * get number
+	 *
+	 * @return
+	 */
 	public int getNumber() {
 		return number;
 	}
 
+	/**
+	 * CopyAction class
+	 */
 	public static class CopyAction implements Runnable {
 
 		private final OrganizerCopyDlg dlg;
@@ -414,4 +393,5 @@ public class OrganizerCopyDlg extends JDialog {
 			dlg.done();
 		}
 	}
+
 }

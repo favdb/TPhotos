@@ -23,6 +23,7 @@ import app.MainFrame;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.tools.Html;
+import app.tools.LOG;
 import app.tools.Ui;
 import app.xml.Xml;
 import app.xml.XmlPrint;
@@ -55,7 +56,6 @@ public class Print extends JPanel {
 	public final static Border BORDER_NORMAL = BorderFactory.createLineBorder(Color.WHITE, 2),
 			BORDER_ALLOW = BorderFactory.createLineBorder(Color.GREEN, 2),
 			BORDER_SELECTED = BorderFactory.createLineBorder(Color.RED, 2);
-
 	public static String PORTRAIT = "portrait", LANDSCAPE = "landscape";
 
 	/**
@@ -131,10 +131,14 @@ public class Print extends JPanel {
 		totalPages = pages.size();
 		cells.clear();
 		cells = xmlPrint.getCells();
-		this.setLayout(new MigLayout(MIG.get(MIG.FILL), "[256px][]"));
-		add(poolInit(), MIG.get(MIG.TOP, MIG.GROWY));
-		add(gridInit(), MIG.get(MIG.SPAN, MIG.GROW));
+
+		this.setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP, MIG.HIDEMODE3), "[][][]"));
+
+		add(poolInit(), MIG.GROWY);
+		add(gridInit(), MIG.GROW);
+		add(new PrintOptionsPanel(this), MIG.GROWY);
 		add(bottomInit(), MIG.get(MIG.SPAN, MIG.RIGHT));
+
 		refresh();
 	}
 
@@ -182,10 +186,11 @@ public class Print extends JPanel {
 	private JScrollPane poolInit() {
 		//LOG.trace(TT + "poolInit()");
 		pPool = new Pool(this);
-		JScrollPane scroller = new JScrollPane(pPool);
+		/*JScrollPane scroller = new JScrollPane(pPool);
 		scroller.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.pool")));
 		scroller.setMinimumSize(new Dimension(256, 256));
-		return scroller;
+		return scroller;*/
+		return pPool;
 	}
 
 	/**
@@ -224,14 +229,17 @@ public class Print extends JPanel {
 	 */
 	private JPanel gridInit() {
 		//LOG.trace(TT + "gridInit()");
-		JPanel panel = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.INS1, MIG.GAP1)));
+		JPanel panel = new JPanel(new MigLayout());
 		panel.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.page")));
-		panel.add(gridTopInit(), MIG.get(MIG.SPAN, MIG.GROWX));
+
+		panel.add(gridTopInit(), MIG.get(MIG.GROWX, MIG.SPAN));
+
 		JScrollPane scroll = new JScrollPane(pGrid = new Grid(this));
 		scroll.getVerticalScrollBar().setUnitIncrement(16);
 		scroll.getHorizontalScrollBar().setUnitIncrement(16);
 		scroll.setPreferredSize(new Dimension(1920, 1920));
-		panel.add(scroll, MIG.get(MIG.SPAN, MIG.GROW));
+		panel.add(scroll, MIG.GROW);
+
 		return panel;
 	}
 
@@ -307,8 +315,20 @@ public class Print extends JPanel {
 	@SuppressWarnings("unchecked")
 	private JPanel gridTopInit() {
 		//LOG.trace(TT + "gridTopInit()");
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.WRAP, "ins 5"), "[][][][][][]"));
+		JPanel p = new JPanel(new MigLayout());
 		p.setBorder(BorderFactory.createEtchedBorder());
+
+		//button to modify options
+		p.add(Ui.initIconButton("print.options", ICONS.K.OPTIONS, e -> {
+			if (PrintOptionsDlg.show(this)) {
+				LOG.trace(TT + "Grid format something has changed, update format and orientation");
+				cbFormat.setSelectedItem(xmlPrint.formatGet());
+				cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
+				gridGet().setDim(paperFormatGet(), paperOrientationGet());
+				gridRefresh();
+			}
+		}));
+
 		String orFmt[] = {"A4", "A3"};
 		cbFormat = new JComboBox(orFmt);
 		cbFormat.setSelectedItem(xmlPrint.formatGet());
@@ -318,6 +338,7 @@ public class Print extends JPanel {
 			gridGet().setDim(paperFormatGet(), paperOrientationGet());
 			gridRefresh();
 		});
+
 		String orList[] = {I18N.getMsg("print.orientation_portrait"),
 			I18N.getMsg("print.orientation_landscape")};
 		cbOrientation = new JComboBox(orList);
@@ -326,29 +347,28 @@ public class Print extends JPanel {
 			this.paperOrientationChange();
 		});
 		p.add(cbOrientation);
-		p.add(Ui.initIconButton("print.refresh", ICONS.K.REFRESH,
-				e -> refresh()));
-		p.add(Ui.initIconButton("print.add_all", ICONS.K.AR_RIGHT,
-				e -> gridAddAll()));
-		p.add(Ui.initIconButton("print.clear_all", ICONS.K.CANCEL,
-				e -> gridClearAll()));
+
+		p.add(Ui.initIconButton("print.refresh", ICONS.K.REFRESH, e -> refresh()));
+		p.add(Ui.initIconButton("print.add_all", ICONS.K.AR_RIGHT, e -> gridAddAll()));
+		p.add(Ui.initIconButton("print.clear_all", ICONS.K.CANCEL, e -> gridClearAll()));
+
 		// nav panel
-		JPanel pNav = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.RIGHT)));
-		btPagePrev = Ui.initIconButton("nav.previous", ICONS.K.NAV_PREV,
-				e -> gridNavigation(-1));
+		JPanel pNav = new JPanel(new MigLayout());
+		btPagePrev = Ui.initIconButton("nav.previous", ICONS.K.NAV_PREV, e -> gridNavigation(-1));
 		pNav.add(btPagePrev);
+
 		lbPage = new JLabel(I18N.getMsg("print.page") + " 1 / 1");
-		pNav.add(lbPage, "gapx 1 1");
-		btPageNext = Ui.initIconButton("nav.next", ICONS.K.NAV_NEXT,
-				e -> gridNavigation(1));
+		pNav.add(lbPage);
+
+		btPageNext = Ui.initIconButton("nav.next", ICONS.K.NAV_NEXT, e -> gridNavigation(1));
 		pNav.add(btPageNext);
+
 		// add and remove button
-		pNav.add(Ui.initIconButton("print.page_add", ICONS.K.PLUS,
-				e -> gridPageAdd()));
-		btPageRemove = Ui.initIconButton("print.page_remove", ICONS.K.MINUS,
-				e -> gridPageRemove());
+		pNav.add(Ui.initIconButton("print.page_add", ICONS.K.PLUS, e -> gridPageAdd()));
+		btPageRemove = Ui.initIconButton("print.page_remove", ICONS.K.MINUS, e -> gridPageRemove());
 		pNav.add(btPageRemove);
-		p.add(pNav, MIG.get(MIG.SPAN, MIG.RIGHT));
+
+		p.add(pNav);
 		return p;
 	}
 
@@ -395,6 +415,7 @@ public class Print extends JPanel {
 	 * @return
 	 */
 	public String paperOrientationGet() {
+		//LOG.trace(TT + "paperOrientationGet() for " + cbOrientation.getSelectedIndex());
 		return (cbOrientation.getSelectedIndex() == 0 ? PORTRAIT : LANDSCAPE);
 	}
 
@@ -419,13 +440,9 @@ public class Print extends JPanel {
 	 */
 	private JPanel bottomInit() {
 		//LOG.trace(TT + "bottomPanelInit()");
-		JPanel p = new JPanel(new MigLayout("ins 5, alignx right"));
-		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW,
-				e -> actionPreview()));
-		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT,
-				e -> Printer.executePrint(this)));
-		/*p.libAdd(Ui.initButton("print.action_close", ICONS.K.EXIT,
-				e -> actionClose()));*/
+		JPanel p = new JPanel(new MigLayout());
+		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW, e -> actionPreview()));
+		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT, e -> Printer.executePrint(this)));
 		return p;
 	}
 
@@ -701,6 +718,17 @@ public class Print extends JPanel {
 			}
 		}
 		return false;
+	}
+
+	public void reload() {
+		/*cbFormat.setSelectedItem(xmlPrint.formatGet());
+		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
+		gridGet().setDim(xmlPrint.formatGet(), xmlPrint.orientationGet());
+		gridRefresh();*/
+		cbFormat.setSelectedItem(xmlPrint.formatGet());
+		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
+		gridGet().setDim(paperFormatGet(), paperOrientationGet());
+		gridRefresh();
 	}
 
 }

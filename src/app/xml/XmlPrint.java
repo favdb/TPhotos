@@ -38,6 +38,9 @@ public class XmlPrint {
 	private final List<XmlPrintPage> pages = new ArrayList<>();
 	private final List<XmlPrintCell> cells = new ArrayList<>();
 	private boolean numpage;
+	private String gridSize = "3,5";
+	private String margins;
+	private String cols;
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlPrint(Xml xml) {
@@ -61,6 +64,8 @@ public class XmlPrint {
 			format = xml.attributeGet(item0, "format");
 			orientation = xml.attributeGet(item0, "orient");
 			numpage = xml.attributeGet(item0, "numpage").equalsIgnoreCase("true");
+			margins = xml.attributeGet(item0, "margins");
+			cols = xml.attributeGet(item0, "size");
 
 			// 1. Initialize global list of XmlPrintCell
 			loadCells();
@@ -82,12 +87,14 @@ public class XmlPrint {
 					String ref = XmlUtil.stringGet(el, "ref");
 					int page = XmlUtil.integerGet(el, "page");
 					String pos = XmlUtil.stringGet(el, "pos");
+					String rot = XmlUtil.stringGet(el, "rot");
+					String dec = XmlUtil.stringGet(el, "dec");
 
 					// 3. Search real existing cell
 					for (XmlPrintCell target : cells) {
 						String cId = target.isPhoto() ? target.photoIdGet() : target.textIdGet();
 						if ((target.typeGet().equals(type)
-								|| target.typeGet().startsWith(type)) && cId == ref) {
+								|| target.typeGet().startsWith(type)) && cId.equals(ref)) {
 							target.pageSet(pageId);
 							target.posSet(pos);
 							break;
@@ -104,7 +111,11 @@ public class XmlPrint {
 	 * @return
 	 */
 	public String sizeGet() {
-		return (isPortrait() ? "5,3" : "3,5");
+		return gridSize;
+	}
+
+	public void sizeSet(String value) {
+		this.gridSize = value;
 	}
 
 	/**
@@ -141,7 +152,13 @@ public class XmlPrint {
 	 * @param value
 	 */
 	public void orientationSet(String value) {
+		//LOG.trace(TT + "orientationSet(value=" + value + ")");
 		this.orientation = (value.equalsIgnoreCase(LANDSCAPE) ? LANDSCAPE : PORTRAIT);
+	}
+
+	public void orientationSet(int value) {
+		//LOG.trace(TT + "orientationSet(value=" + value + ")");
+		this.orientation = (value == 1 ? LANDSCAPE : PORTRAIT);
 	}
 
 	/**
@@ -181,7 +198,8 @@ public class XmlPrint {
 		List<XmlAlbumItem> xphotos = xml.albumGet().itemsGet();
 		for (XmlAlbumItem x : xphotos) {
 			int cellid = Integer.parseInt(x.idGet());
-			cells.add(new XmlPrintCell(cellid, x.idGet(), x.photoGet(), x.commentGet(), 0));
+			cells.add(new XmlPrintCell(cellid, x.idGet(), x.photoGet(),
+					x.commentGet(), 0));
 		}
 		int nid = 1;
 		for (XmlLib x : xml.libsGet().getAll()) {
@@ -223,16 +241,20 @@ public class XmlPrint {
 		}
 	}
 
-	public String toXml() {
+	public String commonGet() {
 		StringBuilder b = new StringBuilder();
-		//open print tag
 		b.append(XmlUtil.indent(1)).append("<print ")
 				.append(XmlUtil.attributXml("format", format))
 				.append(XmlUtil.attributXml("orient", orientation))
 				.append(XmlUtil.attributXml("size", sizeGet()))
 				.append(XmlUtil.attributXml("numpage", numpage))
+				.append(XmlUtil.attributXml("margins", margins))
 				.append(">\n");
-		//save all pages
+		return b.toString();
+	}
+
+	public String toXml() {
+		StringBuilder b = new StringBuilder(commonGet());
 		XmlPrintCell.sortByPage(cells);
 		b.append(XmlUtil.indent(2)).append("<pages>\n");
 		int page = 0;
@@ -332,6 +354,48 @@ public class XmlPrint {
 	 */
 	public boolean numpageGet() {
 		return this.numpage;
+	}
+
+	/**
+	 * get the margins
+	 *
+	 * @return
+	 */
+	public String marginsGet() {
+		if (margins == null || margins.isEmpty()) {
+			return "0,0,0,0";
+		}
+		return margins;
+	}
+
+	/**
+	 * get the margins as array of int
+	 *
+	 * @return
+	 */
+	public int[] marginsIntGet() {
+		int[] m = {0, 0, 0, 0};
+		try {
+			if (margins != null && !margins.isEmpty()) {
+				String p[] = margins.split(",");
+				m[0] = Integer.parseInt(p[0]);
+				m[1] = Integer.parseInt(p[1]);
+				m[2] = Integer.parseInt(p[2]);
+				m[3] = Integer.parseInt(p[3]);
+			}
+		} catch (NumberFormatException ex) {
+
+		}
+		return m;
+	}
+
+	/**
+	 * set the margins
+	 *
+	 * @param margins
+	 */
+	public void marginsSet(String margins) {
+		this.margins = margins;
 	}
 
 }

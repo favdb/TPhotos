@@ -1,6 +1,16 @@
-dossier "A trier" 
+dossier "Triage" 
+- tester Organiser (inclusion vidéos)
+- vérifier/corriger Export (inclusion vidéos, limitation des options en fonction du format)
+
+dossier "Triage" 
 lors du changement de date vérifier la validité OK
-Maintenir la gallerie et le pool après suppréssion d'une photo. OK
+Maintenir la gallerie et le pool après suppression d'une photo. OK
 Vérifier qu'on ne peut pas supprimer le root (Photos). OK
 Refaire le gallerie pour mieux gérer le cadrage OK
-Si multisélection traiter par click droit (changement date, ajouter à l'album, supprimer) NO
+Si multisélection traiter par click droit (changement date, ajouter à l'album, supprimer) OK
+
+Ajouter une fonction recherche
+
+Print > Ajouter tout : créer pages nécessaires
+
+Revoir tous les layout

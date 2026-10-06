@@ -17,14 +17,14 @@
  */
 package app.export;
 
-import api.mig.swing.MigLayout;
 import app.MainFrame;
+import app.resources.icons.ICONS;
+import app.tools.GBC;
+import app.tools.Ui;
+import java.awt.GridBagLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import app.resources.icons.ICONS;
-import api.mig.MIG;
-import app.tools.Ui;
 
 /**
  *
@@ -43,18 +43,28 @@ public class ExportTempoDlg extends JDialog {
 	}
 
 	private void initialize() {
-		setLayout(new MigLayout());
-		JPanel p = new JPanel(new MigLayout(MIG.FILL));
-		p.add(Ui.initButton("minus", ICONS.K.MINUS, e -> addTempo(-1)));
-		p.add(tfTempo = new JTextField());
+		setLayout(new GridBagLayout());
+		
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(Ui.initButton("minus", ICONS.K.MINUS, e -> addTempo(-1)), new GBC("0, 0, ins 2"));
+		
+		tfTempo = new JTextField();
 		tfTempo.setColumns(3);
-		p.add(Ui.initButton("plus", ICONS.K.PLUS, e -> addTempo(1)));
-		add(p, MIG.get(MIG.SPAN, MIG.CENTER));
-		add(Ui.initButton("ask.ok", ICONS.K.OK, e -> dispose()));
+		p.add(tfTempo, new GBC("0, 1, ins 2"));
+		
+		p.add(Ui.initButton("plus", ICONS.K.PLUS, e -> addTempo(1)), new GBC("0, 2, ins 2"));
+
+		add(p, new GBC("0, 0, gw 2, center, ins 5"));
+		
+		add(Ui.initButton("ask.ok", ICONS.K.OK, e -> dispose()), new GBC("1, 0, ins 2"));
 		add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> {
 			tempo = -1;
 			dispose();
-		}));
+		}), new GBC("1, 1, ins 2"));
+
+		pack();
+		setLocationRelativeTo(mainFrame);
+		addTempo(0);
 	}
 
 	public int getTempo() {

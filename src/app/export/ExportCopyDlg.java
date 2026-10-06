@@ -17,18 +17,18 @@
  */
 package app.export;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.AbstractFrame;
 import app.App;
 import app.export.ExportImage;
 import app.i18n.I18N;
 import app.media.Jpeg;
+import app.tools.GBC;
 import app.tools.Html;
 import app.tools.LOG;
 import app.tools.file.FileUtil;
 import app.xml.XmlAlbumItem;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -135,19 +135,25 @@ public class ExportCopyDlg extends JDialog {
 		//LOG.trace(TT + "initialize() \noptions: ");
 		//traceOptions();
 		setTitle(I18N.getMsg("organize.inprogress"));
-		setLayout(new MigLayout(MIG.WRAP1));
+		setLayout(new GridBagLayout());
 		addReport(I18N.getMsg("photo.copy", new Object[]{
 			items.size(), I18N.getMsg(items.size() > 1 ? "files" : "file")
 		}) + "<br>");
-		add(new JLabel(/*Html.intoHtml(report.toString())*/));
-		add(lbFile = new JLabel());
+		
+		add(new JLabel(/*Html.intoHtml(report.toString())*/), new GBC("0, 0, left, ins 2"));
+		
+		lbFile = new JLabel();
 		int c = App.fontGet().getSize();
 		lbFile.setMinimumSize(new Dimension(c * 32, c));
-		add(pbar = new JProgressBar(), MIG.GROW);
+		add(lbFile, new GBC("1, 0, left, ins 2"));
+
+		pbar = new JProgressBar();
 		pbar.setMaximum(items.size());
 		pbar.setMinimumSize(new Dimension(c * 20, c));
 		pbar.setStringPainted(true);
 		pbar.setString("0/" + items.size());
+		add(pbar, new GBC("2, 0, growx, wx 1.0, ins 5"));
+
 		pack();
 		setLocationRelativeTo(getParent());
 	}

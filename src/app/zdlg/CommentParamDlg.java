@@ -17,14 +17,14 @@
  */
 package app.zdlg;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.album.Album;
 import app.diapo.DiapoParam;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
+import app.tools.GBC;
 import app.tools.LOG;
 import app.tools.Ui;
+import java.awt.GridBagLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
@@ -63,7 +63,7 @@ public class CommentParamDlg extends JDialog {
 
 	@SuppressWarnings("unchecked")
 	private void initialize() {
-		setLayout(new MigLayout());
+		setLayout(new GridBagLayout());
 		this.setTitle(I18N.getMsg("album.param.comment_tips"));
 		String[] ls = {
 			I18N.getMsg("album.param.comment.year"),
@@ -73,25 +73,33 @@ public class CommentParamDlg extends JDialog {
 			I18N.getMsg("album.param.comment.full"),
 			I18N.getMsg("album.param.comment.full_hour")
 		};
-		add(new JLabel(I18N.getColonMsg("album.param.comment.date")));
+
+		// Ligne 0 : Date selector
+		add(new JLabel(I18N.getColonMsg("album.param.comment.date")), new GBC("0, 0, left, ins 2"));
 		cbDate = new JComboBox(ls);
-		add(cbDate, MIG.get(MIG.SPAN, MIG.SPLIT2));
-		add(btAdd = Ui.initIconButton("btAdd", ICONS.K.AR_DOWN,
+		add(cbDate, new GBC("0, 1, left, ins 2"));
+		
+		btAdd = Ui.initIconButton("btAdd", ICONS.K.AR_DOWN,
 				e -> {
 					String str = tfComment.getText()
 					+ "{" + cbDate.getSelectedItem() + "}";
 					tfComment.setText(str);
-				}), MIG.WRAP);
+				});
 		btAdd.setToolTipText(I18N.getMsg("album.param.adddate"));
-		// param for comments
-		add(new JLabel(I18N.getColonMsg("album.param.comment")));
-		add(tfComment = new JTextField(param.getComment()), MIG.WRAP);
+		add(btAdd, new GBC("0, 2, left, ins 2"));
+
+		// Ligne 1 : Comment field
+		add(new JLabel(I18N.getColonMsg("album.param.comment")), new GBC("1, 0, left, ins 2"));
+		tfComment = new JTextField(param.getComment());
 		tfComment.setColumns(32);
-		// ok cancel buttons
-		JPanel p = new JPanel(new MigLayout());
-		p.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()));
-		p.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
-		add(p, MIG.get(MIG.SPAN, MIG.RIGHT));
+		add(tfComment, new GBC("1, 1, gw 2, fill h, wx 1.0, ins 2"));
+
+		// Ligne 2 : Buttons OK / Cancel
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()), new GBC("0, 0, ins 2"));
+		p.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()), new GBC("0, 1, ins 2"));
+		add(p, new GBC("2, 0, gw 3, right, ins 5"));
+
 		pack();
 		setLocationRelativeTo(album);
 	}

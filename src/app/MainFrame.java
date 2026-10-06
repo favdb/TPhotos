@@ -17,7 +17,6 @@
  */
 package app;
 
-import app.organize.Organizer;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.album.Album;
@@ -25,6 +24,7 @@ import app.diapo.DiapoParam;
 import app.diapo.Diaporama;
 import app.export.Export;
 import app.i18n.I18N;
+import app.organize.Organizer;
 import app.print.Print;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
@@ -72,16 +72,18 @@ public class MainFrame extends JFrame {
 			}
 		});
 		setIconImage(IconUtil.getIconImage(ICONS.K.TPHOTOS.toString()));
-		setLayout(new MigLayout(
-				MIG.get(MIG.FILL, MIG.GAP0, MIG.INS0, MIG.WRAP1, MIG.HIDEMODE3))
-		);
+		setLayout(new MigLayout(MIG.get(MIG.HIDEMODE3, MIG.INS1, MIG.GAP1, MIG.WRAP1)));
+
 		Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setMaximumSize(sz);
+
 		appMenu = new MainMenu();
-		add(appMenu.getToolBar(), MIG.get(MIG.GROWX, MIG.TOP));
-		panel = new JPanel(new MigLayout(MIG.get(MIG.FILL, MIG.GAP0, MIG.INS0)));
+		add(appMenu.getToolBar(), MIG.GROWX);
+
+		panel = new JPanel(new MigLayout());
 		panel.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
-		add(panel, MIG.get(MIG.GROW));
+		add(panel, MIG.GROW);
+
 		organizer = new Organizer(this);
 		album = new Album();
 		File afile = new File(App.pref.getString(Pref.KEY.ALBUM_LAST));
@@ -121,8 +123,8 @@ public class MainFrame extends JFrame {
 	 */
 	public void doDiapo() {
 		//LOG.trace(TT + "doDiapo()");
-		if (appMenu.btSorter != null) {
-			appMenu.btSorter.setSelected(false);
+		if (appMenu.btOrganizer != null) {
+			appMenu.btOrganizer.setSelected(false);
 			appMenu.btExport.setSelected(false);
 			appMenu.btPrint.setSelected(false);
 		}
@@ -144,7 +146,7 @@ public class MainFrame extends JFrame {
 		appMenu.btPrint.setSelected(false);
 		printHide();
 		panel.removeAll();
-		panel.add(organizer.getContentPane(), MIG.GROWX);
+		panel.add(organizer.getContentPane());
 		titleUpdate();
 	}
 
@@ -156,8 +158,8 @@ public class MainFrame extends JFrame {
 		String modif = " ";//album.tableGet().isModified() ? "*" : " ";
 		b.append(modif);
 		b.append(Const.getFullName()).append(" ");
-		if (appMenu.btSorter != null) {
-			if (appMenu.btSorter.isSelected()) {
+		if (appMenu.btOrganizer != null) {
+			if (appMenu.btOrganizer.isSelected()) {
 				b.append("(").append(App.pref.photosDirGet()).append(")");
 			} else if (appMenu.btAlbum.isSelected()) {
 				b.append("(").append(album.diapoNameGet()).append(")");
@@ -247,7 +249,7 @@ public class MainFrame extends JFrame {
 	 * do the export
 	 */
 	public void doExport() {
-		appMenu.btSorter.setSelected(false);
+		appMenu.btOrganizer.setSelected(false);
 		appMenu.btAlbum.setSelected(false);
 		if (album != null) {
 			album.save();
@@ -278,14 +280,14 @@ public class MainFrame extends JFrame {
 
 	public void doPrint() {
 		appMenu.btAlbum.setSelected(false);
-		appMenu.btSorter.setSelected(false);
+		appMenu.btOrganizer.setSelected(false);
 		appMenu.btExport.setSelected(false);
 		if (album != null) {
 			album.save();
 		}
 		print = new Print(this);
 		panel.setVisible(false);
-		add(print);
+		add(print, MIG.GROW);
 	}
 
 	public void printHide() {

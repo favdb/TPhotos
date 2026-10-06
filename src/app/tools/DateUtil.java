@@ -60,4 +60,13 @@ public class DateUtil {
 		}
 	}
 
+	public static Date getDate(String value) {
+		try {
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd_hh:mm:ss");
+			return (Date) (formatter).parse(value);
+		} catch (ParseException ex) {
+			return null;
+		}
+	}
+
 }

@@ -37,7 +37,8 @@ public class XmlPrintCell {
 		TEXT
 	}
 
-	public int id, page, zoom = 0;
+	public int id, page, zoom = 0, rot = 0, decH = 0, decV = 0;
+
 	public String photoId = "-1", textId = "-1";
 	private final int spanH = 1, spanV = 1;
 	public String type = "text", comment = "", photoName = "", text = "";
@@ -251,7 +252,7 @@ public class XmlPrintCell {
 	}
 
 	/**
-	 * set pos and span values from the given String (C,H,V)
+	 * set pos and span values from the given String (C,H,V[,rotate,decH,decV])
 	 *
 	 * @param value
 	 */
@@ -261,6 +262,13 @@ public class XmlPrintCell {
 			pos.cellNumSet(Integer.parseInt(p[0].trim()));
 			pos.spanHSet(Integer.parseInt(p[1].trim()));
 			pos.setSpanV(Integer.parseInt(p[2].trim()));
+			if (p.length > 3) {
+				rot = Integer.parseInt(p[3].trim());
+				if (p.length > 4) {
+					decH = Integer.parseInt(p[4].trim());
+					decV = Integer.parseInt(p[5].trim());
+				}
+			}
 		}
 		if (p.length > 3) {
 			pos.zoomSet(Integer.parseInt(p[3].trim()));
@@ -352,6 +360,40 @@ public class XmlPrintCell {
 		this.page = value;
 	}
 
+	public int rotGet() {
+		return rot;
+	}
+
+	public void rotSet(int rot) {
+		this.rot = rot;
+	}
+
+	public void decSet(String value) {
+		String v[] = value.split(",");
+		decHSet(Integer.parseInt(v[0]));
+		decVSet(Integer.parseInt(v[1]));
+	}
+
+	public String decGet() {
+		return String.format("%d,%d", decH, decV);
+	}
+
+	public int decHGet() {
+		return decH;
+	}
+
+	public void decHSet(int decH) {
+		this.decH = decH;
+	}
+
+	public int decVGet() {
+		return decV;
+	}
+
+	public void decVSet(int decV) {
+		this.decV = decV;
+	}
+
 	/**
 	 * get this XmlPrintCell as a String
 	 *
@@ -381,14 +423,15 @@ public class XmlPrintCell {
 		StringBuilder b = new StringBuilder();
 		b.append(XmlUtil.indent(4));
 		b.append("<cell ")
-				.append(XmlUtil.attributXml("id", id))
-				.append(XmlUtil.attributXml("pos", pos.toString()));
+				.append(XmlUtil.attributXml("id", idGet()));
 		if (isPhoto()) {
-			b.append(XmlUtil.attributXml("ref", photoId))
+			b.append(XmlUtil.attributXml("ref", photoIdGet()))
 					.append(XmlUtil.attributXml("type", "photo"));
+			b.append(XmlUtil.attributXml("pos", posGet()));
 		} else {
 			b.append(XmlUtil.attributXml("ref", textId))
 					.append(XmlUtil.attributXml("type", "text"));
+			b.append(XmlUtil.attributXml("pos", posGet()));
 		}
 		b.append("/>\n");
 		return b.toString();

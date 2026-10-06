@@ -17,16 +17,16 @@
  */
 package api.sherpa;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.App;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
+import app.tools.GBC;
 import app.tools.Ui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
+import java.awt.GridBagLayout;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -66,10 +66,11 @@ public class FontChooserDlg extends JDialog {
 
 	private void initialize(Font inFont) {
 		setTitle(I18N.getMsg("she.font"));
-		setLayout(new MigLayout(MIG.WRAP1));
-		pup = new JPanel(new MigLayout(MIG.WRAP, "[][][]"));
+		setLayout(new GridBagLayout());
+		pup = new JPanel(new GridBagLayout());
+		
 		//family
-		pup.add(initFamily(inFont));
+		pup.add(initFamily(inFont), new GBC("0, 0, grow, wx 1.0, wy 1.0, ins 2"));
 		String fam = inFont.getFamily();
 		if (fam.equalsIgnoreCase("sans serif")) {
 			fam = "SansSerif";
@@ -81,24 +82,29 @@ public class FontChooserDlg extends JDialog {
 		lsFamily.addListSelectionListener((ListSelectionEvent e) -> {
 			showSample();
 		});
+
 		//style
-		pup.add(initStyle(inFont));
+		pup.add(initStyle(inFont), new GBC("0, 1, growy, ins 2"));
 		lsStyle.setSelectedValue(styleList[inFont.getStyle()], true);
 		lsStyle.addListSelectionListener((ListSelectionEvent e) -> {
 			showSample();
 		});
+
 		//size
-		pup.add(initSize(inFont));
+		pup.add(initSize(inFont), new GBC("0, 2, growy, ins 2"));
 		lsSize.addListSelectionListener((ListSelectionEvent e) -> {
 			showSample();
 		});
-		add(pup);
+		
+		add(pup, new GBC("0, 0, grow, wx 1.0, wy 1.0, ins 2"));
+
 		//sample
 		sample.setText("The quick brown fox jumped over the lazy dog.");
 		sample.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		add(sample, MIG.get(MIG.SPAN, MIG.CENTER));
+		add(sample, new GBC("1, 0, center, ins 5"));
+
 		//ok+cancel
-		add(initOkCancel(), MIG.get(MIG.SPAN, MIG.RIGHT));
+		add(initOkCancel(), new GBC("2, 0, right, ins 5"));
 
 		pack();
 		this.setLocationRelativeTo(getParent());
@@ -115,28 +121,28 @@ public class FontChooserDlg extends JDialog {
 
 	@SuppressWarnings("unchecked")
 	private JPanel initFamily(Font initfont) {
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.WRAP1)));
-		p.add(new JLabel(I18N.getColonMsg("she.font.family")));
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(new JLabel(I18N.getColonMsg("she.font.family")), new GBC("0, 0, left, ins 2"));
 		lsFamily = new JList(GraphicsEnvironment
 				.getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
-		p.add(new JScrollPane(lsFamily));
+		p.add(new JScrollPane(lsFamily), new GBC("1, 0, grow, wx 1.0, wy 1.0, ins 2"));
 		return p;
 	}
 
 	@SuppressWarnings("unchecked")
 	private JPanel initStyle(Font initfont) {
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.WRAP1)));
-		p.add(new JLabel(I18N.getColonMsg("she.font.style")));
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(new JLabel(I18N.getColonMsg("she.font.style")), new GBC("0, 0, left, ins 2"));
 		lsStyle = new JList(styleList);
-		p.add(new JScrollPane(lsStyle));
+		p.add(new JScrollPane(lsStyle), new GBC("1, 0, growy, wy 1.0, ins 2"));
 		return p;
 	}
 
 	@SuppressWarnings("unchecked")
 	private JPanel initSize(Font initfont) {
 		int sz = initfont.getSize();
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.WRAP1)));
-		p.add(new JLabel(I18N.getColonMsg("she.font.size")));
+		JPanel p = new JPanel(new GridBagLayout());
+		p.add(new JLabel(I18N.getColonMsg("she.font.size")), new GBC("0, 0, left, ins 2"));
 		DefaultListModel<Integer> model = new DefaultListModel<>();
 		int i = 0;
 		Integer idx = 12;
@@ -150,19 +156,19 @@ public class FontChooserDlg extends JDialog {
 		lsSize = new JList<>(model);
 		lsSize.setPreferredSize(new Dimension(40, 800));
 		lsSize.setSelectedValue(idx, true);
-		p.add(new JScrollPane(lsSize), MIG.GROW);
+		p.add(new JScrollPane(lsSize), new GBC("1, 0, grow, wy 1.0, ins 2"));
 		return p;
 	}
 
 	private JPanel initOkCancel() {
-		JPanel p = new JPanel(new MigLayout());
+		JPanel p = new JPanel(new GridBagLayout());
 		p.add(Ui.initButton("btOK", "ask.ok", ICONS.K.OK, "", e -> {
 			cancel = false;
 			dispose();
-		}));
+		}), new GBC("0, 0, ins 2"));
 		p.add(Ui.initButton("btCancel", "ask.cancel", ICONS.K.CANCEL, "", e -> {
 			dispose();
-		}));
+		}), new GBC("0, 1, ins 2"));
 		return p;
 	}
 

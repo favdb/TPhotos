@@ -42,8 +42,8 @@ import javax.swing.JToolBar;
 public class MainMenu {
 
 	private JMenuBar menuBar;
-	public JToggleButton btSorter, btAlbum, btExport, btShow, btPrint;
-	public JButton btPhotos, btAbout;
+	public JToggleButton btOrganizer, btAlbum, btExport, btShow, btPrint;
+	public JButton btTools, btAbout;
 
 	public MainMenu() {
 		initialize();
@@ -61,14 +61,16 @@ public class MainMenu {
 	 * @return
 	 */
 	public JPanel getToolBar() {
-		JPanel p = new JPanel(new MigLayout(MIG.get("inset 0 0 0 10", MIG.FILL),
-				"[grow][]"));
+		JPanel p = new JPanel(new MigLayout(MIG.FILLX));
 		p.setBorder(BorderFactory.createRaisedBevelBorder());
 		JToolBar tb = new JToolBar();
 		tb.setFloatable(false);
+
 		p.add(initActions());
-		p.add(btAbout = Ui.initIconButton("menu.help_about",
-				ICONS.K.HELP, e -> App.aboutDo()), MIG.RIGHT);
+
+		btAbout = Ui.initIconButton("menu.help_about", ICONS.K.HELP, e -> App.aboutDo());
+		p.add(btAbout, MIG.RIGHT);
+
 		return p;
 	}
 
@@ -78,22 +80,32 @@ public class MainMenu {
 	 * @return
 	 */
 	private JPanel initActions() {
-		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.FILLX)));
+		JPanel p = new JPanel(new MigLayout());
 		p.setOpaque(false);
-		String space = "   ";
-		p.add(btPhotos = Ui.initIconButton("menu.tools", ICONS.K.OPTIONS, null));
-		btPhotos.addMouseListener(new MouseAdapter() {
+
+		btTools = Ui.initIconButton("menu.tools", ICONS.K.OPTIONS, null);
+		btTools.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
 				filePopup().show(e.getComponent(), e.getX(), e.getY());
 			}
 		});
-		p.add(btSorter = Ui.initToggleButton("app.organizer", true, e -> App.sorterDo()));
-		p.add(btAlbum = Ui.initToggleButton("app.album", false, e -> App.albumDo()));
-		p.add(btPrint = Ui.initToggleButton("print", ICONS.K.F_PRINT, false, e -> App.printDo()));
+		p.add(btTools);
+
+		btOrganizer = Ui.initToggleButton("app.organizer", true, e -> App.sorterDo());
+		p.add(btOrganizer);
+
+		btAlbum = Ui.initToggleButton("app.album", false, e -> App.albumDo());
+		p.add(btAlbum);
+
+		btPrint = Ui.initToggleButton("print", ICONS.K.F_PRINT, false, e -> App.printDo());
 		btPrint.setVisible(false);
-		p.add(btExport = Ui.initToggleButton("export", ICONS.K.F_EXPORT, false, e -> App.exportDo()));
+		p.add(btPrint);
+
+		btExport = Ui.initToggleButton("export", ICONS.K.F_EXPORT, false, e -> App.exportDo());
 		btExport.setVisible(false);
+		p.add(btExport);
+
 		return p;
 	}
 

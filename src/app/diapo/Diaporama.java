@@ -17,18 +17,18 @@
  */
 package app.diapo;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.MainFrame;
 import app.album.AlbumTable;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconUtil;
+import app.tools.GBC;
 import app.tools.file.FileUtil;
 import app.xml.XmlAlbumItem;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagLayout;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.io.File;
@@ -65,7 +65,7 @@ public class Diaporama extends JFrame {
 	private void initialize() {
 		table = mainFrame.albumGet().tableGet();
 		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-		this.setLayout(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.FILL, MIG.WRAP1)));
+		this.setLayout(new GridBagLayout());
 		Container p = this.getContentPane();
 		this.addKeyListener(new KeyListener());
 		initImage((JPanel) p);
@@ -87,10 +87,11 @@ public class Diaporama extends JFrame {
 	public JPanel initImage(JPanel p) {
 		p.setBackground(Color.BLACK);
 		p.setForeground(Color.BLUE);
+		
 		lbImage = new JLabel(IconUtil.getIconSmall(ICONS.K.HELP), JLabel.CENTER);
 		lbImage.setBackground(Color.BLACK);
 		lbImage.setOpaque(true);
-		p.add(lbImage, MIG.get(MIG.CENTER, MIG.GROW));
+		p.add(lbImage, new GBC("0, 0, grow, wx 1.0, wy 1.0"));
 
 		lbText = new JLabel(" ");
 		lbText.setOpaque(true);
@@ -100,7 +101,7 @@ public class Diaporama extends JFrame {
 		Font fnt = lbText.getFont();
 		Font fnt2 = new Font(Font.SANS_SERIF, Font.BOLD, (int) (fnt.getSize() * 1.1));
 		lbText.setFont(fnt2);
-		p.add(lbText, MIG.CENTER);
+		p.add(lbText, new GBC("1, 0, growx, wx 1.0"));
 		return p;
 	}
 

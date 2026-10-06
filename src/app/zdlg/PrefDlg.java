@@ -17,20 +17,20 @@
  */
 package app.zdlg;
 
-import api.mig.MIG;
-import api.mig.swing.MigLayout;
 import app.App;
 import app.MainFrame;
 import app.Pref;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.resources.icons.IconButton;
+import app.tools.GBC;
 import app.tools.LaF;
 import app.tools.Ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Font;
+import java.awt.GridBagLayout;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
@@ -59,27 +59,35 @@ public class PrefDlg extends JDialog {
 	}
 
 	private void initialize() {
-		setLayout(new MigLayout());
+		setLayout(new GridBagLayout());
 		setTitle(I18N.getMsg("zoom"));
 		original = App.pref.toString().hashCode();
 
+		int y = 0;
+
 		if (App.isDev()) {
-			add(initTheme(), MIG.SPAN);
+			add(initTheme(), new GBC(y++, 0, GBC.HORIZONTAL));
 		}
 
-		JPanel zoom = new JPanel(new MigLayout());
-		zoom.add(new JLabel(I18N.getColonMsg("zoom.font")), MIG.SPAN);
-		zoom.add(fntDefault = new FontPanel(this, "default", App.fontGet()));
-		IconButton fontPlus = new IconButton("fontPlus", ICONS.K.PLUS, e -> increaseFont(1));
-		zoom.add(fontPlus, MIG.get(MIG.SPAN, MIG.SPLIT2));
-		IconButton fontMinus = new IconButton("fontPlus", ICONS.K.MINUS, e -> increaseFont(-1));
-		zoom.add(fontMinus);
-		add(zoom, MIG.SPAN);
+		JPanel zoom = new JPanel(new GridBagLayout());
+		zoom.add(new JLabel(I18N.getColonMsg("zoom.font")), new GBC("0, 0, gw 3, left, ins 2"));
 
-		JPanel pok = new JPanel(new MigLayout());
-		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()));
-		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()));
-		add(pok, MIG.get(MIG.SPAN, MIG.RIGHT));
+		fntDefault = new FontPanel(this, "default", App.fontGet());
+		zoom.add(fntDefault, new GBC("1, 0, left, ins 2"));
+
+		IconButton fontPlus = new IconButton("fontPlus", ICONS.K.PLUS, e -> increaseFont(1));
+		zoom.add(fontPlus, new GBC("1, 1, ins 2"));
+
+		IconButton fontMinus = new IconButton("fontPlus", ICONS.K.MINUS, e -> increaseFont(-1));
+		zoom.add(fontMinus, new GBC("1, 2, ins 2"));
+
+		add(zoom, new GBC(y++, 0, GBC.HORIZONTAL));
+
+		JPanel pok = new JPanel(new GridBagLayout());
+		pok.add(Ui.initButton("ask.ok", ICONS.K.OK, e -> doOK()), new GBC("0, 0, ins 2"));
+		pok.add(Ui.initButton("ask.cancel", ICONS.K.CANCEL, e -> dispose()), new GBC("0, 1, ins 2"));
+
+		add(pok, new GBC(y++ + ", 0, right, ins 5"));
 		pack();
 		this.setLocationRelativeTo(getParent());
 		if (App.isDev()) {
@@ -88,16 +96,20 @@ public class PrefDlg extends JDialog {
 	}
 
 	private JPanel initTheme() {
-		JPanel theme = new JPanel(new MigLayout());
-		theme.add(new JLabel(I18N.getColonMsg("pref.theme")), MIG.SPAN);
+		JPanel theme = new JPanel(new GridBagLayout());
+		theme.add(new JLabel(I18N.getColonMsg("pref.theme")), new GBC("0, 0, gw 2, left, ins 2"));
+
 		rbNormal = new JRadioButton(I18N.getMsg("pref.theme.normal"));
 		rbDark = new JRadioButton(I18N.getMsg("pref.theme.dark"));
 		rbDark.addChangeListener(e -> refreshAll());
+
 		ButtonGroup bg = new ButtonGroup();
 		bg.add(rbNormal);
 		bg.add(rbDark);
-		theme.add(rbNormal);
-		theme.add(rbDark);
+
+		theme.add(rbNormal, new GBC("1, 0, ins 2"));
+		theme.add(rbDark, new GBC("1, 1, ins 2"));
+
 		rbNormal.setSelected(!App.pref.darkGet());
 		rbDark.setSelected(App.pref.darkGet());
 		theme.setVisible(App.isDev());
@@ -165,14 +177,14 @@ public class PrefDlg extends JDialog {
 		private final JLabel show;
 
 		public FontPanel(JDialog caller, String name, Font font) {
-			setLayout(new MigLayout(MIG.get(MIG.INS1, MIG.GAP + " 2")));
+			setLayout(new GridBagLayout());
 			setName("font." + name);
 			setFont(font);
 			show = new JLabel(getString(font));
 			show.setName("show");
 			show.setBorder(BorderFactory.createEtchedBorder());
 			show.setFont(font);
-			add(show);
+			add(show, new GBC("0, 0, grow, ins 1"));
 		}
 
 		private void increase(int sz) {
