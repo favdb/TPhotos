@@ -34,7 +34,7 @@ public class GridCell extends JLabel {
 	private int rotateValue;
 
 	/**
-	 * a cell for Print
+	 * a cell for Grid
 	 *
 	 * @param grid
 	 * @param cell
@@ -47,18 +47,34 @@ public class GridCell extends JLabel {
 		setupInteractions();
 	}
 
+	/**
+	 * select cell
+	 */
 	public void selectedSet() {
 		selected = true;
 	}
 
+	/**
+	 * unselect cell
+	 */
 	public void selectedUnset() {
 		selected = false;
 	}
 
+	/**
+	 * check if cell is selected
+	 *
+	 * @return
+	 */
 	public boolean selectedCheck() {
 		return selected;
 	}
 
+	/**
+	 * get XmlPrintCel selection
+	 *
+	 * @return
+	 */
 	public XmlPrintCell printCellGet() {
 		return cell;
 	}
@@ -77,31 +93,27 @@ public class GridCell extends JLabel {
 	}
 
 	/**
-	 * refresh
+	 * refresh drawing
 	 */
 	public void refresh() {
 		this.removeAll();
 		this.setIcon(null);
 		this.setText("");
 		this.setBorder(BorderFactory.createLineBorder((selected ? Color.red : Color.WHITE), 2));
-		int w = grid.imgGetSize().width;
-		int h = grid.imgGetSize().height;
-		if (w <= 0 || h <= 0) {
-			int disponibleWidth = grid.getPreferredSize().width - (56 * 2);
-			int disponibleHeight = grid.getPreferredSize().height - (56 * 2);
-			w = disponibleWidth / grid.colsGet();
-			h = disponibleHeight / grid.rowsGet();
-		}
+
+		// Utilisation directe de la taille carrée fixe définie par Grid
+		int baseW = grid.cellDim.width;
+		int baseH = grid.cellDim.height;
+
 		int spanH = cell.spanHorizontalGet() > 0 ? cell.spanHorizontalGet() : 1;
 		int spanV = cell.spanVerticalGet() > 0 ? cell.spanVerticalGet() : 1;
-		int cellWidth = w * spanH;
-		int cellHeight = h * spanV;
-		int targetW = Math.max(10, cellWidth);
-		int targetH = Math.max(10, cellHeight);
+
+		int targetW = baseW * spanH;
+		int targetH = baseH * spanV;
+
 		if (cell.isPhoto()) {
 			this.setBackground(Color.WHITE);
 			if (cell.photoFileGet() != null && cell.photoFileGet().exists()) {
-				int sz = Math.min(cellWidth, cellHeight);
 				this.setIcon(ImageUtil.getImage(cell.photoFileGet(),
 						Math.max(targetW, targetH), cell.zoomGet()));
 			} else {
@@ -111,15 +123,8 @@ public class GridCell extends JLabel {
 		} else if (cell.isText()) {
 			this.setBackground(new Color(255, 255, 245));
 			String textContent = (cell.textGet() != null) ? cell.textGet() : "";
-			String txt = "<html>"
-					+ "<head><style>"
-					+ "body { font-size: 10px; }"
-					+ "h1, h2, h3, p { margin-top: 1px; margin-bottom: 2px; padding: 0; }"
-					+ "</style></head>"
-					+ "<body>"
-					+ textContent
-					+ "</body>"
-					+ "</html>";
+			String txt = "<html><head><style>body { font-size: 10px; }</style></head><body>"
+					+ textContent + "</body></html>";
 			this.setVerticalAlignment(JLabel.TOP);
 			setText(txt);
 		} else {
@@ -131,6 +136,7 @@ public class GridCell extends JLabel {
 			this.setHorizontalAlignment(JLabel.CENTER);
 			this.setVerticalAlignment(JLabel.CENTER);
 		}
+
 		SwingTools.setFixedSize(this, new Dimension(targetW, targetH));
 		this.revalidate();
 		this.repaint();
@@ -304,6 +310,9 @@ public class GridCell extends JLabel {
 		menu.show(e.getComponent(), e.getX(), e.getY());
 	}
 
+	/**
+	 * release the cel in the Pool
+	 */
 	private void releaseCellInPool() {
 		//LOG.trace(TT + "releaseCellInPool() item=" + item.toString());
 		Print print = grid.getPrint();

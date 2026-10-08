@@ -67,7 +67,7 @@ public class Organizer extends AbstractFrame {
 		taInfosInit("init");
 		taInfos.setText(FileUtil.readHtml("Organizer"));
 		JScrollPane scroll = new JScrollPane(taInfos);
-		scroll.setPreferredSize(new Dimension(1024, 768));
+		scroll.setPreferredSize(new Dimension(1920, 1920));
 		pane.add(scroll, MIG.GROW);
 	}
 

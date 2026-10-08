@@ -61,7 +61,7 @@ public class MainMenu {
 	 * @return
 	 */
 	public JPanel getToolBar() {
-		JPanel p = new JPanel(new MigLayout(MIG.FILLX));
+		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS1, MIG.GAP1, MIG.FILLX)));
 		p.setBorder(BorderFactory.createRaisedBevelBorder());
 		JToolBar tb = new JToolBar();
 		tb.setFloatable(false);

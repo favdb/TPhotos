@@ -37,7 +37,11 @@ public class XmlPrintCell {
 		TEXT
 	}
 
-	public int id, page, zoom = 0, rot = 0, decH = 0, decV = 0;
+	public int id,
+			page,//page number
+			zoom = 0,//zoom mode:0=none (original size), 1=contain, 2=cover
+			rot = 0,//rotation: 0=none, 1=90°, 2=180°, 3=270°
+			decH = 0, decV = 0;//offsets
 
 	public String photoId = "-1", textId = "-1";
 	private final int spanH = 1, spanV = 1;

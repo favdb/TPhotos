@@ -124,11 +124,11 @@ public class Export extends AbstractFrame {
 		pane = this.getContentPane();
 		pane.setLayout(new GridBagLayout());
 		pane.add(topInit(), new GBC("0, 0, growx, wx 1.0, ins 2"));
-		
+
 		taInfosInit("init");
 		taInfos.setText(FileUtil.readHtml("Export"));
 		JScrollPane scroll = new JScrollPane(taInfos);
-		scroll.setPreferredSize(new Dimension(1024, 768));
+		scroll.setPreferredSize(new Dimension(1920, 1920));
 		pane.add(scroll, new GBC("1, 0, grow, wx 1.0, wy 1.0, ins 2"));
 
 		cbFormat.addItemListener((ItemEvent e) -> {
@@ -151,14 +151,14 @@ public class Export extends AbstractFrame {
 	private JPanel topInit() {
 		//LOG.trace(TT + "initTop()");
 		JPanel p = new JPanel(new GridBagLayout());
-		
+
 		p.add(formatInit(), new GBC("0, 0, left, ins 2"));
 		pCompress = compressInit();
 		p.add(pCompress, new GBC("0, 1, left, ins 2"));
-		
+
 		pTempo = tempoInit();
 		p.add(pTempo, new GBC("1, 0, gw 2, left, ins 2"));
-		
+
 		pFolder = folderInit();
 		p.add(pFolder, new GBC("2, 0, gw 2, growx, wx 1.0, ins 2"));
 

@@ -23,7 +23,6 @@ import app.MainFrame;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.tools.Html;
-import app.tools.LOG;
 import app.tools.Ui;
 import app.xml.Xml;
 import app.xml.XmlPrint;
@@ -38,7 +37,6 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -88,7 +86,8 @@ public class Print extends JPanel {
 	private final MainFrame mainFrame;
 	private Grid pGrid;
 	private Pool pPool;
-	private JComboBox cbOrientation;
+	//private JComboBox cbOrientation;
+	//private JComboBox cbFormat;
 	private JLabel lbPage;
 	private JButton btPagePrev, btPageNext;
 	private boolean isPortrait = true;
@@ -97,9 +96,9 @@ public class Print extends JPanel {
 	private XmlPrint xmlPrint;
 	private List<XmlPrintPage> pages = new ArrayList<>();
 	private List<XmlPrintCell> cells = new ArrayList<>();
-	private JComboBox cbFormat;
 	private JCheckBox ckPage;
 	private JButton btPageRemove;
+	private PrintOptionsPanel options;
 
 	public Print(MainFrame mainFrame) {
 		super();
@@ -133,11 +132,11 @@ public class Print extends JPanel {
 		cells = xmlPrint.getCells();
 
 		this.setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP, MIG.HIDEMODE3), "[][][]"));
-
+		options = new PrintOptionsPanel(this);
 		add(poolInit(), MIG.GROWY);
 		add(gridInit(), MIG.GROW);
-		add(new PrintOptionsPanel(this), MIG.GROWY);
-		add(bottomInit(), MIG.get(MIG.SPAN, MIG.RIGHT));
+		add(options, MIG.GROWY);
+		add(bottomInit(), MIG.get(MIG.SKIP, MIG.RIGHT));
 
 		refresh();
 	}
@@ -229,7 +228,7 @@ public class Print extends JPanel {
 	 */
 	private JPanel gridInit() {
 		//LOG.trace(TT + "gridInit()");
-		JPanel panel = new JPanel(new MigLayout());
+		JPanel panel = new JPanel(new MigLayout(MIG.HIDEMODE3));
 		panel.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.page")));
 
 		panel.add(gridTopInit(), MIG.get(MIG.GROWX, MIG.SPAN));
@@ -320,16 +319,10 @@ public class Print extends JPanel {
 
 		//button to modify options
 		p.add(Ui.initIconButton("print.options", ICONS.K.OPTIONS, e -> {
-			if (PrintOptionsDlg.show(this)) {
-				LOG.trace(TT + "Grid format something has changed, update format and orientation");
-				cbFormat.setSelectedItem(xmlPrint.formatGet());
-				cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
-				gridGet().setDim(paperFormatGet(), paperOrientationGet());
-				gridRefresh();
-			}
+			options.setVisible(!options.isVisible());
 		}));
 
-		String orFmt[] = {"A4", "A3"};
+		/*String orFmt[] = {"A4", "A3"};
 		cbFormat = new JComboBox(orFmt);
 		cbFormat.setSelectedItem(xmlPrint.formatGet());
 		cbFormat.addItemListener(s -> {
@@ -337,17 +330,16 @@ public class Print extends JPanel {
 			xml.save();
 			gridGet().setDim(paperFormatGet(), paperOrientationGet());
 			gridRefresh();
-		});
+		});*/
 
-		String orList[] = {I18N.getMsg("print.orientation_portrait"),
+ /*String orList[] = {I18N.getMsg("print.orientation_portrait"),
 			I18N.getMsg("print.orientation_landscape")};
 		cbOrientation = new JComboBox(orList);
 		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
 		cbOrientation.addItemListener(s -> {
 			this.paperOrientationChange();
 		});
-		p.add(cbOrientation);
-
+		p.add(cbOrientation);*/
 		p.add(Ui.initIconButton("print.refresh", ICONS.K.REFRESH, e -> refresh()));
 		p.add(Ui.initIconButton("print.add_all", ICONS.K.AR_RIGHT, e -> gridAddAll()));
 		p.add(Ui.initIconButton("print.clear_all", ICONS.K.CANCEL, e -> gridClearAll()));
@@ -406,7 +398,7 @@ public class Print extends JPanel {
 	 * @return
 	 */
 	public String paperFormatGet() {
-		return (String) cbFormat.getSelectedItem();
+		return options.formatGet();
 	}
 
 	/**
@@ -416,13 +408,13 @@ public class Print extends JPanel {
 	 */
 	public String paperOrientationGet() {
 		//LOG.trace(TT + "paperOrientationGet() for " + cbOrientation.getSelectedIndex());
-		return (cbOrientation.getSelectedIndex() == 0 ? PORTRAIT : LANDSCAPE);
+		return options.orientationGet();
 	}
 
 	/**
 	 * Change the orientation (PORTRAIT or LANDSCAPE)
 	 */
-	private void paperOrientationChange() {
+	/*private void paperOrientationChange() {
 		int str = cbOrientation.getSelectedIndex();
 		isPortrait = (str == 0);
 		String sorient = (isPortrait ? PORTRAIT : LANDSCAPE);
@@ -433,8 +425,7 @@ public class Print extends JPanel {
 		xml.save();
 		gridGet().setDim(paperFormatGet(), sorient);
 		gridRefresh();
-	}
-
+	}*/
 	/**
 	 * Initialize the bottom panel (preview, print and exit buttons)
 	 */
@@ -724,9 +715,9 @@ public class Print extends JPanel {
 		/*cbFormat.setSelectedItem(xmlPrint.formatGet());
 		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
 		gridGet().setDim(xmlPrint.formatGet(), xmlPrint.orientationGet());
-		gridRefresh();*/
+		gridRefresh();
 		cbFormat.setSelectedItem(xmlPrint.formatGet());
-		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
+		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));*/
 		gridGet().setDim(paperFormatGet(), paperOrientationGet());
 		gridRefresh();
 	}

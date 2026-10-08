@@ -100,7 +100,7 @@ public class MainFrame extends JFrame {
 		if (appMenu.btExport != null) {
 			appMenu.btExport.setVisible(album.tableGet().getRowCount() > 0);
 		}
-		setPreferredSize(new Dimension(1024, 768));
+		setPreferredSize(new Dimension(960, 720));
 		pack();
 		setLocationRelativeTo(null);
 		doOrganizer();

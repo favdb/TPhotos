@@ -1,65 +1,80 @@
-/*
- * Copyright (C) 2026 favdb
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
 package app.print;
 
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
-import app.App;
 import static app.print.Print.*;
-import app.tools.LaF;
 import app.xml.XmlPrintCell;
 import app.xml.XmlPrintPage;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.RenderingHints;
+import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
 /**
- * JPanel class for the grid (Simule une page papier A4 avec marges)
+ * JPanel class as a viewer container. Include a PagePanel representing a virtual sheet.
  *
  * @author favdb
  */
 public class Grid extends JPanel {
 
-	private static final String TT = "Grid.";
-
 	private final Print print;
+	private final PagePanel pagePanel;
 	Dimension cellConf, cellDim;
 	private int rows, cols;
 	private int imgWidth, imgHeight;
 	private GridCell gridCellSelected;
 
+	/**
+	 * defining a Grid for the given Print object
+	 *
+	 * @param print
+	 */
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public Grid(Print print) {
 		this.print = print;
+		this.setBackground(new Color(220, 220, 220)); // Fond gris zone de travail
+		this.setLayout(new GridBagLayout()); // Centre le PagePanel
+
+		pagePanel = new PagePanel();
+		this.add(pagePanel);
+
 		initialize();
 	}
 
+	/**
+	 * set dimensions (depending format, orientation, base grid, margins)
+	 *
+	 * @param format
+	 * @param orientation
+	 */
 	public void setDim(String format, String orientation) {
-		int pH = (LaF.getScreenHeight() - (App.fontGet().getSize() * 12) - 5);
-		int pW = (LaF.getScreenWidth() - 256) - 5;
-		String vx[] = print.xmlPrintGet().sizeGet().split(",");
-		rows = Print.gridRowsFor(orientation);
-		cols = Print.gridColsFor(orientation);
-		cellConf = new Dimension(cols, rows);
-		int size = Math.min(pW / cols, pH / rows);
+		boolean isLandscape = !PORTRAIT.equalsIgnoreCase(orientation);
+		boolean isA3 = "A3".equalsIgnoreCase(format);
+
+		if (!isA3) {
+			cols = isLandscape ? 5 : 3;
+			rows = isLandscape ? 3 : 5;
+		} else {
+			cols = isLandscape ? 10 : 6;
+			rows = isLandscape ? 6 : 10;
+		}
+
+		int baseCols = isLandscape ? 5 : 3;
+		int baseRows = isLandscape ? 3 : 5;
+
+		int panelWidth = 1024;
+		int panelHeight = 768;
+
+		int size = Math.min(panelWidth / baseCols, panelHeight / baseRows);
+
 		cellDim = new Dimension(size, size);
+		cellConf = new Dimension(cols, rows);
 		imgWidth = size;
 		imgHeight = size;
-		//LOG.trace(TT + "setDim() size=" + size + ", dim=" + cellDim);
 	}
 
 	/**
@@ -67,120 +82,22 @@ public class Grid extends JPanel {
 	 */
 	public void initialize() {
 		setDim(print.paperFormatGet(), print.paperOrientationGet());
-		StringBuilder rowC = new StringBuilder();
-		for (int i = 0; i < rows; i++) {
-			rowC.append("[]");
-		}
-		StringBuilder colC = new StringBuilder();
-		for (int j = 0; j < cols; j++) {
-			colC.append("[]");
-		}
-		setLayout(new MigLayout(MIG.get("gap 0, ins 0"), colC.toString(), rowC.toString()));
 	}
 
 	/**
-	 * Gère les opérations de placement et applique les contraintes métiers.
-	 *
-	 * @param targetCell La cellule de la grille (réelle ou fantôme) ciblée.
-	 */
-	public void placeCell(XmlPrintCell targetCell) {
-		//LOG.trace(TT + "placeCell(" + targetCell.toString() + ")");
-		XmlPrintCell pendingCell = print.pendingCellToPlaceGet();
-		if (pendingCell == null) {
-			return;
-		}
-		if (pendingCell.isText() && pendingCell.pageGet() > 0) {
-			print.pendingCellClear();
-			return;
-		}
-		boolean targetIsReal = (targetCell.isPhoto() || targetCell.isText());
-		if (pendingCell.isText() && targetIsReal) {
-			return;
-		}
-		int currentPageNum = print.gridCurrentPageGet();
-		if (pendingCell.isPhoto() && targetCell.isPhoto() && pendingCell.pageGet() > 0) {
-			int posPending = pendingCell.cellNumGet();
-			int posTarget = targetCell.cellNumGet();
-			pendingCell.cellNumSet(posTarget);
-			targetCell.cellNumSet(posPending);
-			if (pendingCell.spanHorizontalGet() != targetCell.spanHorizontalGet()
-					|| pendingCell.spanVerticalGet() != targetCell.spanVerticalGet()) {
-				pendingCell.spanHorizontalSet(1);
-				pendingCell.spanVerticalSet(1);
-				targetCell.spanHorizontalSet(1);
-				targetCell.spanVerticalSet(1);
-			}
-			setModified();
-			print.pendingCellClear();
-			refresh();
-			return;
-		}
-		if (!targetIsReal || (pendingCell.isPhoto() && targetCell.isPhoto())) {
-			boolean comingFromPool = (pendingCell.pageGet() == 0);
-			int indexPage = currentPageNum - 1;
-			if (targetIsReal && indexPage >= 0 && indexPage < print.printPagesGet().size()) {
-				XmlPrintPage page = print.printPagesGet().get(indexPage);
-				XmlPrintCell cellToRemove = null;
-				for (XmlPrintCell c : page.cellsGet()) {
-					if (c.cellNumGet() == targetCell.cellNumGet()) {
-						cellToRemove = c;
-						break;
-					}
-				}
-				if (cellToRemove != null) {
-					page.cellsGet().remove(cellToRemove);
-					cellToRemove.pageSet(0);
-					cellToRemove.cellNumSet(0);
-				}
-			}
-			int page = print.gridCurrentPageGet();
-			String pos = targetCell.posGet();
-			// NOTE: comingFromPool was previously tested here but both branches were
-			// identical (dead code) - the pool/grid origin currently has no distinct
-			// handling. If different behavior is needed per origin, implement it here.
-			print.xmlGet().printGet().updateCell(pendingCell, page, pos);
-			setModified();
-			if (print.poolGet() != null) {
-				print.poolGet().poolCellUnselect();
-			}
-			print.pendingCellClear();
-		}
-	}
-
-	/**
-	 * set modified
-	 */
-	public void setModified() {
-		//LOG.trace(TT + "setModified()");
-		print.actionSave();
-	}
-
-	public Dimension imgGetSize() {
-		return new Dimension(imgWidth, imgHeight);
-	}
-
-	public void orientationSet(int rows, int cols) {
-		this.rows = rows;
-		this.cols = cols;
-		String orientation = (rows >= cols) ? PORTRAIT : LANDSCAPE;
-		setDim(print.xmlPrintGet().formatGet(), orientation);
-	}
-
-	public int colsGet() {
-		return cols;
-	}
-
-	public int rowsGet() {
-		return rows;
-	}
-
-	/**
-	 * refresh the JPanel as a clean table grid layout with empty cells placeholder
+	 * refresh
 	 */
 	public void refresh() {
-		this.removeAll();
+		pagePanel.removeAll();
 
-		// 1. Re-mise à jour dynamique des contraintes MigLayout en fonction de rows / cols actuels
+		// 1. Load margins(Top, Left, Right, Bottom in pixels/mm)
+		int[] margins = print.xmlPrintGet().marginsIntGet();
+		int top = (margins != null && margins.length > 0) ? margins[0] : 0;
+		int left = (margins != null && margins.length > 1) ? margins[1] : 0;
+		int right = (margins != null && margins.length > 2) ? margins[2] : 0;
+		int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
+
+		// 2. Configure MigLayout for the virtualpage
 		StringBuilder rowC = new StringBuilder();
 		for (int i = 0; i < rows; i++) {
 			rowC.append("[]");
@@ -189,7 +106,11 @@ public class Grid extends JPanel {
 		for (int j = 0; j < cols; j++) {
 			colC.append("[]");
 		}
-		this.setLayout(new MigLayout(MIG.get("gap 2, ins 0"), colC.toString(), rowC.toString()));
+
+		String layoutConstraints = String.format("gap 2, ins %d %d %d %d",
+				top, left, bottom, right);
+		pagePanel.setLayout(new MigLayout(MIG.get(layoutConstraints),
+				colC.toString(), rowC.toString()));
 
 		imgWidth = cellDim.width;
 		imgHeight = cellDim.height;
@@ -197,7 +118,7 @@ public class Grid extends JPanel {
 		int currentPage = print.gridCurrentPageGet();
 		boolean[][] occupied = new boolean[rows][cols];
 
-		// 2. Recherche et placement des cellules RÉELLES de la page courante depuis la liste globale
+		// 3. Place reals cells
 		if (print.getCells() != null) {
 			for (XmlPrintCell cell : print.getCells()) {
 				if (cell.pageGet() == currentPage) {
@@ -217,7 +138,6 @@ public class Grid extends JPanel {
 						sV = rows - r;
 					}
 
-					// Marquer les cases occupées
 					for (int i = 0; i < sV; i++) {
 						for (int j = 0; j < sH; j++) {
 							if (r + i < rows && c + j < cols) {
@@ -228,12 +148,12 @@ public class Grid extends JPanel {
 
 					GridCell img = new GridCell(this, cell);
 					String constraint = String.format("top, cell %d %d %d %d", c, r, sH, sV);
-					this.add(img, constraint);
+					pagePanel.add(img, constraint);
 				}
 			}
 		}
 
-		// 3. Remplissage des cases restées vides (Fantômes)
+		// 4. Place empty cells
 		for (int r = 0; r < rows; r++) {
 			for (int c = 0; c < cols; c++) {
 				if (!occupied[r][c]) {
@@ -246,7 +166,7 @@ public class Grid extends JPanel {
 
 					GridCell emptyImg = new GridCell(this, emptyCell);
 					String constraint = String.format("cell %d %d 1 1", c, r);
-					this.add(emptyImg, constraint);
+					pagePanel.add(emptyImg, constraint);
 					occupied[r][c] = true;
 				}
 			}
@@ -254,30 +174,199 @@ public class Grid extends JPanel {
 
 		this.revalidate();
 		this.repaint();
-		if (this.getParent() != null) {
-			this.getParent().revalidate();
-			this.getParent().repaint();
+	}
+
+	/**
+	 * Internal component representing the virtual sheet.
+	 */
+	private class PagePanel extends JPanel {
+
+		public PagePanel() {
+			this.setBackground(Color.WHITE);
+			this.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1)); // BORDURE DU PAPIER
+		}
+
+		/**
+		 * paint component of the grid
+		 *
+		 * @param g
+		 */
+		@Override
+		protected void paintComponent(Graphics g) {
+			super.paintComponent(g);
+
+			// Dessin du rectangle rouge des MARGES à l'intérieur du papier
+			int[] margins = print.xmlPrintGet().marginsIntGet();
+			int top = (margins != null && margins.length > 0) ? margins[0] : 0;
+			int left = (margins != null && margins.length > 1) ? margins[1] : 0;
+			int right = (margins != null && margins.length > 2) ? margins[2] : 0;
+			int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
+
+			Graphics2D g2d = (Graphics2D) g.create();
+			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g2d.setColor(Color.RED);
+
+			int x = left;
+			int y = top;
+			int w = getWidth() - left - right;
+			int h = getHeight() - top - bottom;
+
+			if (w > 0 && h > 0) {
+				g2d.drawRect(x, y, w - 1, h - 1);
+			}
+
+			g2d.dispose();
 		}
 	}
 
+	/**
+	 * get curren Print object
+	 *
+	 * @return
+	 */
 	public Print getPrint() {
 		return print;
 	}
 
+	/**
+	 * select the given GridCell
+	 *
+	 * @param cell
+	 */
 	public void gridCellSelect(GridCell cell) {
 		gridCellSelected = cell;
 	}
 
+	/**
+	 * unselect the current selected GridCell
+	 */
 	public void gridCellUnselect() {
 		gridCellSelected = null;
 	}
 
+	/**
+	 * get the selected GridCell
+	 *
+	 * @return
+	 */
 	public GridCell gridCellSelectedGet() {
 		return gridCellSelected;
 	}
 
 	/**
-	 * Vérifie si la cellule peut augmenter son span horizontal (+1)
+	 * get image size
+	 *
+	 * @return
+	 */
+	public Dimension imgGetSize() {
+		return new Dimension(imgWidth, imgHeight);
+	}
+
+	/**
+	 * get the cols number
+	 *
+	 * @return
+	 */
+	public int colsGet() {
+		return cols;
+	}
+
+	/**
+	 * get the rows number
+	 *
+	 * @return
+	 */
+	public int rowsGet() {
+		return rows;
+	}
+
+	/**
+	 * place a given cell in the grid
+	 *
+	 * @param targetCell
+	 */
+	public void placeCell(XmlPrintCell targetCell) {
+		XmlPrintCell pendingCell = print.pendingCellToPlaceGet();
+		if (pendingCell == null) {
+			return;
+		}
+		if (pendingCell.isText() && pendingCell.pageGet() > 0) {
+			print.pendingCellClear();
+			return;
+		}
+		boolean targetIsReal = (targetCell.isPhoto() || targetCell.isText());
+		if (pendingCell.isText() && targetIsReal) {
+			return;
+		}
+
+		int currentPageNum = print.gridCurrentPageGet();
+		if (pendingCell.isPhoto() && targetCell.isPhoto() && pendingCell.pageGet() > 0) {
+			int posPending = pendingCell.cellNumGet();
+			int posTarget = targetCell.cellNumGet();
+			pendingCell.cellNumSet(posTarget);
+			targetCell.cellNumSet(posPending);
+			if (pendingCell.spanHorizontalGet() != targetCell.spanHorizontalGet()
+					|| pendingCell.spanVerticalGet() != targetCell.spanVerticalGet()) {
+				pendingCell.spanHorizontalSet(1);
+				pendingCell.spanVerticalSet(1);
+				targetCell.spanHorizontalSet(1);
+				targetCell.spanVerticalSet(1);
+			}
+			setModified();
+			print.pendingCellClear();
+			refresh();
+			return;
+		}
+		if (!targetIsReal || (pendingCell.isPhoto() && targetCell.isPhoto())) {
+			int indexPage = currentPageNum - 1;
+			if (targetIsReal && indexPage >= 0 && indexPage < print.printPagesGet().size()) {
+				XmlPrintPage page = print.printPagesGet().get(indexPage);
+				XmlPrintCell cellToRemove = null;
+				for (XmlPrintCell c : page.cellsGet()) {
+					if (c.cellNumGet() == targetCell.cellNumGet()) {
+						cellToRemove = c;
+						break;
+					}
+				}
+				if (cellToRemove != null) {
+					page.cellsGet().remove(cellToRemove);
+					cellToRemove.pageSet(0);
+					cellToRemove.cellNumSet(0);
+				}
+			}
+			int page = print.gridCurrentPageGet();
+			String pos = targetCell.posGet();
+			print.xmlGet().printGet().updateCell(pendingCell, page, pos);
+			setModified();
+			if (print.poolGet() != null) {
+				print.poolGet().poolCellUnselect();
+			}
+			print.pendingCellClear();
+		}
+	}
+
+	/**
+	 * set modification action, force save
+	 */
+	public void setModified() {
+		print.actionSave();
+	}
+
+	/**
+	 * set orientation
+	 *
+	 * @param rows
+	 * @param cols
+	 */
+	public void orientationSet(int rows, int cols) {
+		this.rows = rows;
+		this.cols = cols;
+		String orientation = (rows >= cols) ? PORTRAIT : LANDSCAPE;
+		setDim(print.xmlPrintGet().formatGet(), orientation);
+	}
+
+	/**
+	 * check if given cell may be horizontaly extended
 	 *
 	 * @param item
 	 * @return
@@ -317,7 +406,7 @@ public class Grid extends JPanel {
 	}
 
 	/**
-	 * Vérifie si la cellule peut augmenter son span vertical (+1)
+	 * check if given cell may be verticaly extended
 	 *
 	 * @param item
 	 * @return
@@ -356,19 +445,12 @@ public class Grid extends JPanel {
 		return true;
 	}
 
-	/**
-	 * Update the horizontal span for the given cell (+1 ou -1).
-	 *
-	 * @param item The cell to be modifiied
-	 * @param value The variation (+1 or -1)
-	 */
 	public void setSpanH(XmlPrintCell item, int value) {
 		if (item == null) {
 			return;
 		}
 		int currentSpan = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1;
 		int newSpan = currentSpan + value;
-
 		if (newSpan >= 1 && newSpan <= cols) {
 			item.spanHorizontalSet(newSpan);
 			setModified();
@@ -376,19 +458,12 @@ public class Grid extends JPanel {
 		}
 	}
 
-	/**
-	 * Update the vertical span of the given cell (+1 or -1).
-	 *
-	 * @param item The cell to be modifiied
-	 * @param value The variation (+1 or -1)
-	 */
 	public void setSpanV(XmlPrintCell item, int value) {
 		if (item == null) {
 			return;
 		}
 		int currentSpan = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1;
 		int newSpan = currentSpan + value;
-
 		if (newSpan >= 1 && newSpan <= rows) {
 			item.spanVerticalSet(newSpan);
 			setModified();
@@ -396,12 +471,6 @@ public class Grid extends JPanel {
 		}
 	}
 
-	/**
-	 * set zoom mode
-	 *
-	 * @param item
-	 * @param value
-	 */
 	public void zoomSet(XmlPrintCell item, int value) {
 		item.zoomSet(value);
 		setModified();
@@ -409,11 +478,13 @@ public class Grid extends JPanel {
 	}
 
 	void offsetSet(XmlPrintCell cell) {
-		//todo
+		if (cell.isPhoto()) {
+			if (cell.zoomGet() != 1) {
+				//enter dragn'drop if zoom is none or
+			}
+		}
 	}
 
 	void rotateSet(XmlPrintCell cell, int rotateValue) {
-		//todo
 	}
-
 }
