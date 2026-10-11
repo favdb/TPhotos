@@ -112,7 +112,7 @@ public class ImageUtil {
 	 * @param size
 	 * @return
 	 */
-	public static ImageIcon getThumb(File srce, int size) {
+	public static ImageIcon getThumb(File srce, int size, int... zoom) {
 		File cacheDir = new File(CACHE_PATH);
 		if (!cacheDir.exists()) {
 			cacheDir.mkdirs();
@@ -121,7 +121,11 @@ public class ImageUtil {
 		if (!thumb.exists() || srce.lastModified() > thumb.lastModified()) {
 			createThumb(srce, thumb, size);
 		}
-		return new ImageIcon(thumb.getAbsolutePath());
+		ImageIcon img = new ImageIcon(thumb.getAbsolutePath());
+		if (zoom != null && zoom.length > 0) {
+			return resizeIcon(img, size, zoom);
+		}
+		return img;
 	}
 
 	/**

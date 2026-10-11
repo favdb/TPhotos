@@ -1,20 +1,3 @@
-/*
- * Copyright (C) 2026 favdb
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
 package app.print;
 
 import static app.print.Print.PORTRAIT;
@@ -37,7 +20,9 @@ public class BuilderHtml {
 
 	private static final String TT = "BuilderHtml.";
 
-	private static String buildCSS(String format, String orientation) {
+	private static String buildCSS(Print print) {
+		String format = print.paperFormatGet();
+		String orientation = print.paperOrientationGet();
 		int pageWidth = 210, pageHeight = 297;
 		boolean isPortrait = PORTRAIT.equalsIgnoreCase(orientation);
 		if ("A4".equalsIgnoreCase(format)) {
@@ -47,6 +32,13 @@ public class BuilderHtml {
 			pageWidth = isPortrait ? 297 : 420;
 			pageHeight = isPortrait ? 420 : 297;
 		}
+
+		int[] margins = print.xmlPrintGet().marginsIntGet();
+		int top = (margins != null && margins.length > 0) ? margins[0] : 0;
+		int left = (margins != null && margins.length > 1) ? margins[1] : 0;
+		int right = (margins != null && margins.length > 2) ? margins[2] : 0;
+		int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
+
 		return "html, body {\n"
 				+ "    margin: 0;\n"
 				+ "    padding: 0;\n"
@@ -60,7 +52,7 @@ public class BuilderHtml {
 				+ "    width: " + pageWidth + "mm;\n"
 				+ "    height: " + pageHeight + "mm;\n"
 				+ "    margin: 10mm auto;\n"
-				+ "    padding: 10mm;\n"
+				+ "    padding: " + top + "mm " + right + "mm " + bottom + "mm " + left + "mm;\n"
 				+ "    background: white;\n"
 				+ "    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);\n"
 				+ "    box-sizing: border-box;\n"
@@ -79,9 +71,6 @@ public class BuilderHtml {
 				+ "\n"
 				+ ".grid-container {\n"
 				+ "    display: grid;\n"
-				+ "    grid-template-columns: repeat(3, 1fr); \n"
-				+ "    grid-template-rows: repeat(5, 1fr);    \n"
-				+ "    gap: 1mm;\n"
 				+ "    width: 100%;\n"
 				+ "    height: 100%;\n"
 				+ "}\n"
@@ -110,7 +99,7 @@ public class BuilderHtml {
 				+ "@media print {\n"
 				+ "    html, body { background-color: white; }\n"
 				+ "    .page {\n"
-				+ "        margin: 0;  border: none; box-shadow: none;\n"
+				+ "        margin: 0; border: none; box-shadow: none;\n"
 				+ "    }\n"
 				+ "    .cell {\n"
 				+ "        border: none;\n"
@@ -118,41 +107,85 @@ public class BuilderHtml {
 				+ "}";
 	}
 
-	/**
-	 * Build the CSS to inject for format and orientation.
-	 */
-	private static String builOrientation(String format, String orientation) {
-		//LOG.trace(TT + "buildOrientation(" + format + ", " + orientation + ")");
-		return "@page { size: " + format + " " + orientation + "; margin: 0;}\n"
-				+ buildCSS(format, orientation);
+	private static String buildOrientation(Print print) {
+		String orientation = print.paperOrientationGet();
+		// Convertit le libellé français en mot-clé CSS standard (landscape / portrait)
+		String cssOrientation = "landscape";
+		if (orientation != null && (orientation.equalsIgnoreCase("portrait")
+				|| orientation.contains("portrait")
+				|| orientation.contains("Port"))) {
+			cssOrientation = "portrait";
+		}
+
+		return "@page { size: " + print.paperFormatGet() + " " + cssOrientation + "; margin: 0;}\n"
+				+ buildCSS(print);
 	}
 
-	/**
-	 * Build the given page into the grid.
-	 */
-	private static String buildPage(XmlPrintPage page,
-			String rows, String cols, int pageNum, int totalPages, boolean pagenum) {
-		//LOG.trace(TT+"buildPage(page, rows, cols)");
+	private static String buildPage(XmlPrintPage page, Print print, int pageNum, int totalPages) {
 		StringBuilder b = new StringBuilder();
-		int colsCountInt = Integer.parseInt(cols);
+		int rows = print.gridGet().rowsGet();
+		int cols = print.gridGet().colsGet();
+		boolean pagenum = print.pagenumGet();
+		boolean isLandscape = !PORTRAIT.equalsIgnoreCase(print.paperOrientationGet());
+		boolean hasCentralBinding = print.xmlPrintGet().centralGet();
+		int gap = print.xmlPrintGet().gapGet() ? 12 : 0; // Marge de photo (gap en pixels ou mm selon rendu)
+
 		b.append("<div class=\"page\">\n");
 		if (pagenum) {
 			b.append("  <div class=\"page-number\">")
 					.append(pageNum).append("/").append(totalPages).append("</div>\n");
 		}
+
+		// Construction des colonnes Grid CSS en tenant compte de la reliure centrale si paysage
+		String gridTemplateCols;
+		int halfCols = cols / 2;
+		if (isLandscape && hasCentralBinding && cols >= 2) {
+			int[] margins = print.xmlPrintGet().marginsIntGet();
+			int centralGap = (margins != null && margins.length > 2) ? (margins[1] + margins[2]) : 20;
+
+			StringBuilder leftCols = new StringBuilder();
+			for (int j = 0; j < halfCols; j++) {
+				leftCols.append("1fr ");
+			}
+			StringBuilder rightCols = new StringBuilder();
+			for (int j = halfCols; j < cols; j++) {
+				rightCols.append("1fr ");
+			}
+
+			gridTemplateCols = leftCols.toString().trim() + " " + centralGap + "mm " + rightCols.toString().trim();
+		} else {
+			StringBuilder sb = new StringBuilder();
+			for (int j = 0; j < cols; j++) {
+				sb.append("1fr ");
+			}
+			gridTemplateCols = sb.toString().trim();
+		}
+
+		StringBuilder gridRows = new StringBuilder();
+		for (int i = 0; i < rows; i++) {
+			gridRows.append("1fr ");
+		}
+
 		b.append("  <div class=\"grid-container\" style=\"")
-				.append("grid-template-rows: repeat(")
-				.append(rows).append(", 1fr); ")
-				.append("grid-template-columns: repeat(")
-				.append(cols)
-				.append(", 1fr);\">\n");
+				.append("grid-template-rows: ").append(gridRows.toString().trim()).append("; ")
+				.append("grid-template-columns: ").append(gridTemplateCols).append("; ")
+				.append("gap: ").append(gap).append("px;\">\n");
+
 		for (XmlPrintCell cell : page.cellsGet()) {
 			int indexZeroBased = cell.cellIdGet() - 1;
-			int line = (indexZeroBased / colsCountInt) + 1;
-			int col = (indexZeroBased % colsCountInt) + 1;
+			int line = (indexZeroBased / cols) + 1;
+			int col = (indexZeroBased % cols) + 1;
+
+			// Décalage de la colonne CSS si on dépasse la reliure centrale en mode paysage
+			int cssCol = col;
+			if (isLandscape && hasCentralBinding && cols >= 2 && (col - 1) >= halfCols) {
+				cssCol = col + 1; // +1 pour sauter la colonne centrale fictive
+			}
+
 			String gridStyle = String.format("grid-row: %d / span %d;"
 					+ " grid-column: %d / span %d;",
-					line, cell.spanVerticalGet(), col, cell.spanHorizontalGet());
+					line, cell.spanVerticalGet(), cssCol, cell.spanHorizontalGet());
+
 			if (cell.isPhoto()) {
 				b.append("    <div class=\"cell photo\" style=\"")
 						.append(gridStyle).append("\">\n");
@@ -190,20 +223,10 @@ public class BuilderHtml {
 		return b.toString();
 	}
 
-	/**
-	 * generate the HTML pages for the given Xml
-	 *
-	 * @param print
-	 * @param outfile: HTML file to build
-	 * @param toOpen: true to open the HTML result into the default browser
-	 */
 	public static void generateHTML(Print print, File outfile, boolean toOpen) {
 		try {
-			String rows = print.gridGet().rowsGet() + "";
-			String cols = print.gridGet().colsGet() + "";
 			StringBuilder b = new StringBuilder();
-			String css = builOrientation(print.paperFormatGet(),
-					print.paperOrientationGet());
+			String css = buildOrientation(print);
 			b.append("<!DOCTYPE html>\n")
 					.append("<html lang=\"fr\">\n")
 					.append("<head>\n")
@@ -218,7 +241,7 @@ public class BuilderHtml {
 			List<XmlPrintPage> pages = print.printPagesGet();
 			int totalPages = pages.size();
 			for (int i = 0; i < totalPages; i++) {
-				b.append(buildPage(pages.get(i), rows, cols, i + 1, totalPages, print.pagenumGet()));
+				b.append(buildPage(pages.get(i), print, i + 1, totalPages));
 			}
 
 			b.append("</body>\n</html>");
@@ -231,5 +254,4 @@ public class BuilderHtml {
 			LOG.err("generateHTML error", e);
 		}
 	}
-
 }

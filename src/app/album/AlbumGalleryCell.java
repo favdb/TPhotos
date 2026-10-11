@@ -47,7 +47,7 @@ import javax.swing.Timer;
  */
 public class AlbumGalleryCell extends JPanel implements MouseListener {
 
-	private static final String TT = "ImageLabel.";
+	private static final String TT = "AlbumGalleryCell.";
 
 	public static final Color UNSELECTED = Color.LIGHT_GRAY,
 			SELECTED = Color.RED, IN_ALBUM = Color.BLUE;
@@ -253,7 +253,7 @@ public class AlbumGalleryCell extends JPanel implements MouseListener {
 	//** mouse actions **//
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		LOG.trace(TT + "mouseClicked(e)");
+		//LOG.trace(TT + "mouseClicked(e)");
 		if (SwingUtilities.isLeftMouseButton(e)) {
 			if (e.getClickCount() == 1) {
 				clickTimer.start();

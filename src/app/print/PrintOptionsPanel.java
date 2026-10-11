@@ -20,11 +20,15 @@ package app.print;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import app.i18n.I18N;
+import app.tools.Ui;
+import app.xml.XmlPrint;
+import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.text.NumberFormat;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
+import javax.swing.JCheckBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -33,6 +37,7 @@ import javax.swing.JTextField;
 import javax.swing.text.NumberFormatter;
 
 /**
+ * JPanel class to manage print options
  *
  * @author favdb
  */
@@ -40,91 +45,113 @@ public class PrintOptionsPanel extends JPanel {
 
 	private static final String TT = "PrintOptionsPanel.";
 
-	/*private static final String GRID_FORMAT[] = {//only 3x5 allowed
-		I18N.getMsg("print.full"),
-		"2x2",// cell size may be 10x14.35
-		"3x3",// cell may be 6.66x9.56
-		"3x4",// cell size may be 6.66x7.17
-		"3x5",// cell size may be 6x5
-		"4x4",// cell size may be 5x7.17
-		"5x5" // cell size may be 4x5.74
-	};*/
-	String[] PAPER = {"A4", "A3"};
-	String ORIENTATION[] = {I18N.getMsg("print.orientation_portrait"),
+	public static final String[] PAPER = {"A4", "A3"};
+	public static final String ORIENTATION[] = {I18N.getMsg("print.orientation_portrait"),
 		I18N.getMsg("print.orientation_landscape")};
 	private final Print print;
-	//private JComboBox cbGrid;
+	private final XmlPrint xmlPrint;
 	private boolean validated = false;
-	private JFormattedTextField tfTop, tfLeft, tfRight, tfBottom;
+
+	private JFormattedTextField tfTop, tfLeft, tfRight, tfBottom, tfLines, tfCols;
 	private JRadioButton rbPortrait;
 	private JRadioButton rbLandscape;
 	private JRadioButton rbFormatA4;
 	private JRadioButton rbFormatA3;
+	private JCheckBox ckCentral, ckPhoto;
+	private String origin;
 
 	public PrintOptionsPanel(Print print) {
 		this.print = print;
+		this.xmlPrint = print.xmlPrintGet();
 		initialize();
 	}
 
+	/**
+	 * initialize
+	 */
 	@SuppressWarnings("unchecked")
 	private void initialize() {
-		setLayout(new MigLayout(MIG.WRAP + " 2"));
-		boolean sel = print.xmlPrintGet().formatGet().equals("A4");
+		setLayout(new MigLayout(MIG.get(MIG.INS1, MIG.GAP1, MIG.WRAP + " 2")));
+		origin = xmlPrint.commonGet();
+		// JPanel for format (A4, A3)
 		JPanel format = new JPanel(new MigLayout());
+		boolean sel = xmlPrint.formatGet().equals("A4");
 		ButtonGroup Gfmt = new ButtonGroup();
 		format.setBorder(
-				BorderFactory.createTitledBorder(I18N.getColonMsg("print.orientation")));
-		format.add(rbFormatA4 = myRb("A4", Gfmt, sel));
-		format.add(rbFormatA3 = myRb("A3", Gfmt, !sel));
+				BorderFactory.createTitledBorder(I18N.getColonMsg("print.paper_format")));
+		format.add(rbFormatA4 = myRb("A4", Gfmt, sel, false));
+		format.add(rbFormatA3 = myRb("A3", Gfmt, !sel, false));
 		add(format, MIG.get(MIG.GROWX, MIG.SPAN));
-
+		//JPanel for orientation
 		JPanel orient = new JPanel(new MigLayout());
 		ButtonGroup Gorient = new ButtonGroup();
 		orient.setBorder(
 				BorderFactory.createTitledBorder(I18N.getColonMsg("print.orientation")));
-		sel = print.xmlPrintGet().isPortrait();
-		orient.add(rbPortrait = myRb(I18N.getMsg("print.orientation_portrait"), Gorient, sel));
-		orient.add(rbLandscape = myRb(I18N.getMsg("print.orientation_landscape"), Gorient, !sel));
+		sel = xmlPrint.isPortrait();
+		orient.add(rbPortrait = myRb(I18N.getMsg("print.orientation_portrait"), Gorient, sel, true));
+		orient.add(rbLandscape = myRb(I18N.getMsg("print.orientation_landscape"), Gorient, !sel, true));
 		add(orient, MIG.get(MIG.GROWX, MIG.SPAN));
-
-		// JComboBox to select the grid format, default is 3x5-5x3
-		/*
-		add(new JLabel(I18N.getColonMsg("print.grid")), MIG.RIGHT);
-		cbGrid = Ui.initComboBox("print.grid", GRID_FORMAT, GRID_FORMAT[4]);
-		cbGrid.addItemListener(s -> {
-			save();
-		});
-		add(cbGrid);*/
+		// Grid parameters (lines and cols
+		int z[] = xmlPrint.gridGet();
+		JPanel grid = new JPanel(new MigLayout(MIG.WRAP, "[right][]"));
+		grid.setBorder(
+				BorderFactory.createTitledBorder(I18N.getColonMsg("print.grid")));
+		grid.add(new JLabel(I18N.getColonMsg("print.grid.lines")));
+		grid.add(tfLines = initField("lines", 1, 10, z[1]));
+		grid.add(new JLabel(I18N.getColonMsg("print.grid.cols")));
+		grid.add(tfCols = initField("cols", 1, 10, z[0]));
+		// don't show the grid parameters
+		//add(grid, MIG.get(MIG.GROWX, MIG.SPAN));
 		//JPanel to set margins (top, left, right, bottom)
-		JPanel margins = new JPanel(new MigLayout(MIG.get(MIG.FILLX, MIG.WRAP), "[right][]"));
+		JPanel margins = new JPanel(new MigLayout(
+				MIG.get(MIG.FILLX, MIG.HIDEMODE3, MIG.WRAP),
+				"[right][]"));
 		margins.setBorder(BorderFactory
 				.createTitledBorder(I18N.getColonMsg("print.margin") + "(mm)"));
-		int x[] = print.xmlPrintGet().marginsIntGet();
+		int x[] = xmlPrint.marginsIntGet();
 		margins.add(new JLabel(I18N.getColonMsg("print.margin.top")));
-		margins.add(tfTop = initField(margins, "top", 999, x[0]));
+		margins.add(tfTop = initField("top", 0, 999, x[0]));
 
 		margins.add(new JLabel(I18N.getColonMsg("print.margin.left")));
-		margins.add(tfLeft = initField(margins, "left", 999, x[1]));
+		margins.add(tfLeft = initField("left", 0, 999, x[1]));
 
 		margins.add(new JLabel(I18N.getColonMsg("print.margin.right")));
-		margins.add(tfRight = initField(margins, "right", 999, x[2]));
+		margins.add(tfRight = initField("right", 0, 999, x[2]));
+
 		margins.add(new JLabel(I18N.getColonMsg("print.margin.bottom")));
-		margins.add(tfBottom = initField(margins, "bottom", 999, x[3]));
+		margins.add(tfBottom = initField("bottom", 0, 999, x[3]));
+		// check boxes for central bing and photo margin
+		margins.add(ckCentral = Ui.initCheckBox("print.margin.central",
+				xmlPrint.centralGet(), e -> save()), MIG.get(MIG.SPAN, MIG.LEFT));
+		ckCentral.addActionListener(e -> save());
+		ckCentral.setVisible(rbLandscape.isSelected());
+		margins.add(ckPhoto = Ui.initCheckBox("print.margin.photo",
+				xmlPrint.gapGet(), e -> save()), MIG.get(MIG.SPAN, MIG.LEFT));
+		ckPhoto.addActionListener(e -> save());
 		add(margins, MIG.get(MIG.SPAN, MIG.CENTER, MIG.GROWX));
 	}
 
-	private JFormattedTextField initField(JPanel margins, String name, int max, int value) {
+	/**
+	 * get a JFormattedField for number with min/max and initial value
+	 *
+	 * @param name name of this text field
+	 * @param min minimal value
+	 * @param max maximal value
+	 * @param value initial value
+	 * @return
+	 */
+	private JFormattedTextField initField(String name, int min, int max, int value) {
 		NumberFormat format = NumberFormat.getInstance();
 		format.setGroupingUsed(false);
 		NumberFormatter formatter = new NumberFormatter(format);
 		formatter.setValueClass(Integer.class);
+		formatter.setMinimum(min);
 		formatter.setMaximum(max);
 		formatter.setAllowsInvalid(false);
 		formatter.setCommitsOnValidEdit(true);
 		JFormattedTextField tf = new JFormattedTextField(formatter);
 		tf.setColumns(2);
 		tf.setHorizontalAlignment(JTextField.CENTER);
-		tf.setToolTipText(I18N.getMsg("print.margin." + name));
 		tf.setValue(value);
 		tf.addFocusListener(new FocusListener() {
 			@Override
@@ -134,78 +161,103 @@ public class PrintOptionsPanel extends JPanel {
 
 			@Override
 			public void focusLost(FocusEvent e) {
-				save();//only save these options, reload previous disposition
-				//print.refresh(); to erase all previous disposition and refresh drawing
+				save();
 			}
 		});
 		return tf;
 	}
 
-	private void save() {
-		//LOG.trace(TT + "save()");
-		print.xmlPrintGet().formatSet(rbFormatA4.isSelected() ? "A4" : "A3");
-		int orient = rbPortrait.isSelected() ? 0 : 1;
-		print.xmlPrintGet().orientationSet(orient);
-		String str = (orient == 1 ? "5,3" : "3,5");
-		/*cbGrid is ignored
-		switch (cbGrid.getSelectedIndex()) {
-			case 0:
-				str = "1,0";
-				break;
-			case 3:
-				str = (orient == 1 ? "4,3" : "3,4");
-				break;
-			case 4:
-				str = (orient == 1 ? "5,3" : "3,5");
-				break;
-			default:
-				str = ((String) cbGrid.getSelectedItem()).replace("x", ",");
-				break;
-		}*/
-		print.xmlPrintGet().sizeSet(str);
-		print.xmlPrintGet().marginsSet(getMargins());
-		print.xmlGet().save();
-		print.reload();
-	}
-
-	private String getMargins() {
-		try {
-			return String.format("%d,%d,%d,%d",
-					Integer.valueOf(tfTop.getText()),
-					Integer.valueOf(tfLeft.getText()),
-					Integer.valueOf(tfRight.getText()),
-					Integer.valueOf(tfBottom.getText()));
-		} catch (NumberFormatException ex) {
-			return "0,0,0,0";
-		}
-	}
-
-	public int[] getMarginsArray() {
-		int top = 0, left = 0, bottom = 0, right = 0;
-		try {
-			top = Integer.parseInt(tfTop.getText().trim());
-			left = Integer.parseInt(tfLeft.getText().trim());
-			bottom = Integer.parseInt(tfBottom.getText().trim());
-			right = Integer.parseInt(tfRight.getText().trim());
-		} catch (Exception e) {
-		}
-		return new int[]{top, left, bottom, right};
-	}
-
-	private JRadioButton myRb(String str, ButtonGroup group, boolean selected) {
+	/**
+	 * get a JRadioButton
+	 *
+	 * @param str name of this button
+	 * @param group button groupe
+	 * @param selected boolean for selected
+	 * @param actOrient, boolean for orientation action
+	 * @return
+	 */
+	private JRadioButton myRb(String str, ButtonGroup group, boolean selected, boolean actOrient) {
 		JRadioButton rb = new JRadioButton(str);
 		rb.setSelected(selected);
-		rb.addChangeListener(e -> save());
+		rb.addActionListener((ActionEvent evt) -> {
+			if (actOrient) {
+				this.orientationChange();
+			}
+			save();
+		});
 		group.add(rb);
 		return rb;
 	}
 
+	/**
+	 * save all parameters to the XmlPrint
+	 */
+	private void save() {
+		//LOG.trace(TT + "save()");
+		xmlPrint.formatSet(rbFormatA4.isSelected() ? "A4" : "A3");
+		int orient = rbPortrait.isSelected() ? 0 : 1;
+		xmlPrint.orientationSet(orient);
+		int cx[] = {0, 0};
+		cx[0] = Integer.parseInt(tfLines.getText());
+		cx[1] = Integer.parseInt(tfCols.getText());
+		xmlPrint.gridSet(cx);
+		try {
+			int mx[] = {Integer.parseInt(tfTop.getText()),
+				Integer.parseInt(tfLeft.getText()),
+				Integer.parseInt(tfRight.getText()),
+				Integer.parseInt(tfBottom.getText()),
+				(ckCentral.isSelected() ? 1 : 0),
+				(ckPhoto.isSelected() ? 1 : 0)
+			};
+			xmlPrint.marginsSet(mx);
+		} catch (NumberFormatException ex) {
+			xmlPrint.marginsSet(new int[]{0, 0, 0, 0, 0, 0});
+		}
+		if (!origin.equalsIgnoreCase(xmlPrint.commonGet())) {
+			print.xmlGet().save();
+			print.reload();
+		}
+	}
+
+	/**
+	 * get current orientation value
+	 *
+	 * @return
+	 */
 	public String orientationGet() {
 		return ORIENTATION[rbPortrait.isSelected() ? 0 : 1];
 	}
 
+	/**
+	 * get current format value
+	 *
+	 * @return
+	 */
 	public String formatGet() {
 		return (rbFormatA4.isSelected() ? "A4" : "A3");
+	}
+
+	/**
+	 * action for changing format
+	 */
+	private void formatChange() {
+		if (rbFormatA4.isSelected()) {
+			tfLines.setValue(6);
+			tfCols.setValue(4);
+		} else {
+			tfLines.setValue(10);
+			tfCols.setValue(6);
+		}
+	}
+
+	/**
+	 * exchange lines and cols when changing orientation
+	 */
+	private void orientationChange() {
+		int l = (int) tfLines.getValue();
+		tfLines.setValue((int) tfCols.getValue());
+		tfCols.setValue(l);
+		ckCentral.setVisible(rbLandscape.isSelected());
 	}
 
 }

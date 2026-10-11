@@ -3,6 +3,7 @@ package app.print;
 import api.mig.MIG;
 import api.mig.swing.MigLayout;
 import static app.print.Print.*;
+import app.tools.LOG;
 import app.xml.XmlPrintCell;
 import app.xml.XmlPrintPage;
 import java.awt.Color;
@@ -20,6 +21,8 @@ import javax.swing.JPanel;
  * @author favdb
  */
 public class Grid extends JPanel {
+
+	private static final String TT = "Grid.";
 
 	private final Print print;
 	private final PagePanel pagePanel;
@@ -52,19 +55,19 @@ public class Grid extends JPanel {
 	 * @param orientation
 	 */
 	public void setDim(String format, String orientation) {
+		//LOG.trace(TT + "setDim(format=" + format + ", orientation=" + orientation + ")");
 		boolean isLandscape = !PORTRAIT.equalsIgnoreCase(orientation);
-		boolean isA3 = "A3".equalsIgnoreCase(format);
 
-		if (!isA3) {
-			cols = isLandscape ? 5 : 3;
-			rows = isLandscape ? 3 : 5;
-		} else {
+		if ("A3".equalsIgnoreCase(format)) {
 			cols = isLandscape ? 10 : 6;
 			rows = isLandscape ? 6 : 10;
+		} else {
+			cols = isLandscape ? 6 : 4;
+			rows = isLandscape ? 4 : 6;
 		}
 
-		int baseCols = isLandscape ? 5 : 3;
-		int baseRows = isLandscape ? 3 : 5;
+		int baseCols = isLandscape ? cols : rows;
+		int baseRows = isLandscape ? rows : cols;
 
 		int panelWidth = 1024;
 		int panelHeight = 768;
@@ -81,6 +84,7 @@ public class Grid extends JPanel {
 	 * initialize
 	 */
 	public void initialize() {
+		//LOG.trace(TT + "initialize()");
 		setDim(print.paperFormatGet(), print.paperOrientationGet());
 	}
 
@@ -88,26 +92,47 @@ public class Grid extends JPanel {
 	 * refresh
 	 */
 	public void refresh() {
+		LOG.trace(TT + "refresh()");
 		pagePanel.removeAll();
 
-		// 1. Load margins(Top, Left, Right, Bottom in pixels/mm)
+		// 1. Load margins (Top, Left, Right, Bottom) and central binding flag
 		int[] margins = print.xmlPrintGet().marginsIntGet();
 		int top = (margins != null && margins.length > 0) ? margins[0] : 0;
 		int left = (margins != null && margins.length > 1) ? margins[1] : 0;
 		int right = (margins != null && margins.length > 2) ? margins[2] : 0;
 		int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
 
-		// 2. Configure MigLayout for the virtualpage
+		boolean isLandscape = !print.xmlPrintGet().isPortrait();
+		boolean hasCentralBinding = print.xmlPrintGet().centralGet();
+
+		// 2. Configure MigLayout rows and cols
 		StringBuilder rowC = new StringBuilder();
 		for (int i = 0; i < rows; i++) {
 			rowC.append("[]");
 		}
+
 		StringBuilder colC = new StringBuilder();
-		for (int j = 0; j < cols; j++) {
-			colC.append("[]");
+		int halfCols = cols / 2; // Répartition des colonnes de chaque côté
+
+		if (isLandscape && hasCentralBinding && cols >= 2) {
+			// En mode paysage avec reliure centrale : Colonnes gauche + Colonne vide centrale + Colonnes droite
+			for (int j = 0; j < halfCols; j++) {
+				colC.append("[]");
+			}
+			// Colonne centrale de reliure (largeur définie par left + right)
+			int centralGap = left + right;
+			colC.append("[").append(centralGap).append("!]");
+			for (int j = halfCols; j < cols; j++) {
+				colC.append("[]");
+			}
+		} else {
+			for (int j = 0; j < cols; j++) {
+				colC.append("[]");
+			}
 		}
 
-		String layoutConstraints = String.format("gap 2, ins %d %d %d %d",
+		int gap = (print.xmlPrintGet().gapGet() ? 12 : 0);
+		String layoutConstraints = String.format("gap " + gap + ", ins %d %d %d %d",
 				top, left, bottom, right);
 		pagePanel.setLayout(new MigLayout(MIG.get(layoutConstraints),
 				colC.toString(), rowC.toString()));
@@ -118,7 +143,7 @@ public class Grid extends JPanel {
 		int currentPage = print.gridCurrentPageGet();
 		boolean[][] occupied = new boolean[rows][cols];
 
-		// 3. Place reals cells
+		// 3. Place real cells with offset adjustment if past the central column
 		if (print.getCells() != null) {
 			for (XmlPrintCell cell : print.getCells()) {
 				if (cell.pageGet() == currentPage) {
@@ -147,7 +172,14 @@ public class Grid extends JPanel {
 					}
 
 					GridCell img = new GridCell(this, cell);
-					String constraint = String.format("top, cell %d %d %d %d", c, r, sH, sV);
+
+					// Ajustement de l'index de la colonne MigLayout si on est après la reliure centrale
+					int layoutCol = c;
+					if (isLandscape && hasCentralBinding && cols >= 2 && c >= halfCols) {
+						layoutCol = c + 1; // +1 pour sauter la colonne centrale insérée
+					}
+
+					String constraint = String.format("top, cell %d %d %d %d", layoutCol, r, sH, sV);
 					pagePanel.add(img, constraint);
 				}
 			}
@@ -165,7 +197,13 @@ public class Grid extends JPanel {
 					emptyCell.posSet(targetCellNum + ",1,1");
 
 					GridCell emptyImg = new GridCell(this, emptyCell);
-					String constraint = String.format("cell %d %d 1 1", c, r);
+
+					int layoutCol = c;
+					if (isLandscape && hasCentralBinding && cols >= 2 && c >= halfCols) {
+						layoutCol = c + 1;
+					}
+
+					String constraint = String.format("cell %d %d 1 1", layoutCol, r);
 					pagePanel.add(emptyImg, constraint);
 					occupied[r][c] = true;
 				}
@@ -195,24 +233,45 @@ public class Grid extends JPanel {
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 
-			// Dessin du rectangle rouge des MARGES à l'intérieur du papier
 			int[] margins = print.xmlPrintGet().marginsIntGet();
 			int top = (margins != null && margins.length > 0) ? margins[0] : 0;
 			int left = (margins != null && margins.length > 1) ? margins[1] : 0;
 			int right = (margins != null && margins.length > 2) ? margins[2] : 0;
 			int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
 
+			// Vérifie si on est en paysage et si la marge centrale est active
+			boolean isLandscape = !print.xmlPrintGet().isPortrait();
+			boolean hasCentralBinding = print.xmlPrintGet().centralGet();
+
 			Graphics2D g2d = (Graphics2D) g.create();
 			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g2d.setColor(Color.RED);
 
-			int x = left;
-			int y = top;
-			int w = getWidth() - left - right;
-			int h = getHeight() - top - bottom;
+			if (isLandscape && hasCentralBinding) {
+				// Espace central égal à left + right
+				int centralGap = left + right;
+				int totalWidth = getWidth();
+				int availableWidth = totalWidth - left - right - centralGap;
+				int halfWidth = availableWidth / 2;
+				int h = getHeight() - top - bottom;
 
-			if (w > 0 && h > 0) {
-				g2d.drawRect(x, y, w - 1, h - 1);
+				if (halfWidth > 0 && h > 0) {
+					// Premier cadre (gauche)
+					g2d.drawRect(left, top, halfWidth - 1, h - 1);
+					// Second cadre (droite) après l'espace central
+					int secondX = left + halfWidth + centralGap;
+					g2d.drawRect(secondX, top, halfWidth - 1, h - 1);
+				}
+			} else {
+				// Comportement standard (portrait ou paysage sans reliure centrale)
+				int x = left;
+				int y = top;
+				int w = getWidth() - left - right;
+				int h = getHeight() - top - bottom;
+
+				if (w > 0 && h > 0) {
+					g2d.drawRect(x, y, w - 1, h - 1);
+				}
 			}
 
 			g2d.dispose();
@@ -220,7 +279,7 @@ public class Grid extends JPanel {
 	}
 
 	/**
-	 * get curren Print object
+	 * get current Print object
 	 *
 	 * @return
 	 */
@@ -251,15 +310,6 @@ public class Grid extends JPanel {
 	 */
 	public GridCell gridCellSelectedGet() {
 		return gridCellSelected;
-	}
-
-	/**
-	 * get image size
-	 *
-	 * @return
-	 */
-	public Dimension imgGetSize() {
-		return new Dimension(imgWidth, imgHeight);
 	}
 
 	/**

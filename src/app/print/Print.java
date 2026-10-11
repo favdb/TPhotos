@@ -86,8 +86,6 @@ public class Print extends JPanel {
 	private final MainFrame mainFrame;
 	private Grid pGrid;
 	private Pool pPool;
-	//private JComboBox cbOrientation;
-	//private JComboBox cbFormat;
 	private JLabel lbPage;
 	private JButton btPagePrev, btPageNext;
 	private boolean isPortrait = true;
@@ -131,7 +129,9 @@ public class Print extends JPanel {
 		cells.clear();
 		cells = xmlPrint.getCells();
 
-		this.setLayout(new MigLayout(MIG.get(MIG.FILL, MIG.WRAP, MIG.HIDEMODE3), "[][][]"));
+		this.setLayout(new MigLayout(
+				MIG.get(MIG.FILL, MIG.WRAP, MIG.HIDEMODE3),
+				"[][][]"));
 		options = new PrintOptionsPanel(this);
 		add(poolInit(), MIG.GROWY);
 		add(gridInit(), MIG.GROW);
@@ -228,7 +228,7 @@ public class Print extends JPanel {
 	 */
 	private JPanel gridInit() {
 		//LOG.trace(TT + "gridInit()");
-		JPanel panel = new JPanel(new MigLayout(MIG.HIDEMODE3));
+		JPanel panel = new JPanel(new MigLayout(MIG.get(MIG.INS0, MIG.GAP0, MIG.HIDEMODE3)));
 		panel.setBorder(BorderFactory.createTitledBorder(I18N.getMsg("print.page")));
 
 		panel.add(gridTopInit(), MIG.get(MIG.GROWX, MIG.SPAN));
@@ -314,51 +314,22 @@ public class Print extends JPanel {
 	@SuppressWarnings("unchecked")
 	private JPanel gridTopInit() {
 		//LOG.trace(TT + "gridTopInit()");
-		JPanel p = new JPanel(new MigLayout());
+		JPanel p = new JPanel(new MigLayout(MIG.get(MIG.INS0)));
 		p.setBorder(BorderFactory.createEtchedBorder());
-
-		//button to modify options
 		p.add(Ui.initIconButton("print.options", ICONS.K.OPTIONS, e -> {
 			options.setVisible(!options.isVisible());
 		}));
-
-		/*String orFmt[] = {"A4", "A3"};
-		cbFormat = new JComboBox(orFmt);
-		cbFormat.setSelectedItem(xmlPrint.formatGet());
-		cbFormat.addItemListener(s -> {
-			xmlPrint.formatSet(paperFormatGet());
-			xml.save();
-			gridGet().setDim(paperFormatGet(), paperOrientationGet());
-			gridRefresh();
-		});*/
-
- /*String orList[] = {I18N.getMsg("print.orientation_portrait"),
-			I18N.getMsg("print.orientation_landscape")};
-		cbOrientation = new JComboBox(orList);
-		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
-		cbOrientation.addItemListener(s -> {
-			this.paperOrientationChange();
-		});
-		p.add(cbOrientation);*/
 		p.add(Ui.initIconButton("print.refresh", ICONS.K.REFRESH, e -> refresh()));
 		p.add(Ui.initIconButton("print.add_all", ICONS.K.AR_RIGHT, e -> gridAddAll()));
 		p.add(Ui.initIconButton("print.clear_all", ICONS.K.CANCEL, e -> gridClearAll()));
-
 		// nav panel
 		JPanel pNav = new JPanel(new MigLayout());
-		btPagePrev = Ui.initIconButton("nav.previous", ICONS.K.NAV_PREV, e -> gridNavigation(-1));
-		pNav.add(btPagePrev);
-
-		lbPage = new JLabel(I18N.getMsg("print.page") + " 1 / 1");
-		pNav.add(lbPage);
-
-		btPageNext = Ui.initIconButton("nav.next", ICONS.K.NAV_NEXT, e -> gridNavigation(1));
-		pNav.add(btPageNext);
-
+		pNav.add(btPagePrev = Ui.initIconButton("nav.previous", ICONS.K.NAV_PREV, e -> gridNavigation(-1)));
+		pNav.add(lbPage = new JLabel(I18N.getMsg("print.page") + " 1 / 1"));
+		pNav.add(btPageNext = Ui.initIconButton("nav.next", ICONS.K.NAV_NEXT, e -> gridNavigation(1)));
 		// add and remove button
 		pNav.add(Ui.initIconButton("print.page_add", ICONS.K.PLUS, e -> gridPageAdd()));
-		btPageRemove = Ui.initIconButton("print.page_remove", ICONS.K.MINUS, e -> gridPageRemove());
-		pNav.add(btPageRemove);
+		pNav.add(btPageRemove = Ui.initIconButton("print.page_remove", ICONS.K.MINUS, e -> gridPageRemove()));
 
 		p.add(pNav);
 		return p;
@@ -412,28 +383,13 @@ public class Print extends JPanel {
 	}
 
 	/**
-	 * Change the orientation (PORTRAIT or LANDSCAPE)
-	 */
-	/*private void paperOrientationChange() {
-		int str = cbOrientation.getSelectedIndex();
-		isPortrait = (str == 0);
-		String sorient = (isPortrait ? PORTRAIT : LANDSCAPE);
-		int rows = gridRowsFor(sorient), cols = gridColsFor(sorient);
-		pGrid.orientationSet(rows, cols);
-		xmlPrint.orientationSet(sorient);
-		gridClearAll();
-		xml.save();
-		gridGet().setDim(paperFormatGet(), sorient);
-		gridRefresh();
-	}*/
-	/**
 	 * Initialize the bottom panel (preview, print and exit buttons)
 	 */
 	private JPanel bottomInit() {
 		//LOG.trace(TT + "bottomPanelInit()");
 		JPanel p = new JPanel(new MigLayout());
 		p.add(Ui.initButton("print.action_preview", ICONS.K.PREVIEW, e -> actionPreview()));
-		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT, e -> Printer.executePrint(this)));
+		p.add(Ui.initButton("print.action_print", ICONS.K.F_PRINT, e -> Printer.print(this)));
 		return p;
 	}
 
@@ -712,12 +668,6 @@ public class Print extends JPanel {
 	}
 
 	public void reload() {
-		/*cbFormat.setSelectedItem(xmlPrint.formatGet());
-		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));
-		gridGet().setDim(xmlPrint.formatGet(), xmlPrint.orientationGet());
-		gridRefresh();
-		cbFormat.setSelectedItem(xmlPrint.formatGet());
-		cbOrientation.setSelectedIndex((xmlPrint.isPortrait() ? 0 : 1));*/
 		gridGet().setDim(paperFormatGet(), paperOrientationGet());
 		gridRefresh();
 	}

@@ -22,7 +22,6 @@ import app.diapo.DiapoParam;
 import app.i18n.I18N;
 import app.resources.icons.ICONS;
 import app.tools.GBC;
-import app.tools.LOG;
 import app.tools.Ui;
 import java.awt.GridBagLayout;
 import javax.swing.JButton;
@@ -78,7 +77,7 @@ public class CommentParamDlg extends JDialog {
 		add(new JLabel(I18N.getColonMsg("album.param.comment.date")), new GBC("0, 0, left, ins 2"));
 		cbDate = new JComboBox(ls);
 		add(cbDate, new GBC("0, 1, left, ins 2"));
-		
+
 		btAdd = Ui.initIconButton("btAdd", ICONS.K.AR_DOWN,
 				e -> {
 					String str = tfComment.getText()
@@ -114,7 +113,7 @@ public class CommentParamDlg extends JDialog {
 	}
 
 	private void doOK() {
-		LOG.trace(TT + "doOK()");
+		//LOG.trace(TT + "doOK()");
 		// set param mode and tempo
 		if (saveComment) {
 			param.setComment(tfComment.getText());

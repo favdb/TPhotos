@@ -114,7 +114,7 @@ public class GridCell extends JLabel {
 		if (cell.isPhoto()) {
 			this.setBackground(Color.WHITE);
 			if (cell.photoFileGet() != null && cell.photoFileGet().exists()) {
-				this.setIcon(ImageUtil.getImage(cell.photoFileGet(),
+				this.setIcon(ImageUtil.getThumb(cell.photoFileGet(),
 						Math.max(targetW, targetH), cell.zoomGet()));
 			} else {
 				this.setText("Photo introuvable (#" + cell.photoIdGet() + ")");

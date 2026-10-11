@@ -39,8 +39,10 @@ public class XmlPrint {
 	private final List<XmlPrintCell> cells = new ArrayList<>();
 	private boolean numpage;
 	private String gridSize = "3,5";
-	private String margins;
-	private String cols;
+	private int grid[] = {3, 5};
+	private int margins[] = {0, 0, 0, 0, 0, 0};
+	private boolean marginPhoto = false;//photo margin
+	private boolean binding = false;//center binding margin
 
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public XmlPrint(Xml xml) {
@@ -64,8 +66,9 @@ public class XmlPrint {
 			format = xml.attributeGet(item0, "format");
 			orientation = xml.attributeGet(item0, "orient");
 			numpage = xml.attributeGet(item0, "numpage").equalsIgnoreCase("true");
-			margins = xml.attributeGet(item0, "margins");
-			cols = xml.attributeGet(item0, "size");
+			String str = xml.attributeGet(item0, "margins");
+			marginsSet(str);
+			gridSet(xml.attributeGet(item0, "size"));
 
 			// 1. Initialize global list of XmlPrintCell
 			loadCells();
@@ -105,17 +108,33 @@ public class XmlPrint {
 		}
 	}
 
-	/**
-	 * get the size (rows, cols) depending on orientation
-	 *
-	 * @return
-	 */
-	public String sizeGet() {
-		return gridSize;
+	public int[] gridGet() {
+		String z[] = gridSize.split(",");
+		try {
+			grid[0] = Integer.parseInt(z[0]);
+			grid[1] = Integer.parseInt(z[1]);
+		} catch (NumberFormatException x) {
+
+		}
+		return grid;
 	}
 
-	public void sizeSet(String value) {
-		this.gridSize = value;
+	public String grid2String() {
+		return String.format("%d,%d", grid[0], grid[1]);
+	}
+
+	public void gridSet(int cx[]) {
+		grid[0] = Math.max(1, cx[0]);
+		grid[1] = Math.max(1, cx[1]);
+	}
+
+	public void gridSet(String val) {
+		String cx[] = val.split(",");
+		try {
+			grid[0] = Integer.parseInt(cx[0]);
+			grid[1] = Integer.parseInt(cx[1]);
+		} catch (NumberFormatException ex) {
+		}
 	}
 
 	/**
@@ -246,9 +265,9 @@ public class XmlPrint {
 		b.append(XmlUtil.indent(1)).append("<print ")
 				.append(XmlUtil.attributXml("format", format))
 				.append(XmlUtil.attributXml("orient", orientation))
-				.append(XmlUtil.attributXml("size", sizeGet()))
+				.append(XmlUtil.attributXml("size", grid2String()))
 				.append(XmlUtil.attributXml("numpage", numpage))
-				.append(XmlUtil.attributXml("margins", margins))
+				.append(XmlUtil.attributXml("margins", margins2String()))
 				.append(">\n");
 		return b.toString();
 	}
@@ -357,45 +376,92 @@ public class XmlPrint {
 	}
 
 	/**
-	 * get the margins
-	 *
-	 * @return
-	 */
-	public String marginsGet() {
-		if (margins == null || margins.isEmpty()) {
-			return "0,0,0,0";
-		}
-		return margins;
-	}
-
-	/**
 	 * get the margins as array of int
 	 *
 	 * @return
 	 */
 	public int[] marginsIntGet() {
-		int[] m = {0, 0, 0, 0};
+		return margins;
+		/*int[] m = {0, 0, 0, 0, 0, 0};
 		try {
-			if (margins != null && !margins.isEmpty()) {
-				String p[] = margins.split(",");
+			if (marginsString != null && !marginsString.isEmpty()) {
+				String p[] = marginsString.split(",");
 				m[0] = Integer.parseInt(p[0]);
 				m[1] = Integer.parseInt(p[1]);
 				m[2] = Integer.parseInt(p[2]);
 				m[3] = Integer.parseInt(p[3]);
+				if (p.length > 4) {
+					m[4] = Integer.parseInt(p[4]);
+				}
+				if (p.length > 5) {
+					m[5] = Integer.parseInt(p[5]);
+				}
 			}
 		} catch (NumberFormatException ex) {
 
 		}
-		return m;
+		return m;*/
+	}
+
+	public String margins2String() {
+		return String.format("%d,%d,%d,%d,%d,%d",
+				margins[0], margins[1], margins[2], margins[3],//0-3=sheet margins
+				margins[4], margins[5]);//4=central binding, 5=photo margin
 	}
 
 	/**
-	 * set the margins
+	 * set the margins 0-3=sheet margins, 4=central binding, 5=photo margin
 	 *
 	 * @param margins
 	 */
-	public void marginsSet(String margins) {
-		this.margins = margins;
+	public void marginsSet(int v[]) {
+		try {
+			margins[0] = v[0];
+			margins[1] = v[1];
+			margins[2] = v[2];
+			margins[3] = v[3];
+			margins[4] = v[4];
+			margins[5] = v[5];
+		} catch (Exception ex) {
+
+		}
+	}
+
+	/**
+	 * set the margins 0-3=sheet margins, 4=central binding, 5=photo margin from the given
+	 * String
+	 *
+	 * @param margins
+	 */
+	public void marginsSet(String vx) {
+		margins = new int[]{0, 0, 0, 0, 0, 0};
+		try {
+			String v[] = vx.split(",");
+			margins[0] = Integer.parseInt(v[0]);
+			margins[1] = Integer.parseInt(v[1]);
+			margins[2] = Integer.parseInt(v[2]);
+			margins[3] = Integer.parseInt(v[3]);
+			margins[4] = Integer.parseInt(v[4]);
+			margins[5] = Integer.parseInt(v[5]);
+		} catch (Exception ex) {
+
+		}
+	}
+
+	public boolean centralGet() {
+		try {
+			return margins[4] > 0;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	public boolean gapGet() {
+		try {
+			return margins[5] > 0;
+		} catch (Exception ex) {
+			return false;
+		}
 	}
 
 }
