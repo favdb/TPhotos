@@ -16,7 +16,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
 /**
- * JPanel class as a viewer container. Include a PagePanel representing a virtual sheet.
+ * JPanel class as a viewer container. Include a PagePanel representing a virtual page.
  *
  * @author favdb
  */
@@ -39,12 +39,10 @@ public class Grid extends JPanel {
 	@SuppressWarnings("OverridableMethodCallInConstructor")
 	public Grid(Print print) {
 		this.print = print;
-		this.setBackground(new Color(220, 220, 220)); // Fond gris zone de travail
-		this.setLayout(new GridBagLayout()); // Centre le PagePanel
-
+		this.setBackground(new Color(220, 220, 220));
+		this.setLayout(new GridBagLayout());
 		pagePanel = new PagePanel();
 		this.add(pagePanel);
-
 		initialize();
 	}
 
@@ -57,7 +55,6 @@ public class Grid extends JPanel {
 	public void setDim(String format, String orientation) {
 		//LOG.trace(TT + "setDim(format=" + format + ", orientation=" + orientation + ")");
 		boolean isLandscape = !PORTRAIT.equalsIgnoreCase(orientation);
-
 		if ("A3".equalsIgnoreCase(format)) {
 			cols = isLandscape ? 10 : 6;
 			rows = isLandscape ? 6 : 10;
@@ -65,14 +62,9 @@ public class Grid extends JPanel {
 			cols = isLandscape ? 6 : 4;
 			rows = isLandscape ? 4 : 6;
 		}
-
-		int baseCols = isLandscape ? cols : rows;
-		int baseRows = isLandscape ? rows : cols;
-
-		int panelWidth = 1024;
-		int panelHeight = 768;
-
-		int size = Math.min(panelWidth / baseCols, panelHeight / baseRows);
+		int baseCols = isLandscape ? cols : rows, baseRows = isLandscape ? rows : cols,
+				panelWidth = 1024, panelHeight = 768,
+				size = Math.min(panelWidth / baseCols, panelHeight / baseRows);
 
 		cellDim = new Dimension(size, size);
 		cellConf = new Dimension(cols, rows);
@@ -97,29 +89,22 @@ public class Grid extends JPanel {
 
 		// 1. Load margins (Top, Left, Right, Bottom) and central binding flag
 		int[] margins = print.xmlPrintGet().marginsIntGet();
-		int top = (margins != null && margins.length > 0) ? margins[0] : 0;
-		int left = (margins != null && margins.length > 1) ? margins[1] : 0;
-		int right = (margins != null && margins.length > 2) ? margins[2] : 0;
-		int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
-
-		boolean isLandscape = !print.xmlPrintGet().isPortrait();
-		boolean hasCentralBinding = print.xmlPrintGet().centralGet();
-
-		// 2. Configure MigLayout rows and cols
+		int top = (margins != null && margins.length > 0) ? margins[0] : 0,
+				left = (margins != null && margins.length > 1) ? margins[1] : 0,
+				right = (margins != null && margins.length > 2) ? margins[2] : 0,
+				bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
+		boolean isLandscape = !print.xmlPrintGet().isPortrait(),
+				hasCentralBinding = print.xmlPrintGet().centralGet();
 		StringBuilder rowC = new StringBuilder();
 		for (int i = 0; i < rows; i++) {
 			rowC.append("[]");
 		}
-
 		StringBuilder colC = new StringBuilder();
-		int halfCols = cols / 2; // Répartition des colonnes de chaque côté
-
+		int halfCols = cols / 2;
 		if (isLandscape && hasCentralBinding && cols >= 2) {
-			// En mode paysage avec reliure centrale : Colonnes gauche + Colonne vide centrale + Colonnes droite
 			for (int j = 0; j < halfCols; j++) {
 				colC.append("[]");
 			}
-			// Colonne centrale de reliure (largeur définie par left + right)
 			int centralGap = left + right;
 			colC.append("[").append(centralGap).append("!]");
 			for (int j = halfCols; j < cols; j++) {
@@ -130,20 +115,15 @@ public class Grid extends JPanel {
 				colC.append("[]");
 			}
 		}
-
 		int gap = (print.xmlPrintGet().gapGet() ? 12 : 0);
 		String layoutConstraints = String.format("gap " + gap + ", ins %d %d %d %d",
 				top, left, bottom, right);
 		pagePanel.setLayout(new MigLayout(MIG.get(layoutConstraints),
 				colC.toString(), rowC.toString()));
-
 		imgWidth = cellDim.width;
 		imgHeight = cellDim.height;
-
 		int currentPage = print.gridCurrentPageGet();
 		boolean[][] occupied = new boolean[rows][cols];
-
-		// 3. Place real cells with offset adjustment if past the central column
 		if (print.getCells() != null) {
 			for (XmlPrintCell cell : print.getCells()) {
 				if (cell.pageGet() == currentPage) {
@@ -162,7 +142,6 @@ public class Grid extends JPanel {
 					if (r + sV > rows) {
 						sV = rows - r;
 					}
-
 					for (int i = 0; i < sV; i++) {
 						for (int j = 0; j < sH; j++) {
 							if (r + i < rows && c + j < cols) {
@@ -170,58 +149,48 @@ public class Grid extends JPanel {
 							}
 						}
 					}
-
 					GridCell img = new GridCell(this, cell);
-
-					// Ajustement de l'index de la colonne MigLayout si on est après la reliure centrale
-					int layoutCol = c;
-					if (isLandscape && hasCentralBinding && cols >= 2 && c >= halfCols) {
-						layoutCol = c + 1; // +1 pour sauter la colonne centrale insérée
-					}
-
-					String constraint = String.format("top, cell %d %d %d %d", layoutCol, r, sH, sV);
-					pagePanel.add(img, constraint);
-				}
-			}
-		}
-
-		// 4. Place empty cells
-		for (int r = 0; r < rows; r++) {
-			for (int c = 0; c < cols; c++) {
-				if (!occupied[r][c]) {
-					int targetCellNum = (r * cols) + c + 1;
-
-					XmlPrintCell emptyCell = new XmlPrintCell();
-					emptyCell.cellNumSet(targetCellNum);
-					emptyCell.pageSet(currentPage);
-					emptyCell.posSet(targetCellNum + ",1,1");
-
-					GridCell emptyImg = new GridCell(this, emptyCell);
-
 					int layoutCol = c;
 					if (isLandscape && hasCentralBinding && cols >= 2 && c >= halfCols) {
 						layoutCol = c + 1;
 					}
-
+					String constraint = String.format("top, cell %d %d %d %d",
+							layoutCol, r, sH, sV);
+					pagePanel.add(img, constraint);
+				}
+			}
+		}
+		for (int r = 0; r < rows; r++) {
+			for (int c = 0; c < cols; c++) {
+				if (!occupied[r][c]) {
+					int targetCellNum = (r * cols) + c + 1;
+					XmlPrintCell emptyCell = new XmlPrintCell();
+					emptyCell.cellNumSet(targetCellNum);
+					emptyCell.pageSet(currentPage);
+					emptyCell.posSet(targetCellNum + ",1,1");
+					GridCell emptyImg = new GridCell(this, emptyCell);
+					int layoutCol = c;
+					if (isLandscape && hasCentralBinding && cols >= 2 && c >= halfCols) {
+						layoutCol = c + 1;
+					}
 					String constraint = String.format("cell %d %d 1 1", layoutCol, r);
 					pagePanel.add(emptyImg, constraint);
 					occupied[r][c] = true;
 				}
 			}
 		}
-
 		this.revalidate();
 		this.repaint();
 	}
 
 	/**
-	 * Internal component representing the virtual sheet.
+	 * Internal component representing the virtual page.
 	 */
 	private class PagePanel extends JPanel {
 
 		public PagePanel() {
 			this.setBackground(Color.WHITE);
-			this.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1)); // BORDURE DU PAPIER
+			this.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
 		}
 
 		/**
@@ -232,48 +201,36 @@ public class Grid extends JPanel {
 		@Override
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
-
 			int[] margins = print.xmlPrintGet().marginsIntGet();
-			int top = (margins != null && margins.length > 0) ? margins[0] : 0;
-			int left = (margins != null && margins.length > 1) ? margins[1] : 0;
-			int right = (margins != null && margins.length > 2) ? margins[2] : 0;
-			int bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
-
-			// Vérifie si on est en paysage et si la marge centrale est active
+			int top = (margins != null && margins.length > 0) ? margins[0] : 0,
+					left = (margins != null && margins.length > 1) ? margins[1] : 0,
+					right = (margins != null && margins.length > 2) ? margins[2] : 0,
+					bottom = (margins != null && margins.length > 3) ? margins[3] : 0;
 			boolean isLandscape = !print.xmlPrintGet().isPortrait();
 			boolean hasCentralBinding = print.xmlPrintGet().centralGet();
-
 			Graphics2D g2d = (Graphics2D) g.create();
 			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g2d.setColor(Color.RED);
-
 			if (isLandscape && hasCentralBinding) {
-				// Espace central égal à left + right
-				int centralGap = left + right;
-				int totalWidth = getWidth();
-				int availableWidth = totalWidth - left - right - centralGap;
-				int halfWidth = availableWidth / 2;
-				int h = getHeight() - top - bottom;
-
+				int centralGap = left + right,
+						totalWidth = getWidth(),
+						availableWidth = totalWidth - left - right - centralGap,
+						halfWidth = availableWidth / 2,
+						h = getHeight() - top - bottom;
 				if (halfWidth > 0 && h > 0) {
-					// Premier cadre (gauche)
 					g2d.drawRect(left, top, halfWidth - 1, h - 1);
-					// Second cadre (droite) après l'espace central
 					int secondX = left + halfWidth + centralGap;
 					g2d.drawRect(secondX, top, halfWidth - 1, h - 1);
 				}
 			} else {
-				// Comportement standard (portrait ou paysage sans reliure centrale)
 				int x = left;
 				int y = top;
 				int w = getWidth() - left - right;
 				int h = getHeight() - top - bottom;
-
 				if (w > 0 && h > 0) {
 					g2d.drawRect(x, y, w - 1, h - 1);
 				}
 			}
-
 			g2d.dispose();
 		}
 	}
@@ -348,7 +305,6 @@ public class Grid extends JPanel {
 		if (pendingCell.isText() && targetIsReal) {
 			return;
 		}
-
 		int currentPageNum = print.gridCurrentPageGet();
 		if (pendingCell.isPhoto() && targetCell.isPhoto() && pendingCell.pageGet() > 0) {
 			int posPending = pendingCell.cellNumGet();
@@ -425,29 +381,31 @@ public class Grid extends JPanel {
 		if (item == null || item.pageGet() <= 0) {
 			return false;
 		}
-		int currentSpanH = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1;
-		int currentSpanV = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1;
-		int cellNum = item.cellNumGet();
-		int r = (cellNum - 1) / cols;
-		int c = (cellNum - 1) % cols;
-		int targetSpanH = currentSpanH + 1;
+		int currentSpanH = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1,
+				currentSpanV = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1,
+				cellNum = item.cellNumGet(),
+				r = (cellNum - 1) / cols,
+				c = (cellNum - 1) % cols,
+				targetSpanH = currentSpanH + 1;
 		if (c + targetSpanH > cols) {
 			return false;
 		}
-		int targetCol = c + currentSpanH;
+		int targetC = c + currentSpanH;
 		for (XmlPrintCell other : print.getCells()) {
 			if (other.pageGet() == item.pageGet() && other.cellNumGet() != item.cellNumGet()) {
 				int otherCellNum = other.cellNumGet();
 				if (otherCellNum < 1 || otherCellNum > (rows * cols)) {
 					continue;
 				}
-				int otherR = (otherCellNum - 1) / cols;
-				int otherC = (otherCellNum - 1) % cols;
-				int otherSpanH = other.spanHorizontalGet() > 0 ? other.spanHorizontalGet() : 1;
-				int otherSpanV = other.spanVerticalGet() > 0 ? other.spanVerticalGet() : 1;
-				boolean overlapH = (targetCol >= otherC) && (targetCol < otherC + otherSpanH);
-				boolean overlapV = (r < otherR + otherSpanV) && (r + currentSpanV > otherR);
-				if (overlapH && overlapV) {
+				int otherR = (otherCellNum - 1) / cols,
+						otherC = (otherCellNum - 1) % cols,
+						otherSpanH = other.spanHorizontalGet() > 0
+						? other.spanHorizontalGet() : 1,
+						otherSpanV = other.spanVerticalGet() > 0
+						? other.spanVerticalGet() : 1;
+				boolean ovH = (targetC >= otherC) && (targetC < otherC + otherSpanH),
+						ovV = (r < otherR + otherSpanV) && (r + currentSpanV > otherR);
+				if (ovH && ovV) {
 					return false;
 				}
 			}
@@ -465,29 +423,32 @@ public class Grid extends JPanel {
 		if (item == null || item.pageGet() <= 0) {
 			return false;
 		}
-		int currentSpanH = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1;
-		int currentSpanV = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1;
-		int cellNum = item.cellNumGet();
-		int r = (cellNum - 1) / cols;
-		int c = (cellNum - 1) % cols;
-		int targetSpanV = currentSpanV + 1;
+		int curSpanH = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1,
+				curSpanV = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1,
+				cellNum = item.cellNumGet(),
+				r = (cellNum - 1) / cols,
+				c = (cellNum - 1) % cols,
+				targetSpanV = curSpanV + 1;
 		if (r + targetSpanV > rows) {
 			return false;
 		}
-		int targetRow = r + currentSpanV;
+		int targetRow = r + curSpanV;
 		for (XmlPrintCell other : print.getCells()) {
-			if (other.pageGet() == item.pageGet() && other.cellNumGet() != item.cellNumGet()) {
+			if (other.pageGet() == item.pageGet()
+					&& other.cellNumGet() != item.cellNumGet()) {
 				int otherCellNum = other.cellNumGet();
 				if (otherCellNum < 1 || otherCellNum > (rows * cols)) {
 					continue;
 				}
-				int otherR = (otherCellNum - 1) / cols;
-				int otherC = (otherCellNum - 1) % cols;
-				int otherSpanH = other.spanHorizontalGet() > 0 ? other.spanHorizontalGet() : 1;
-				int otherSpanV = other.spanVerticalGet() > 0 ? other.spanVerticalGet() : 1;
-				boolean overlapH = (c < otherC + otherSpanH) && (c + currentSpanH > otherC);
-				boolean overlapV = (targetRow >= otherR) && (targetRow < otherR + otherSpanV);
-				if (overlapH && overlapV) {
+				int otherR = (otherCellNum - 1) / cols,
+						otherC = (otherCellNum - 1) % cols,
+						otherSpanH = other.spanHorizontalGet() > 0
+						? other.spanHorizontalGet() : 1,
+						otherSpanV = other.spanVerticalGet() > 0
+						? other.spanVerticalGet() : 1;
+				boolean ovH = (c < otherC + otherSpanH) && (c + curSpanH > otherC),
+						ovV = (targetRow >= otherR) && (targetRow < otherR + otherSpanV);
+				if (ovH && ovV) {
 					return false;
 				}
 			}
@@ -499,8 +460,8 @@ public class Grid extends JPanel {
 		if (item == null) {
 			return;
 		}
-		int currentSpan = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1;
-		int newSpan = currentSpan + value;
+		int curSpan = item.spanHorizontalGet() > 0 ? item.spanHorizontalGet() : 1;
+		int newSpan = curSpan + value;
 		if (newSpan >= 1 && newSpan <= cols) {
 			item.spanHorizontalSet(newSpan);
 			setModified();
@@ -512,8 +473,8 @@ public class Grid extends JPanel {
 		if (item == null) {
 			return;
 		}
-		int currentSpan = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1;
-		int newSpan = currentSpan + value;
+		int curSpan = item.spanVerticalGet() > 0 ? item.spanVerticalGet() : 1;
+		int newSpan = curSpan + value;
 		if (newSpan >= 1 && newSpan <= rows) {
 			item.spanVerticalSet(newSpan);
 			setModified();
@@ -527,7 +488,8 @@ public class Grid extends JPanel {
 		refresh();
 	}
 
-	void offsetSet(XmlPrintCell cell) {
+	//todo set the offset for hte given cell with drag'n drop
+	public void offsetSet(XmlPrintCell cell) {
 		if (cell.isPhoto()) {
 			if (cell.zoomGet() != 1) {
 				//enter dragn'drop if zoom is none or
@@ -535,6 +497,8 @@ public class Grid extends JPanel {
 		}
 	}
 
-	void rotateSet(XmlPrintCell cell, int rotateValue) {
+	//todo rotate set for the given cell (allways right: 0=none, 1=90°, 2=180°, 3=270°)
+	public void rotateSet(XmlPrintCell cell, int rotateValue) {
 	}
+
 }

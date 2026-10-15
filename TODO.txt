@@ -3,3 +3,34 @@
 - ajouter une fonction recherche
 - Print > Ajouter tout : créer pages nécessaires à vérifier
 - Print définir librement la grille (cols x rows) valeure 1-5
+
+Améliortion du Printer
+
+Contexte : application Java Swing d'album photo. La classe Printer.java (package
+app.print, jointe) imprime les pages de l'album comme les affiche Grid.java, sans
+les cadres de marges ni les cases vides. Elle utilise PrinterJob avec ServiceUI
+(choix de l'imprimante, "imprimer dans un fichier"), une fenêtre de progression
+modale (SwingWorker + JProgressBar, bouton Annuler) et des marges en mm lues dans
+XmlPrint.marginsIntGet().
+
+État actuel : la mise en page est correcte. Dans drawPhoto, chaque photo est
+décodée avec ImageIO.read, recadrée à la partie visible de la case, puis réduite
+à 300 dpi (constante PRINT_DPI) par divisions successives. Le fichier .ps de
+test (21 photos) est passé de 589 Mo à 15 Mo.
+
+Problème à traiter : l'impression reste longue (21 photos). Je n'ai pas mesuré où
+va le temps : décodage JPEG pleine résolution, réduction, ou écriture du
+PostScript par Java.
+
+Demande :
+1. Ajoute des traces de durée dans le log (décodage, réduction, total par photo
+   et par page) pour identifier ce qui est lent.
+2. Si le décodage domine, prépare (lecture + réduction) les photos d'une page en
+   parallèle avec un pool de threads, puis dessine-les dans l'ordre dans le
+   Graphics2D. La barre de progression et le bouton Annuler doivent continuer à
+   fonctionner (Printable.print est appelé hors EDT, et Java peut redemander
+   deux fois la même page).
+3. Étudie ImageReader.setSourceSubsampling pour réduire la mémoire au décodage.
+
+Contraintes : ne pas changer le rendu (marges, cases, zoom 0/1/2, texte HTML),
+garder PRINT_DPI configurable, et signaler ce que tu n'as pas pu tester.

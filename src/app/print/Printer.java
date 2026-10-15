@@ -1,6 +1,5 @@
 package app.print;
 
-import app.i18n.I18N;
 import app.tools.LOG;
 import app.xml.XmlPrint;
 import app.xml.XmlPrintCell;
@@ -25,6 +24,7 @@ import java.awt.print.PrinterAbortException;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -50,8 +50,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 /**
- * Prints the album pages the way Grid shows them, but without the visual aids of the
- * editor: no red margin frames and no empty cells (dashed border + number).
+ * Class to print the album pages the way Grid shows them without the visual aids of the
+ * editor (no red margin frames and no empty cells).
  *
  * The layout rules are the same as Grid.refresh(): same cols/rows, same central binding
  * handling (landscape + binding), same spans. Margins (XmlPrint.marginsIntGet()) are
@@ -63,32 +63,28 @@ public class Printer implements Printable {
 
 	private static final String TT = "Printer.";
 
-	/**
-	 * margin unit expressed in PostScript points (1 mm = 72/25.4 pt)
-	 */
 	private static final double MARGIN_UNIT = 72.0 / 25.4;
-	/**
-	 * standard space between photos (mm) when the photo margin flag is on
-	 */
 	private static final double PHOTO_GAP_MM = 1.0;
-	/**
-	 * resolution used to size a photo when zoom mode is 0 (none = original size)
-	 */
+	private static final double PRINT_DPI = 300.0;
 	private static final double NATIVE_DPI = 300.0;
 
 	private final Print print;
 	private final List<Integer> pageIds = new ArrayList<>();
 
-	// progress window (created on the EDT, updated through SwingUtilities.invokeLater)
 	private PrinterJob job;
 	private JDialog progressDialog;
 	private JProgressBar progressBar;
 	private JLabel progressLabel;
 	private JButton cancelButton;
 	private volatile boolean cancelled = false;
+	private final XmlPrint xmlPrint;
+	private final Grid grid;
 
 	private Printer(Print print) {
 		this.print = print;
+		this.xmlPrint = print.xmlPrintGet();
+		this.grid = print.gridGet();
+
 	}
 
 	/**
@@ -97,15 +93,16 @@ public class Printer implements Printable {
 	 * @param print
 	 */
 	public static void print(Print print) {
+		//LOG.trace(TT+"print(print)");
 		new Printer(print).run();
 	}
 
 	private void run() {
-		// list of the pages to print
+		//LOG.trace(TT+"run()");
 		pageIds.clear();
 		for (XmlPrintPage p : print.printPagesGet()) {
 			try {
-				pageIds.add(Integer.parseInt(p.idGet()));
+				pageIds.add(Integer.valueOf(p.idGet()));
 			} catch (NumberFormatException ex) {
 				LOG.err(TT + "invalid page id " + p.idGet());
 			}
@@ -113,37 +110,30 @@ public class Printer implements Printable {
 		if (pageIds.isEmpty()) {
 			return;
 		}
-
-		XmlPrint xp = print.xmlPrintGet();
 		job = PrinterJob.getPrinterJob();
 		job.setJobName("Album");
-
-		// paper: A3 or A4, whole sheet, margins are handled by this class
-		boolean a3 = "A3".equalsIgnoreCase(xp.formatGet());
-		double w = (a3 ? 297 : 210) * 72.0 / 25.4;
-		double h = (a3 ? 420 : 297) * 72.0 / 25.4;
+		boolean a3 = "A3".equalsIgnoreCase(xmlPrint.formatGet());
+		double w = (a3 ? 297 : 210) * 72.0 / 25.4,
+				h = (a3 ? 420 : 297) * 72.0 / 25.4;
 		Paper paper = new Paper();
 		paper.setSize(w, h);
 		paper.setImageableArea(0, 0, w, h);
 		PageFormat pf = job.defaultPage();
 		pf.setPaper(paper);
-		pf.setOrientation(xp.isPortrait() ? PageFormat.PORTRAIT : PageFormat.LANDSCAPE);
+		pf.setOrientation(xmlPrint.isPortrait() ? PageFormat.PORTRAIT : PageFormat.LANDSCAPE);
 		job.setPrintable(this, pf);
-
-		// attributes consistent with our page setup, so the dialog can't override them
 		PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
 		attrs.add(a3 ? MediaSizeName.ISO_A3 : MediaSizeName.ISO_A4);
-		attrs.add(xp.isPortrait() ? OrientationRequested.PORTRAIT : OrientationRequested.LANDSCAPE);
-
-		// "Page setup" tab of the dialog: margins pre-filled with the XmlPrint values (mm).
-		// MediaPrintableArea is expressed on the sheet in portrait feed, so in landscape the
-		// margins are rotated: view left = sheet top, view top = sheet right,
-		// view right = sheet bottom, view bottom = sheet left.
-		int[] mg = xp.marginsIntGet();
-		float mTop = mg[0], mLeft = mg[1], mRight = mg[2], mBottom = mg[3];
-		float sheetW = a3 ? 297f : 210f, sheetH = a3 ? 420f : 297f;
+		attrs.add(xmlPrint.isPortrait() ? OrientationRequested.PORTRAIT : OrientationRequested.LANDSCAPE);
+		int[] mg = xmlPrint.marginsIntGet();
+		float mTop = mg[0],
+				mLeft = mg[1],
+				mRight = mg[2],
+				mBottom = mg[3],
+				sheetW = a3 ? 297f : 210f,
+				sheetH = a3 ? 420f : 297f;
 		float ax, ay, aw, ah;
-		if (xp.isPortrait()) {
+		if (xmlPrint.isPortrait()) {
 			ax = mLeft;
 			ay = mTop;
 			aw = sheetW - mLeft - mRight;
@@ -176,10 +166,15 @@ public class Printer implements Printable {
 			LOG.err(TT + "print error: " + ex.getMessage());
 			return;
 		}
-
-		// the printing itself runs outside the EDT, with a modal progress window
+		attrs.add(a3 ? MediaSizeName.ISO_A3 : MediaSizeName.ISO_A4);
+		attrs.add(xmlPrint.isPortrait() ? OrientationRequested.PORTRAIT : OrientationRequested.LANDSCAPE);
+		try {
+			job.setPrintable(this, job.getPageFormat(attrs));
+		} catch (RuntimeException ex) {
+			LOG.err(TT + "getPageFormat failed, A3/A4 page format kept: " + ex);
+		}
 		cancelled = false;
-		Window owner = SwingUtilities.getWindowAncestor(print.gridGet());
+		Window owner = SwingUtilities.getWindowAncestor(grid);
 		buildProgressDialog(owner);
 		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 			@Override
@@ -189,6 +184,7 @@ public class Printer implements Printable {
 			}
 
 			@Override
+			@SuppressWarnings("null")
 			protected void done() {
 				progressDialog.dispose();
 				try {
@@ -198,8 +194,8 @@ public class Printer implements Printable {
 					if (!(cause instanceof PrinterAbortException)) {
 						LOG.err(TT + "print error: " + cause);
 						JOptionPane.showMessageDialog(owner,
-								"Erreur d'impression : " + cause.getMessage(),
-								"Impression", JOptionPane.ERROR_MESSAGE);
+								"Print error : " + cause.getMessage(),
+								"Print", JOptionPane.ERROR_MESSAGE);
 					}
 				} catch (InterruptedException ex) {
 					Thread.currentThread().interrupt();
@@ -207,8 +203,6 @@ public class Printer implements Printable {
 			}
 		};
 		worker.execute();
-		// modal: blocks the user actions (the data must not change while printing),
-		// done() is queued on the EDT and closes the window at the end
 		progressDialog.setVisible(true);
 	}
 
@@ -216,7 +210,8 @@ public class Printer implements Printable {
 	 * build the progress window: message, progress bar and cancel button
 	 */
 	private void buildProgressDialog(Window owner) {
-		progressDialog = new JDialog(owner, "Impression", Dialog.ModalityType.APPLICATION_MODAL);
+		progressDialog = new JDialog(owner, "Impression",
+				Dialog.ModalityType.APPLICATION_MODAL);
 		progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		progressLabel = new JLabel("Préparation de l'impression…");
 		progressBar = new JProgressBar(0, pageIds.size() * 100);
@@ -247,11 +242,8 @@ public class Printer implements Printable {
 	 */
 	private void progress(int pageIndex, int done, int total) {
 		final int value = pageIndex * 100 + (total == 0 ? 100 : done * 100 / total);
-		final String text = String.format("%s %d/%d – %s %d/%d",
-				I18N.getMsg("print.page"),
-				pageIndex + 1, pageIds.size(),
-				I18N.getMsg("photo"),
-				done, total);
+		final String text = String.format("Page %d/%d – élément %d/%d",
+				pageIndex + 1, pageIds.size(), done, total);
 		SwingUtilities.invokeLater(() -> {
 			progressBar.setIndeterminate(false);
 			if (value >= progressBar.getValue()) {
@@ -263,6 +255,15 @@ public class Printer implements Printable {
 		});
 	}
 
+	/**
+	 * print for given Graphics, PageFormat and page index
+	 *
+	 * @param g
+	 * @param pf
+	 * @param pageIndex
+	 * @return
+	 * @throws PrinterException
+	 */
 	@Override
 	public int print(Graphics g, PageFormat pf, int pageIndex) throws PrinterException {
 		if (cancelled) {
@@ -271,14 +272,22 @@ public class Printer implements Printable {
 		if (pageIndex < 0 || pageIndex >= pageIds.size()) {
 			return NO_SUCH_PAGE;
 		}
+		/*LOG.trace(String.format(TT + "print() imageable "
+				+ "x=%.1f y=%.1f w=%.1f h=%.1f pt (x=%.1f y=%.1f mm)",
+				pf.getImageableX(), pf.getImageableY(),
+				pf.getImageableWidth(), pf.getImageableHeight(),
+				pf.getImageableX() / MARGIN_UNIT, pf.getImageableY() / MARGIN_UNIT));*/
 		Graphics2D g2 = (Graphics2D) g.create();
 		try {
-			// The Graphics origin is the corner of the sheet. No translation to the imageable
-			// area: the margins of XmlPrint are measured from the edge of the paper.
-			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-			g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g2.setClip(-10000, -10000, 20000, 20000);
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+					RenderingHints.VALUE_ANTIALIAS_ON);
+			g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+					RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+					RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+			g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+					RenderingHints.VALUE_RENDER_QUALITY);
 			drawPage(g2, pf.getWidth(), pf.getHeight(),
 					pageIds.get(pageIndex), pageIndex);
 		} finally {
@@ -290,30 +299,24 @@ public class Printer implements Printable {
 	/**
 	 * draw one page, same layout rules as Grid.refresh()
 	 */
-	private void drawPage(Graphics2D g2, double pageW, double pageH, int pageId, int pageIndex)
-			throws PrinterException {
+	private void drawPage(Graphics2D g2, double pageW, double pageH,
+			int pageId, int pageIndex) throws PrinterException {
 		int pageNum = pageIndex + 1;
-		XmlPrint xp = print.xmlPrintGet();
-		Grid grid = print.gridGet();
 		int cols = grid.colsGet(), rows = grid.rowsGet();
 		if (cols < 1 || rows < 1) {
 			return;
 		}
-
-		int[] m = xp.marginsIntGet();
-		double top = m[0] * MARGIN_UNIT, left = m[1] * MARGIN_UNIT;
-		double right = m[2] * MARGIN_UNIT, bottom = m[3] * MARGIN_UNIT;
-		double gap = xp.gapGet() ? PHOTO_GAP_MM * 72.0 / 25.4 : 0; // margins[5] is a flag
-
-		boolean binding = !xp.isPortrait() && xp.centralGet() && cols >= 2;
+		int[] m = xmlPrint.marginsIntGet();
+		double top = m[0] * MARGIN_UNIT, left = m[1] * MARGIN_UNIT,
+				right = m[2] * MARGIN_UNIT, bottom = m[3] * MARGIN_UNIT,
+				gap = xmlPrint.gapGet() ? PHOTO_GAP_MM * 72.0 / 25.4 : 0;
+		boolean binding = !xmlPrint.isPortrait() && xmlPrint.centralGet() && cols >= 2;
 		int halfCols = cols / 2;
-
-		// columns: x0[c] = left edge, x1[c] = right edge
 		double[] x0 = new double[cols], x1 = new double[cols];
 		if (binding) {
-			double centralGap = left + right; // same rule as Grid
-			double halfW = (pageW - left - right - centralGap) / 2;
-			double secondX = left + halfW + centralGap;
+			double centralGap = left + right,
+					halfW = (pageW - left - right - centralGap) / 2,
+					secondX = left + halfW + centralGap;
 			int rightCols = cols - halfCols;
 			for (int c = 0; c < cols; c++) {
 				if (c < halfCols) {
@@ -331,10 +334,7 @@ public class Printer implements Printable {
 				x1[c] = left + (c + 1) * cw;
 			}
 		}
-		// rows
 		double rh = (pageH - top - bottom) / rows;
-
-		// number of elements to draw on this page (for the progress window)
 		int total = 0, done = 0;
 		for (XmlPrintCell cell : print.getCells()) {
 			if (cell.pageGet() == pageId && !cell.isEmpty()) {
@@ -342,8 +342,6 @@ public class Printer implements Printable {
 			}
 		}
 		progress(pageIndex, 0, total);
-
-		// cells: only photos and texts of this page, empty cells are never drawn
 		for (XmlPrintCell cell : print.getCells()) {
 			if (cancelled) {
 				throw new PrinterAbortException();
@@ -355,20 +353,18 @@ public class Printer implements Printable {
 			if (num < 1 || num > rows * cols) {
 				continue;
 			}
-			int r = (num - 1) / cols;
-			int c = (num - 1) % cols;
-			int sH = Math.max(1, cell.spanHorizontalGet());
-			int sV = Math.max(1, cell.spanVerticalGet());
+			int r = (num - 1) / cols, c = (num - 1) % cols,
+					sH = Math.max(1, cell.spanHorizontalGet()),
+					sV = Math.max(1, cell.spanVerticalGet());
 			sH = Math.min(sH, cols - c);
 			sV = Math.min(sV, rows - r);
 			if (binding && c < halfCols && c + sH > halfCols) {
-				sH = halfCols - c; // a cell never crosses the binding
+				sH = halfCols - c;
 			}
-
-			double rx = x0[c] + gap / 2;
-			double ry = top + r * rh + gap / 2;
-			double rw = x1[c + sH - 1] - x0[c] - gap;
-			double rhh = sV * rh - gap;
+			double rx = x0[c] + gap / 2,
+					ry = top + r * rh + gap / 2,
+					rw = x1[c + sH - 1] - x0[c] - gap,
+					rhh = sV * rh - gap;
 			if (rw <= 0 || rhh <= 0) {
 				continue;
 			}
@@ -380,23 +376,23 @@ public class Printer implements Printable {
 			}
 			progress(pageIndex, ++done, total);
 		}
-
-		// page number (only if requested in the print settings)
-		if (xp.numpageGet()) {
+		if (xmlPrint.numpageGet()) {
 			Graphics2D gn = (Graphics2D) g2.create();
 			gn.setColor(Color.BLACK);
 			gn.setFont(gn.getFont().deriveFont(Font.PLAIN, 9f));
 			FontMetrics fm = gn.getFontMetrics();
 			String s = Integer.toString(pageNum);
-			float y = (float) (pageH - Math.max(bottom / 2, fm.getHeight()) + fm.getAscent() / 2.0);
+			float y = (float) (pageH - Math.max(bottom / 2,
+					fm.getHeight()) + fm.getAscent() / 2.0);
 			gn.drawString(s, (float) ((pageW - fm.stringWidth(s)) / 2), y);
 			gn.dispose();
 		}
 	}
 
 	/**
-	 * zoom 0 = original size (at NATIVE_DPI), 1 = contain, 2 = cover. Always clipped to
-	 * the cell.
+	 * zoom 0 = original size (at NATIVE_DPI), 1 = contain, 2 = cover.
+	 *
+	 * Always clipped to the cell.
 	 */
 	private void drawPhoto(Graphics2D g2, XmlPrintCell cell, Rectangle2D area) {
 		File f = cell.photoFileGet();
@@ -406,15 +402,14 @@ public class Printer implements Printable {
 		BufferedImage img;
 		try {
 			img = ImageIO.read(f);
-		} catch (Exception ex) {
+		} catch (IOException ex) {
 			LOG.err(TT + "cannot read " + f + " : " + ex.getMessage());
 			return;
 		}
 		if (img == null) {
 			return;
 		}
-		double iw = img.getWidth(), ih = img.getHeight();
-		double s;
+		double iw = img.getWidth(), ih = img.getHeight(), s;
 		switch (cell.zoomGet()) {
 			case 2:
 				s = Math.max(area.getWidth() / iw, area.getHeight() / ih);
@@ -426,16 +421,61 @@ public class Printer implements Printable {
 				s = Math.min(area.getWidth() / iw, area.getHeight() / ih);
 				break;
 		}
-		double dx = area.getX() + (area.getWidth() - iw * s) / 2;
-		double dy = area.getY() + (area.getHeight() - ih * s) / 2;
-
+		double dx = area.getX() + (area.getWidth() - iw * s) / 2,
+				dy = area.getY() + (area.getHeight() - ih * s) / 2;
+		Rectangle2D drawn = new Rectangle2D.Double(dx, dy, iw * s, ih * s),
+				vis = drawn.createIntersection(area);
+		if (vis.isEmpty()) {
+			return;
+		}
+		int sx = (int) Math.max(0, Math.floor((vis.getX() - dx) / s)),
+				sy = (int) Math.max(0, Math.floor((vis.getY() - dy) / s)),
+				sw = (int) Math.min(img.getWidth() - sx,
+						Math.ceil(vis.getWidth() / s) + 1),
+				sh = (int) Math.min(img.getHeight() - sy,
+						Math.ceil(vis.getHeight() / s) + 1);
+		if (sw < 1 || sh < 1) {
+			return;
+		}
+		BufferedImage part = img.getSubimage(sx, sy, sw, sh);
+		int tw = (int) Math.ceil(sw * s / 72.0 * PRINT_DPI),
+				th = (int) Math.ceil(sh * s / 72.0 * PRINT_DPI);
+		BufferedImage out = downscale(part, Math.max(1, tw), Math.max(1, th));
 		Graphics2D gc = (Graphics2D) g2.create();
 		gc.clip(area);
 		AffineTransform at = new AffineTransform();
-		at.translate(dx, dy);
-		at.scale(s, s);
-		gc.drawImage(img, at, null);
+		at.translate(dx + sx * s, dy + sy * s);
+		at.scale(sw * s / out.getWidth(), sh * s / out.getHeight());
+		gc.drawImage(out, at, null);
 		gc.dispose();
+	}
+
+	/**
+	 * reduce the given image to the target size by successive halvings (better quality
+	 * than one big step). An image that is already small enough is returned unchanged.
+	 */
+	private static BufferedImage downscale(BufferedImage src, int tw, int th) {
+		if (src.getWidth() <= tw || src.getHeight() <= th) {
+			return src;
+		}
+		BufferedImage cur = src;
+		int w = cur.getWidth(), h = cur.getHeight();
+		while (w > tw || h > th) {
+			int nw = Math.min(w, Math.max(tw, w / 2)),
+					nh = Math.min(h, Math.max(th, h / 2));
+			BufferedImage next = new BufferedImage(nw, nh, BufferedImage.TYPE_INT_RGB);
+			Graphics2D g = next.createGraphics();
+			g.setColor(Color.WHITE);
+			g.fillRect(0, 0, nw, nh);
+			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+					RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g.drawImage(cur, 0, 0, nw, nh, null);
+			g.dispose();
+			cur = next;
+			w = nw;
+			h = nh;
+		}
+		return cur;
 	}
 
 	/**
@@ -446,18 +486,24 @@ public class Printer implements Printable {
 		if (content.isEmpty()) {
 			return;
 		}
-		JLabel label = new JLabel("<html><head><style>body { font-size: 10px; }</style></head><body>"
-				+ content + "</body></html>");
+		JLabel label = new JLabel("<html>"
+				+ "<head>"
+				+ "<style>body { font-size: 10px; }</style>"
+				+ "</head>"
+				+ "<body>"
+				+ content
+				+ "</body>"
+				+ "</html>");
 		label.setOpaque(false);
 		label.setForeground(Color.BLACK);
 		label.setVerticalAlignment(SwingConstants.TOP);
 		label.setHorizontalAlignment(SwingConstants.LEFT);
 		label.setBounds(0, 0, (int) area.getWidth(), (int) area.getHeight());
-
-		Graphics2D gc = (Graphics2D) g2.create();
-		gc.clip(area);
-		gc.translate(area.getX(), area.getY());
-		label.print(gc);
-		gc.dispose();
+		Graphics2D g2d = (Graphics2D) g2.create();
+		g2d.clip(area);
+		g2d.translate(area.getX(), area.getY());
+		label.print(g2d);
+		g2d.dispose();
 	}
+
 }
